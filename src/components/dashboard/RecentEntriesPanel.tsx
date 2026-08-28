@@ -1,20 +1,36 @@
+import { Link } from 'react-router-dom'
 import type { TransactionWithBusiness } from '../../lib/transactions'
 import { formatMoney, formatShortDate } from '../../lib/format'
-import { Panel } from './Panel'
+import { Panel } from '../Panel'
 
 export function RecentEntriesPanel({
   transactions,
   showBusiness,
+  businessId,
   isLoading,
 }: {
   transactions: TransactionWithBusiness[]
   showBusiness: boolean
+  businessId?: string
   isLoading: boolean
 }) {
   const recent = transactions.slice(0, 8)
 
   return (
-    <Panel title="Recent entries" margined>
+    <Panel
+      title="Recent entries"
+      margined
+      action={
+        businessId ? (
+          <Link
+            to={`/businesses/${businessId}/ledger`}
+            className="border-b border-current text-[13px] text-stamp no-underline"
+          >
+            Open full ledger
+          </Link>
+        ) : undefined
+      }
+    >
       {isLoading ? (
         <p className="px-5 py-6 text-sm text-ink-soft">Loading…</p>
       ) : recent.length === 0 ? (

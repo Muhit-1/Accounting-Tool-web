@@ -1,12 +1,51 @@
-import { useQueries, useQuery } from '@tanstack/react-query'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api-client'
-import type { Transaction } from '../types/api'
+import type { CategoryType, Transaction } from '../types/api'
 
 export function useTransactions(businessId: string | undefined) {
   return useQuery({
     queryKey: ['transactions', businessId],
     queryFn: () => api.get<Transaction[]>(`/businesses/${businessId}/transactions`),
     enabled: Boolean(businessId),
+  })
+}
+
+export interface TransactionInput {
+  date: string
+  memo?: string
+  categoryId?: string
+  amount: number
+  type: CategoryType
+}
+
+function invalidateTransactionQueries(queryClient: ReturnType<typeof useQueryClient>, businessId: string) {
+  queryClient.invalidateQueries({ queryKey: ['transactions', businessId] })
+  queryClient.invalidateQueries({ queryKey: ['dashboard', businessId] })
+  queryClient.invalidateQueries({ queryKey: ['dashboard', 'combined'] })
+}
+
+export function useCreateTransaction(businessId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: TransactionInput) => api.post<Transaction>(`/businesses/${businessId}/transactions`, input),
+    onSuccess: () => invalidateTransactionQueries(queryClient, businessId),
+  })
+}
+
+export function useUpdateTransaction(businessId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...input }: Partial<TransactionInput> & { id: string }) =>
+      api.patch<Transaction>(`/businesses/${businessId}/transactions/${id}`, input),
+    onSuccess: () => invalidateTransactionQueries(queryClient, businessId),
+  })
+}
+
+export function useDeleteTransaction(businessId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/businesses/${businessId}/transactions/${id}`),
+    onSuccess: () => invalidateTransactionQueries(queryClient, businessId),
   })
 }
 

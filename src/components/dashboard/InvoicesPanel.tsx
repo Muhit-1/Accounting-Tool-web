@@ -1,6 +1,6 @@
 import type { InvoiceWithBusiness } from '../../lib/invoices'
 import type { InvoiceStatus } from '../../types/api'
-import { Panel } from './Panel'
+import { Panel } from '../Panel'
 
 const STATUS_STYLES: Record<InvoiceStatus, string> = {
   PAID: 'bg-green-soft text-green',

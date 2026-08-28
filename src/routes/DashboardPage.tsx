@@ -32,6 +32,7 @@ interface DashboardBody {
   invoices: InvoiceWithBusiness[]
   grants: AccessGrantWithBusiness[]
   showBusiness: boolean
+  businessId?: string
   isLoading: boolean
   emptyNote?: { title: string; body: string }
 }
@@ -43,6 +44,7 @@ function DashboardBody({
   invoices,
   grants,
   showBusiness,
+  businessId,
   isLoading,
   emptyNote,
 }: DashboardBody) {
@@ -60,7 +62,12 @@ function DashboardBody({
       <KpiBand cells={kpiCells} />
 
       <div className="rise rise-2 grid grid-cols-1 items-start gap-7 lg:grid-cols-[1.7fr_1fr]">
-        <RecentEntriesPanel transactions={transactions} showBusiness={showBusiness} isLoading={isLoading} />
+        <RecentEntriesPanel
+          transactions={transactions}
+          showBusiness={showBusiness}
+          businessId={businessId}
+          isLoading={isLoading}
+        />
 
         <div className="flex flex-col gap-5">
           <InvoicesPanel invoices={invoices} showBusiness={showBusiness} isLoading={isLoading} />
@@ -156,6 +163,7 @@ function SingleBusinessDashboard({ businessId }: { businessId: string }) {
       invoices={invoices}
       grants={grants}
       showBusiness={false}
+      businessId={businessId}
       isLoading={isDashLoading || isTxLoading || isInvLoading || isGrantLoading}
       emptyNote={
         !isDashLoading && !hasActivity

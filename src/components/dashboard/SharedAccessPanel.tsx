@@ -1,6 +1,6 @@
 import type { AccessGrantWithBusiness } from '../../lib/access-grants'
 import { daysUntil } from '../../lib/format'
-import { Panel } from './Panel'
+import { Panel } from '../Panel'
 
 export function SharedAccessPanel({
   grants,
