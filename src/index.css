@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/* Ledger theme — see Assest and doc/Accounting-Tool-Ledger-Theme-Style-Guide_1.html */
+@theme {
+  --color-paper: #efece1;
+  --color-paper-line: #dad5c4;
+  --color-paper-edge: #e4dfd1;
+  --color-ink: #182c27;
+  --color-ink-soft: #5c6560;
+  --color-stamp: #443789;
+  --color-stamp-soft: #eae6f7;
+  --color-brass: #8a6a22;
+  --color-brass-soft: #f1e9d3;
+  --color-rust: #9b4632;
+  --color-rust-soft: #f4e4de;
+  --color-rule-red: #b65b4e;
+  --color-green: #3e6a4f;
+  --color-green-soft: #e4eee6;
+
+  --font-display: "Fraunces", serif;
+  --font-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --radius-ledger: 3px;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background:
+    linear-gradient(var(--color-paper-edge) 1px, transparent 1px) 0 0/100% 32px,
+    var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 15.5px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-stamp);
+  outline-offset: 2px;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise {
+  animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.rise-1 {
+  animation-delay: 0.03s;
+}
+.rise-2 {
+  animation-delay: 0.11s;
+}
+.rise-3 {
+  animation-delay: 0.19s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
