@@ -65,6 +65,16 @@ export interface Client {
   email: string | null
 }
 
+export interface InvoiceItem {
+  id: string
+  invoiceId: string
+  position: number
+  description: string
+  quantity: number
+  rate: number
+  amount: number
+}
+
 export interface Invoice {
   id: string
   businessId: string
@@ -80,6 +90,7 @@ export interface Invoice {
   createdAt: string
   updatedAt: string
   client: Client
+  items?: InvoiceItem[]
 }
 
 export type AccessScope = 'BUSINESS' | 'TABLE'

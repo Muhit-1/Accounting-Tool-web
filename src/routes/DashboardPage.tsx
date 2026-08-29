@@ -70,7 +70,12 @@ function DashboardBody({
         />
 
         <div className="flex flex-col gap-5">
-          <InvoicesPanel invoices={invoices} showBusiness={showBusiness} isLoading={isLoading} />
+          <InvoicesPanel
+            invoices={invoices}
+            showBusiness={showBusiness}
+            businessId={businessId}
+            isLoading={isLoading}
+          />
           <SharedAccessPanel grants={grants} showBusiness={showBusiness} isLoading={isLoading} />
 
           {emptyNote && (

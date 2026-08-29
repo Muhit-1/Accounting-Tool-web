@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import type { InvoiceWithBusiness } from '../../lib/invoices'
 import type { InvoiceStatus } from '../../types/api'
 import { Panel } from '../Panel'
@@ -21,24 +22,39 @@ const STATUS_LABELS: Record<InvoiceStatus, string> = {
 export function InvoicesPanel({
   invoices,
   showBusiness,
+  businessId,
   isLoading,
 }: {
   invoices: InvoiceWithBusiness[]
   showBusiness: boolean
+  businessId?: string
   isLoading: boolean
 }) {
   const recent = invoices.slice(0, 5)
 
   return (
-    <Panel title="Invoices">
+    <Panel
+      title="Invoices"
+      action={
+        businessId ? (
+          <Link
+            to={`/businesses/${businessId}/invoices/new`}
+            className="border-b border-current text-[13px] text-stamp no-underline"
+          >
+            New invoice
+          </Link>
+        ) : undefined
+      }
+    >
       {isLoading ? (
         <p className="px-5 py-6 text-sm text-ink-soft">Loading…</p>
       ) : recent.length === 0 ? (
         <p className="px-5 py-6 text-sm text-ink-soft">No invoices yet.</p>
       ) : (
         recent.map((invoice) => (
-          <div
+          <Link
             key={invoice.id}
+            to={`/businesses/${invoice.businessId}/invoices/${invoice.id}`}
             className="flex items-center justify-between border-b border-paper-edge px-5 py-3 transition-colors last:border-b-0 hover:bg-black/[0.02]"
           >
             <div>
@@ -50,7 +66,7 @@ export function InvoicesPanel({
             <span className={`rounded-full px-2.5 py-1 text-[11.5px] font-medium ${STATUS_STYLES[invoice.status]}`}>
               {STATUS_LABELS[invoice.status]}
             </span>
-          </div>
+          </Link>
         ))
       )}
     </Panel>

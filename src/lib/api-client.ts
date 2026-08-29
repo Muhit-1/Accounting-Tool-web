@@ -62,6 +62,20 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return body as T
 }
 
+async function requestBlob(path: string): Promise<Blob> {
+  const token = getToken()
+  const headers = new Headers()
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+
+  const response = await fetch(`${API_URL}${path}`, { headers })
+  if (!response.ok) {
+    throw new ApiError(response.status, response.statusText)
+  }
+  return response.blob()
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, data?: unknown) =>
@@ -69,4 +83,5 @@ export const api = {
   patch: <T>(path: string, data?: unknown) =>
     request<T>(path, { method: 'PATCH', body: data ? JSON.stringify(data) : undefined }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  getBlob: (path: string) => requestBlob(path),
 }
