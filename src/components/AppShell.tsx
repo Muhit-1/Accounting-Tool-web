@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link, Outlet, useParams } from 'react-router-dom'
+import { Link, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useBusinesses } from '../lib/businesses'
+import { useAuth } from '../lib/auth-context'
 import { Seal } from './Seal'
 import { NewBusinessModal } from './NewBusinessModal'
 
@@ -14,7 +15,9 @@ function initials(name: string): string {
 
 export function AppShell() {
   const { businessId } = useParams<{ businessId?: string }>()
+  const location = useLocation()
   const { data: businesses } = useBusinesses()
+  const { user, logout } = useAuth()
   const [showNewBusiness, setShowNewBusiness] = useState(false)
 
   return (
@@ -82,12 +85,38 @@ export function AppShell() {
           </button>
         </nav>
 
-        <div className="mt-auto text-xs text-ink-soft">
-          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-paper-line px-2.5 py-1">
-            <span className="h-1.5 w-1.5 flex-none rounded-full bg-brass" />
-            Stage 1 — local storage
+        <nav className="flex flex-col gap-2.5" aria-label="Shared with you">
+          <div className="mb-0.5 text-[11.5px] tracking-wider text-ink-soft uppercase">Shared with you</div>
+          <Link
+            to="/shared-with-me"
+            className={`flex items-center gap-2.5 rounded-ledger border border-dashed px-2.5 py-2 transition-colors hover:bg-black/[0.02] ${
+              location.pathname === '/shared-with-me' ? 'border-stamp bg-stamp-soft' : 'border-transparent'
+            }`}
+          >
+            <span className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full border-[1.5px] border-dashed border-brass font-display text-sm font-semibold text-brass">
+              ⇄
+            </span>
+            <span>
+              <span className="block text-[14.5px] font-medium">Shared with you</span>
+              <span className="text-xs text-ink-soft">From other owners</span>
+            </span>
+          </Link>
+        </nav>
+
+        <div className="mt-auto flex flex-col gap-3 text-xs text-ink-soft">
+          <div className="flex items-center justify-between border-t border-paper-line pt-3">
+            <span className="truncate text-[13px] font-medium text-ink">{user?.name}</span>
+            <button onClick={logout} className="flex-none border-b border-current text-stamp">
+              Sign out
+            </button>
           </div>
-          <div>Documents will move to Google Drive once Google sign-in is switched on.</div>
+          <div>
+            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-paper-line px-2.5 py-1">
+              <span className="h-1.5 w-1.5 flex-none rounded-full bg-brass" />
+              Stage 1 — local storage
+            </div>
+            <div>Documents will move to Google Drive once Google sign-in is switched on.</div>
+          </div>
         </div>
       </aside>
 

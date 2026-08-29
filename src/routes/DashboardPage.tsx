@@ -1,4 +1,5 @@
 import { useParams } from 'react-router-dom'
+import { useAuth } from '../lib/auth-context'
 import { useBusiness, useBusinesses } from '../lib/businesses'
 import { useBusinessDashboard, useCombinedDashboard } from '../lib/dashboard'
 import { useRecentTransactionsAcross, useTransactions, type TransactionWithBusiness } from '../lib/transactions'
@@ -33,6 +34,7 @@ interface DashboardBody {
   grants: AccessGrantWithBusiness[]
   showBusiness: boolean
   businessId?: string
+  isOwner: boolean
   isLoading: boolean
   emptyNote?: { title: string; body: string }
 }
@@ -45,6 +47,7 @@ function DashboardBody({
   grants,
   showBusiness,
   businessId,
+  isOwner,
   isLoading,
   emptyNote,
 }: DashboardBody) {
@@ -76,7 +79,12 @@ function DashboardBody({
             businessId={businessId}
             isLoading={isLoading}
           />
-          <SharedAccessPanel grants={grants} showBusiness={showBusiness} isLoading={isLoading} />
+          <SharedAccessPanel
+            grants={grants}
+            showBusiness={showBusiness}
+            businessId={isOwner ? businessId : undefined}
+            isLoading={isLoading}
+          />
 
           {emptyNote && (
             <div className="mt-1 flex items-start gap-3 rounded-ledger border border-dashed border-stamp bg-stamp-soft px-4 py-3.5 text-[13.5px] text-[#33285F]">
@@ -123,13 +131,16 @@ function CombinedDashboard() {
       invoices={invoices}
       grants={grants}
       showBusiness
+      isOwner
       isLoading={isCombinedLoading || isTxLoading || isInvLoading || isGrantLoading}
     />
   )
 }
 
 function SingleBusinessDashboard({ businessId }: { businessId: string }) {
+  const { user } = useAuth()
   const { data: business } = useBusiness(businessId)
+  const isOwner = business ? business.ownerId === user?.id : false
   const { data: dashboard, isLoading: isDashLoading } = useBusinessDashboard(businessId)
   const { data: rawTransactions, isLoading: isTxLoading } = useTransactions(businessId)
   const { data: rawInvoices, isLoading: isInvLoading } = useInvoices(businessId)
@@ -169,6 +180,7 @@ function SingleBusinessDashboard({ businessId }: { businessId: string }) {
       grants={grants}
       showBusiness={false}
       businessId={businessId}
+      isOwner={isOwner}
       isLoading={isDashLoading || isTxLoading || isInvLoading || isGrantLoading}
       emptyNote={
         !isDashLoading && !hasActivity

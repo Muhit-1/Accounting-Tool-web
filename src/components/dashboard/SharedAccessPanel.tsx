@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import type { AccessGrantWithBusiness } from '../../lib/access-grants'
 import { daysUntil } from '../../lib/format'
 import { Panel } from '../Panel'
@@ -5,16 +6,30 @@ import { Panel } from '../Panel'
 export function SharedAccessPanel({
   grants,
   showBusiness,
+  businessId,
   isLoading,
 }: {
   grants: AccessGrantWithBusiness[]
   showBusiness: boolean
+  businessId?: string
   isLoading: boolean
 }) {
   const active = grants.filter((g) => g.status === 'active').slice(0, 5)
 
   return (
-    <Panel title="Shared access">
+    <Panel
+      title="Shared access"
+      action={
+        businessId ? (
+          <Link
+            to={`/businesses/${businessId}/sharing`}
+            className="border-b border-current text-[13px] text-stamp no-underline"
+          >
+            Grant access
+          </Link>
+        ) : undefined
+      }
+    >
       {isLoading ? (
         <p className="px-5 py-6 text-sm text-ink-soft">Loading…</p>
       ) : active.length === 0 ? (

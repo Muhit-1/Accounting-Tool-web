@@ -6,6 +6,8 @@ import { LedgerPage } from './routes/LedgerPage'
 import { InvoicesPage } from './routes/InvoicesPage'
 import { NewInvoicePage } from './routes/NewInvoicePage'
 import { InvoiceDetailPage } from './routes/InvoiceDetailPage'
+import { SharingPage } from './routes/SharingPage'
+import { SharedWithMePage } from './routes/SharedWithMePage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AppShell } from './components/AppShell'
 
@@ -17,11 +19,13 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/shared-with-me" element={<SharedWithMePage />} />
           <Route path="/businesses/:businessId" element={<DashboardPage />} />
           <Route path="/businesses/:businessId/ledger" element={<LedgerPage />} />
           <Route path="/businesses/:businessId/invoices" element={<InvoicesPage />} />
           <Route path="/businesses/:businessId/invoices/new" element={<NewInvoicePage />} />
           <Route path="/businesses/:businessId/invoices/:invoiceId" element={<InvoiceDetailPage />} />
+          <Route path="/businesses/:businessId/sharing" element={<SharingPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
