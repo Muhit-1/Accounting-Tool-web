@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useBusiness } from '../lib/businesses'
-import { useBusinessDashboard } from '../lib/dashboard'
+import { useLedger } from '../lib/ledgers'
 import { useCategories } from '../lib/categories'
 import { useTransactions } from '../lib/transactions'
-import type { Transaction } from '../types/api'
+import type { CategoryBreakdown, Transaction } from '../types/api'
+import { formatMoney } from '../lib/format'
 import { Button } from '../components/Button'
 import { Panel } from '../components/Panel'
 import { CategoryManager } from '../components/ledger/CategoryManager'
@@ -12,17 +13,33 @@ import { CategoryBreakdownPanel } from '../components/ledger/CategoryBreakdownPa
 import { TransactionTable } from '../components/ledger/TransactionTable'
 import { TransactionForm } from '../components/ledger/TransactionForm'
 
+function breakdownFromTransactions(transactions: Transaction[]): CategoryBreakdown[] {
+  const buckets = new Map<string, CategoryBreakdown>()
+  for (const tx of transactions) {
+    if (tx.type !== 'EXPENSE') continue
+    const key = tx.category?.id ?? 'uncategorized-expense'
+    const name = tx.category?.name ?? 'Uncategorized expense'
+    const existing = buckets.get(key)
+    if (existing) {
+      existing.total += tx.amount
+    } else {
+      buckets.set(key, { categoryId: tx.category?.id ?? null, categoryName: name, total: tx.amount })
+    }
+  }
+  return [...buckets.values()].sort((a, b) => b.total - a.total)
+}
+
 export function LedgerPage() {
-  const { businessId } = useParams<{ businessId: string }>()
+  const { businessId, ledgerId } = useParams<{ businessId: string; ledgerId: string }>()
   const { data: business } = useBusiness(businessId)
-  const { data: dashboard } = useBusinessDashboard(businessId)
+  const { data: ledger } = useLedger(businessId, ledgerId)
   const { data: categories } = useCategories(businessId)
-  const { data: transactions, isLoading } = useTransactions(businessId)
+  const { data: transactions, isLoading } = useTransactions(businessId, ledgerId)
 
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Transaction | undefined>(undefined)
 
-  if (!businessId) return null
+  if (!businessId || !ledgerId) return null
   const currency = business?.currency ?? 'BDT'
 
   function openCreate() {
@@ -42,14 +59,17 @@ export function LedgerPage() {
 
   return (
     <>
-      <Link to={`/businesses/${businessId}`} className="mb-3 inline-block text-sm text-stamp underline underline-offset-2">
-        ← Back to dashboard
+      <Link to={`/businesses/${businessId}/ledgers`} className="mb-3 inline-block text-sm text-stamp underline underline-offset-2">
+        ← Back to ledgers
       </Link>
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-1.5 text-xs tracking-wider text-ink-soft uppercase">{business?.name ?? '…'}</p>
-          <h1 className="font-display text-[28px] font-medium tracking-tight">Full ledger</h1>
+          <h1 className="font-display text-[28px] font-medium tracking-tight">{ledger?.name ?? 'Ledger'}</h1>
+          {ledger && (
+            <p className="tabular mt-1 text-[14px] text-ink-soft">Balance {formatMoney(ledger.balance, currency)}</p>
+          )}
         </div>
         <Button onClick={openCreate}>+ Add entry</Button>
       </div>
@@ -70,13 +90,14 @@ export function LedgerPage() {
 
         <div className="flex flex-col gap-5">
           <CategoryManager businessId={businessId} categories={categories ?? []} />
-          <CategoryBreakdownPanel byCategory={dashboard?.byCategory ?? []} currency={currency} />
+          <CategoryBreakdownPanel byCategory={breakdownFromTransactions(transactions ?? [])} currency={currency} />
         </div>
       </div>
 
       {showForm && (
         <TransactionForm
           businessId={businessId}
+          ledgerId={ledgerId}
           categories={categories ?? []}
           transaction={editing}
           onClose={closeForm}

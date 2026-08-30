@@ -9,11 +9,11 @@ import { Panel } from '../components/Panel'
 import { ClientManager } from '../components/invoicing/ClientManager'
 
 const STATUS_STYLES: Record<InvoiceStatus, string> = {
-  PAID: 'bg-green-soft text-green',
-  SENT: 'bg-brass-soft text-brass',
-  OVERDUE: 'bg-rust-soft text-rust',
-  DRAFT: 'border border-dashed border-ink-soft text-ink-soft',
-  CANCELLED: 'bg-black/5 text-ink-soft line-through',
+  PAID: 'border-green text-green',
+  SENT: 'border-brass text-brass',
+  OVERDUE: 'border-rust text-rust',
+  DRAFT: 'border-dashed border-ink-soft text-ink-soft',
+  CANCELLED: 'border-ink-soft text-ink-soft line-through',
 }
 
 const STATUS_LABELS: Record<InvoiceStatus, string> = {
@@ -61,25 +61,25 @@ export function InvoicesPage() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[520px] border-collapse">
                 <thead>
-                  <tr>
-                    <th className="border-b border-paper-line px-5 py-2.5 text-left text-[11.5px] tracking-wider text-ink-soft uppercase">
+                  <tr className="bg-black/[0.02]">
+                    <th className="border-b border-paper-line px-5 py-3 text-left text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
                       Client
                     </th>
-                    <th className="border-b border-paper-line px-5 py-2.5 text-left text-[11.5px] tracking-wider text-ink-soft uppercase">
+                    <th className="border-b border-paper-line px-5 py-3 text-left text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
                       Issued
                     </th>
-                    <th className="border-b border-paper-line px-5 py-2.5 text-right text-[11.5px] tracking-wider text-ink-soft uppercase">
+                    <th className="border-b border-paper-line px-5 py-3 text-right text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
                       Total
                     </th>
-                    <th className="border-b border-paper-line px-5 py-2.5 text-right text-[11.5px] tracking-wider text-ink-soft uppercase">
+                    <th className="border-b border-paper-line px-5 py-3 text-right text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
                       Status
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {invoices.map((invoice) => (
-                    <tr key={invoice.id} className="border-b border-paper-edge last:border-b-0">
-                      <td className="px-5 py-3 align-middle">
+                    <tr key={invoice.id} className="border-b border-paper-line transition-colors last:border-b-0 hover:bg-black/[0.02]">
+                      <td className="px-5 py-3.5 align-middle">
                         <Link
                           to={`/businesses/${businessId}/invoices/${invoice.id}`}
                           className="font-medium hover:text-stamp"
@@ -88,14 +88,16 @@ export function InvoicesPage() {
                         </Link>
                         <div className="text-[12.5px] text-ink-soft">INV-{invoice.number}</div>
                       </td>
-                      <td className="px-5 py-3 align-middle text-[13.5px] text-ink-soft whitespace-nowrap">
+                      <td className="px-5 py-3.5 align-middle text-[13.5px] text-ink-soft whitespace-nowrap">
                         {formatShortDate(invoice.issueDate)}
                       </td>
-                      <td className="tabular px-5 py-3 text-right align-middle font-medium">
+                      <td className="tabular px-5 py-3.5 text-right align-middle font-medium">
                         {formatMoney(invoice.total, currency)}
                       </td>
-                      <td className="px-5 py-3 text-right align-middle">
-                        <span className={`rounded-full px-2.5 py-1 text-[11.5px] font-medium ${STATUS_STYLES[invoice.status]}`}>
+                      <td className="px-5 py-3.5 text-right align-middle">
+                        <span
+                          className={`inline-block rounded-[4px] border px-2 py-0.5 text-[11.5px] font-semibold tracking-wide uppercase ${STATUS_STYLES[invoice.status]}`}
+                        >
                           {STATUS_LABELS[invoice.status]}
                         </span>
                       </td>

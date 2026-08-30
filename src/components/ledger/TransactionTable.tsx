@@ -32,47 +32,47 @@ export function TransactionTable({
     <div className="overflow-x-auto">
       <table className="w-full min-w-[560px] border-collapse">
         <thead>
-          <tr>
-            <th className="border-b border-paper-line px-5 py-2.5 text-left text-[11.5px] tracking-wider text-ink-soft uppercase">
+          <tr className="bg-black/[0.02]">
+            <th className="border-b border-paper-line px-5 py-3 text-left text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
               Date
             </th>
-            <th className="border-b border-paper-line px-5 py-2.5 text-left text-[11.5px] tracking-wider text-ink-soft uppercase">
+            <th className="border-b border-paper-line px-5 py-3 text-left text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
               Entry
             </th>
-            <th className="border-b border-paper-line px-5 py-2.5 text-left text-[11.5px] tracking-wider text-ink-soft uppercase">
+            <th className="border-b border-paper-line px-5 py-3 text-left text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
               Category
             </th>
-            <th className="border-b border-paper-line px-5 py-2.5 text-right text-[11.5px] tracking-wider text-ink-soft uppercase">
+            <th className="border-b border-paper-line px-5 py-3 text-right text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
               Amount
             </th>
-            <th className="border-b border-paper-line px-5 py-2.5 text-right text-[11.5px] tracking-wider text-ink-soft uppercase">
+            <th className="border-b border-paper-line px-5 py-3 text-right text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
               Balance
             </th>
-            <th className="border-b border-paper-line px-5 py-2.5" />
+            <th className="border-b border-paper-line px-5 py-3" />
           </tr>
         </thead>
         <tbody>
           {transactions.map((tx) => (
-            <tr key={tx.id} className="border-b border-paper-edge transition-colors last:border-b-0 hover:bg-black/[0.02]">
-              <td className="px-5 py-3 align-middle text-[13.5px] text-ink-soft whitespace-nowrap">
+            <tr key={tx.id} className="border-b border-paper-line transition-colors last:border-b-0 hover:bg-black/[0.02]">
+              <td className="px-5 py-3.5 align-middle text-[13.5px] text-ink-soft whitespace-nowrap">
                 {formatShortDate(tx.date)}
               </td>
-              <td className="px-5 py-3 align-middle font-medium">{tx.memo || (tx.category ? tx.category.name : '—')}</td>
-              <td className="px-5 py-3 align-middle">
+              <td className="px-5 py-3.5 align-middle font-medium">{tx.memo || (tx.category ? tx.category.name : '—')}</td>
+              <td className="px-5 py-3.5 align-middle">
                 {tx.category && (
-                  <span className="inline-block rounded-full border border-current bg-brass-soft px-2 py-0.5 text-[11.5px] text-brass">
+                  <span className="inline-block rounded-[4px] border border-brass px-2 py-0.5 text-[11.5px] font-semibold tracking-wide text-brass uppercase">
                     {tx.category.name}
                   </span>
                 )}
               </td>
-              <td className={`tabular px-5 py-3 text-right align-middle font-medium ${tx.type === 'INCOME' ? 'text-green' : 'text-rust'}`}>
+              <td className={`tabular px-5 py-3.5 text-right align-middle font-medium ${tx.type === 'INCOME' ? 'text-green' : 'text-rust'}`}>
                 {tx.type === 'INCOME' ? '+' : '–'}
                 {formatMoney(tx.amount, currency)}
               </td>
-              <td className="tabular px-5 py-3 text-right align-middle text-ink-soft">
+              <td className="tabular px-5 py-3.5 text-right align-middle text-ink-soft">
                 {formatMoney(tx.runningBalance ?? 0, currency)}
               </td>
-              <td className="px-5 py-3 text-right align-middle whitespace-nowrap">
+              <td className="px-5 py-3.5 text-right align-middle whitespace-nowrap">
                 <button onClick={() => onEdit(tx)} className="text-xs text-stamp hover:underline">
                   Edit
                 </button>

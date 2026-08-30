@@ -4,11 +4,11 @@ import type { InvoiceStatus } from '../../types/api'
 import { Panel } from '../Panel'
 
 const STATUS_STYLES: Record<InvoiceStatus, string> = {
-  PAID: 'bg-green-soft text-green',
-  SENT: 'bg-brass-soft text-brass',
-  OVERDUE: 'bg-rust-soft text-rust',
-  DRAFT: 'border border-dashed border-ink-soft text-ink-soft',
-  CANCELLED: 'bg-black/5 text-ink-soft line-through',
+  PAID: 'border-green text-green',
+  SENT: 'border-brass text-brass',
+  OVERDUE: 'border-rust text-rust',
+  DRAFT: 'border-dashed border-ink-soft text-ink-soft',
+  CANCELLED: 'border-ink-soft text-ink-soft line-through',
 }
 
 const STATUS_LABELS: Record<InvoiceStatus, string> = {
@@ -63,7 +63,9 @@ export function InvoicesPanel({
                 {showBusiness ? `${invoice.businessName} · ` : ''}INV-{invoice.number}
               </div>
             </div>
-            <span className={`rounded-full px-2.5 py-1 text-[11.5px] font-medium ${STATUS_STYLES[invoice.status]}`}>
+            <span
+              className={`inline-block rounded-[4px] border px-2 py-0.5 text-[11.5px] font-semibold tracking-wide uppercase ${STATUS_STYLES[invoice.status]}`}
+            >
               {STATUS_LABELS[invoice.status]}
             </span>
           </Link>

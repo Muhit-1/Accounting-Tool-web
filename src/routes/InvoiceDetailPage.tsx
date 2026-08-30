@@ -11,11 +11,11 @@ import { Panel } from '../components/Panel'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 
 const STATUS_STYLES: Record<InvoiceStatus, string> = {
-  PAID: 'bg-green-soft text-green',
-  SENT: 'bg-brass-soft text-brass',
-  OVERDUE: 'bg-rust-soft text-rust',
-  DRAFT: 'border border-dashed border-ink-soft text-ink-soft',
-  CANCELLED: 'bg-black/5 text-ink-soft line-through',
+  PAID: 'border-green text-green',
+  SENT: 'border-brass text-brass',
+  OVERDUE: 'border-rust text-rust',
+  DRAFT: 'border-dashed border-ink-soft text-ink-soft',
+  CANCELLED: 'border-ink-soft text-ink-soft line-through',
 }
 
 const STATUS_OPTIONS: InvoiceStatus[] = ['DRAFT', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED']
@@ -68,7 +68,9 @@ export function InvoiceDetailPage() {
           <p className="mb-1.5 text-xs tracking-wider text-ink-soft uppercase">{business?.name}</p>
           <h1 className="font-display text-[28px] font-medium tracking-tight">INV-{invoice.number}</h1>
         </div>
-        <span className={`rounded-full px-3 py-1.5 text-[12.5px] font-medium ${STATUS_STYLES[invoice.status]}`}>
+        <span
+          className={`inline-block rounded-[4px] border px-3 py-1.5 text-[12.5px] font-semibold tracking-wide uppercase ${STATUS_STYLES[invoice.status]}`}
+        >
           {invoice.status}
         </span>
       </div>
@@ -99,28 +101,28 @@ export function InvoiceDetailPage() {
 
           <table className="w-full border-collapse">
             <thead>
-              <tr>
-                <th className="border-b border-paper-line px-5 py-2.5 text-left text-[11.5px] tracking-wider text-ink-soft uppercase">
+              <tr className="bg-black/[0.02]">
+                <th className="border-b border-paper-line px-5 py-3 text-left text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
                   Description
                 </th>
-                <th className="border-b border-paper-line px-5 py-2.5 text-right text-[11.5px] tracking-wider text-ink-soft uppercase">
+                <th className="border-b border-paper-line px-5 py-3 text-right text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
                   Qty
                 </th>
-                <th className="border-b border-paper-line px-5 py-2.5 text-right text-[11.5px] tracking-wider text-ink-soft uppercase">
+                <th className="border-b border-paper-line px-5 py-3 text-right text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
                   Rate
                 </th>
-                <th className="border-b border-paper-line px-5 py-2.5 text-right text-[11.5px] tracking-wider text-ink-soft uppercase">
+                <th className="border-b border-paper-line px-5 py-3 text-right text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
                   Amount
                 </th>
               </tr>
             </thead>
             <tbody>
               {invoice.items?.map((item) => (
-                <tr key={item.id} className="border-b border-paper-edge last:border-b-0">
-                  <td className="px-5 py-3 align-middle">{item.description}</td>
-                  <td className="tabular px-5 py-3 text-right align-middle">{item.quantity}</td>
-                  <td className="tabular px-5 py-3 text-right align-middle">{formatMoney(item.rate, currency)}</td>
-                  <td className="tabular px-5 py-3 text-right align-middle font-medium">
+                <tr key={item.id} className="border-b border-paper-line last:border-b-0">
+                  <td className="px-5 py-3.5 align-middle">{item.description}</td>
+                  <td className="tabular px-5 py-3.5 text-right align-middle">{item.quantity}</td>
+                  <td className="tabular px-5 py-3.5 text-right align-middle">{formatMoney(item.rate, currency)}</td>
+                  <td className="tabular px-5 py-3.5 text-right align-middle font-medium">
                     {formatMoney(item.amount, currency)}
                   </td>
                 </tr>
@@ -159,6 +161,12 @@ export function InvoiceDetailPage() {
                 {isDownloading ? 'Downloading…' : 'Download PDF'}
               </Button>
               {downloadError && <p className="text-sm text-rust">{downloadError}</p>}
+
+              <Link to={`/businesses/${businessId}/invoices/${invoiceId}/edit`}>
+                <Button variant="ghost" className="w-full">
+                  Edit invoice
+                </Button>
+              </Link>
 
               <Button variant="danger" onClick={() => setConfirmingDelete(true)}>
                 Delete invoice

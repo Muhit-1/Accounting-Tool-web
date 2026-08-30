@@ -44,8 +44,20 @@ export interface Category {
   createdAt: string
 }
 
+export interface Ledger {
+  id: string
+  businessId: string
+  name: string
+  createdAt: string
+  updatedAt: string
+  totalIncome: number
+  totalExpense: number
+  balance: number
+}
+
 export interface Transaction {
   id: string
+  ledgerId: string
   date: string
   memo: string | null
   amount: number

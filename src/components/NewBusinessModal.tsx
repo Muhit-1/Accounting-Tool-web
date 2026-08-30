@@ -2,7 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCreateBusiness } from '../lib/businesses'
 import { ApiError } from '../lib/api-client'
+import { CURRENCY_OPTIONS } from '../lib/currencies'
 import { TextField } from './TextField'
+import { Select } from './Select'
 import { Button } from './Button'
 
 export function NewBusinessModal({ onClose }: { onClose: () => void }) {
@@ -41,15 +43,13 @@ export function NewBusinessModal({ onClose }: { onClose: () => void }) {
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
-          <TextField
-            label="Currency"
-            name="currency"
-            required
-            placeholder="BDT"
-            value={currency}
-            onChange={(event) => setCurrency(event.target.value.toUpperCase())}
-            maxLength={3}
-          />
+          <Select label="Currency" name="currency" required value={currency} onChange={(event) => setCurrency(event.target.value)}>
+            {CURRENCY_OPTIONS.map((option) => (
+              <option key={option.code} value={option.code}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
           {error && <p className="text-sm text-rust">{error}</p>}
           <div className="mt-2 flex justify-end gap-3">
             <Button type="button" variant="ghost" onClick={onClose}>

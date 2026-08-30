@@ -2,10 +2,12 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './routes/LoginPage'
 import { RegisterPage } from './routes/RegisterPage'
 import { DashboardPage } from './routes/DashboardPage'
+import { LedgersPage } from './routes/LedgersPage'
 import { LedgerPage } from './routes/LedgerPage'
 import { InvoicesPage } from './routes/InvoicesPage'
-import { NewInvoicePage } from './routes/NewInvoicePage'
+import { InvoiceFormPage } from './routes/InvoiceFormPage'
 import { InvoiceDetailPage } from './routes/InvoiceDetailPage'
+import { BusinessSettingsPage } from './routes/BusinessSettingsPage'
 import { SharingPage } from './routes/SharingPage'
 import { SharedWithMePage } from './routes/SharedWithMePage'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -21,10 +23,13 @@ export default function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/shared-with-me" element={<SharedWithMePage />} />
           <Route path="/businesses/:businessId" element={<DashboardPage />} />
-          <Route path="/businesses/:businessId/ledger" element={<LedgerPage />} />
+          <Route path="/businesses/:businessId/ledgers" element={<LedgersPage />} />
+          <Route path="/businesses/:businessId/ledgers/:ledgerId" element={<LedgerPage />} />
           <Route path="/businesses/:businessId/invoices" element={<InvoicesPage />} />
-          <Route path="/businesses/:businessId/invoices/new" element={<NewInvoicePage />} />
+          <Route path="/businesses/:businessId/invoices/new" element={<InvoiceFormPage />} />
           <Route path="/businesses/:businessId/invoices/:invoiceId" element={<InvoiceDetailPage />} />
+          <Route path="/businesses/:businessId/invoices/:invoiceId/edit" element={<InvoiceFormPage />} />
+          <Route path="/businesses/:businessId/settings" element={<BusinessSettingsPage />} />
           <Route path="/businesses/:businessId/sharing" element={<SharingPage />} />
         </Route>
       </Route>

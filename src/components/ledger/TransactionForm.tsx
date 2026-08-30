@@ -8,11 +8,13 @@ import { Button } from '../Button'
 
 export function TransactionForm({
   businessId,
+  ledgerId,
   categories,
   transaction,
   onClose,
 }: {
   businessId: string
+  ledgerId: string
   categories: Category[]
   transaction?: Transaction
   onClose: () => void
@@ -41,6 +43,7 @@ export function TransactionForm({
     event.preventDefault()
     setError(null)
     const input: TransactionInput = {
+      ledgerId,
       date,
       amount: Number(amount),
       type,

@@ -94,8 +94,8 @@ export function CategoryManager({ businessId, categories }: { businessId: string
             <div className="flex items-center gap-2">
               <span className="text-[14.5px]">{category.name}</span>
               <span
-                className={`rounded-full px-2 py-0.5 text-[11px] ${
-                  category.type === 'INCOME' ? 'bg-green-soft text-green' : 'bg-rust-soft text-rust'
+                className={`rounded-[4px] border px-2 py-0.5 text-[11.5px] font-semibold tracking-wide uppercase ${
+                  category.type === 'INCOME' ? 'border-green text-green' : 'border-rust text-rust'
                 }`}
               >
                 {category.type === 'INCOME' ? 'Income' : 'Expense'}

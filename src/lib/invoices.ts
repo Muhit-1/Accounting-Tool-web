@@ -26,10 +26,19 @@ export interface InvoiceItemInput {
 
 export interface CreateInvoiceInput {
   clientId: string
+  number?: string
   issueDate: string
   terms: string
   dueDate: string
   items: InvoiceItemInput[]
+}
+
+export function useNextInvoiceNumber(businessId: string | undefined) {
+  return useQuery({
+    queryKey: ['invoices', businessId, 'next-number'],
+    queryFn: () => api.get<{ number: string }>(`/businesses/${businessId}/invoices/next-number`),
+    enabled: Boolean(businessId),
+  })
 }
 
 function invalidateInvoiceQueries(queryClient: ReturnType<typeof useQueryClient>, businessId: string) {
@@ -41,6 +50,15 @@ export function useCreateInvoice(businessId: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (input: CreateInvoiceInput) => api.post<Invoice>(`/businesses/${businessId}/invoices`, input),
+    onSuccess: () => invalidateInvoiceQueries(queryClient, businessId),
+  })
+}
+
+export function useUpdateInvoice(businessId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...input }: Partial<CreateInvoiceInput> & { id: string }) =>
+      api.patch<Invoice>(`/businesses/${businessId}/invoices/${id}`, input),
     onSuccess: () => invalidateInvoiceQueries(queryClient, businessId),
   })
 }

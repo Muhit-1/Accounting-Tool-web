@@ -85,6 +85,32 @@ export function AppShell() {
           </button>
         </nav>
 
+        {businessId && (
+          <nav className="flex flex-col gap-1" aria-label="This venture">
+            <div className="mb-0.5 text-[11.5px] tracking-wider text-ink-soft uppercase">This venture</div>
+            {[
+              { to: `/businesses/${businessId}`, label: 'Dashboard', exact: true },
+              { to: `/businesses/${businessId}/ledgers`, label: 'Ledgers' },
+              { to: `/businesses/${businessId}/invoices`, label: 'Invoices' },
+              { to: `/businesses/${businessId}/sharing`, label: 'Sharing' },
+              { to: `/businesses/${businessId}/settings`, label: 'Settings' },
+            ].map((item) => {
+              const active = item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to)
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`rounded-ledger px-2.5 py-1.5 text-[13.5px] transition-colors hover:bg-black/[0.02] ${
+                    active ? 'bg-stamp-soft font-medium text-stamp' : 'text-ink'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              )
+            })}
+          </nav>
+        )}
+
         <nav className="flex flex-col gap-2.5" aria-label="Shared with you">
           <div className="mb-0.5 text-[11.5px] tracking-wider text-ink-soft uppercase">Shared with you</div>
           <Link

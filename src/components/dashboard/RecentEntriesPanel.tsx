@@ -23,10 +23,10 @@ export function RecentEntriesPanel({
       action={
         businessId ? (
           <Link
-            to={`/businesses/${businessId}/ledger`}
+            to={`/businesses/${businessId}/ledgers`}
             className="border-b border-current text-[13px] text-stamp no-underline"
           >
-            Open full ledger
+            Open ledgers
           </Link>
         ) : undefined
       }
@@ -40,37 +40,37 @@ export function RecentEntriesPanel({
       ) : (
         <table className="w-full border-collapse">
           <thead>
-            <tr>
-              <th className="border-b border-paper-line px-5 py-2.5 text-left text-[11.5px] tracking-wider text-ink-soft uppercase">
+            <tr className="bg-black/[0.02]">
+              <th className="border-b border-paper-line px-5 py-3 text-left text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
                 Entry
               </th>
-              <th className="border-b border-paper-line px-5 py-2.5 text-left text-[11.5px] tracking-wider text-ink-soft uppercase">
+              <th className="border-b border-paper-line px-5 py-3 text-left text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
                 Category
               </th>
-              <th className="border-b border-paper-line px-5 py-2.5 text-right text-[11.5px] tracking-wider text-ink-soft uppercase">
+              <th className="border-b border-paper-line px-5 py-3 text-right text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
                 Amount
               </th>
             </tr>
           </thead>
           <tbody>
             {recent.map((tx) => (
-              <tr key={tx.id} className="border-b border-paper-edge transition-colors last:border-b-0 hover:bg-black/[0.02]">
-                <td className="px-5 py-3 align-middle">
+              <tr key={tx.id} className="border-b border-paper-line transition-colors last:border-b-0 hover:bg-black/[0.02]">
+                <td className="px-5 py-3.5 align-middle">
                   <div className="font-medium">{tx.memo || (tx.category ? tx.category.name : 'Entry')}</div>
                   <div className="text-[12.5px] text-ink-soft">
                     {showBusiness ? `${tx.businessName} · ` : ''}
                     {formatShortDate(tx.date)}
                   </div>
                 </td>
-                <td className="px-5 py-3 align-middle">
+                <td className="px-5 py-3.5 align-middle">
                   {tx.category && (
-                    <span className="inline-block rounded-full border border-current bg-brass-soft px-2 py-0.5 text-[11.5px] text-brass">
+                    <span className="inline-block rounded-[4px] border border-brass px-2 py-0.5 text-[11.5px] font-semibold tracking-wide text-brass uppercase">
                       {tx.category.name}
                     </span>
                   )}
                 </td>
                 <td
-                  className={`tabular px-5 py-3 text-right align-middle font-medium ${
+                  className={`tabular px-5 py-3.5 text-right align-middle font-medium ${
                     tx.type === 'INCOME' ? 'text-green' : 'text-rust'
                   }`}
                 >
