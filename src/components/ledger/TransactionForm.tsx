@@ -11,12 +11,18 @@ export function TransactionForm({
   ledgerId,
   categories,
   transaction,
+  initialAmount,
+  initialDate,
   onClose,
 }: {
   businessId: string
   ledgerId: string
   categories: Category[]
   transaction?: Transaction
+  // Prefill for a fresh entry seeded from a scanned invoice/receipt
+  // (ScanInvoiceModal) — ignored once `transaction` is set (edit mode).
+  initialAmount?: number | null
+  initialDate?: string | null
   onClose: () => void
 }) {
   const isEdit = Boolean(transaction)
@@ -24,8 +30,10 @@ export function TransactionForm({
   const updateTransaction = useUpdateTransaction(businessId)
 
   const [type, setType] = useState<CategoryType>(transaction?.type ?? 'INCOME')
-  const [amount, setAmount] = useState(transaction ? String(transaction.amount) : '')
-  const [date, setDate] = useState(transaction ? transaction.date.slice(0, 10) : new Date().toISOString().slice(0, 10))
+  const [amount, setAmount] = useState(transaction ? String(transaction.amount) : (initialAmount?.toString() ?? ''))
+  const [date, setDate] = useState(
+    transaction ? transaction.date.slice(0, 10) : (initialDate ?? new Date().toISOString().slice(0, 10)),
+  )
   const [categoryId, setCategoryId] = useState(transaction?.category?.id ?? '')
   const [memo, setMemo] = useState(transaction?.memo ?? '')
   const [error, setError] = useState<string | null>(null)

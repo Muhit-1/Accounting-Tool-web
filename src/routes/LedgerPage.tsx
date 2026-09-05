@@ -4,6 +4,7 @@ import { useBusiness } from '../lib/businesses'
 import { useLedger } from '../lib/ledgers'
 import { useCategories } from '../lib/categories'
 import { useTransactions } from '../lib/transactions'
+import type { InvoiceScanResult } from '../lib/invoice-scan'
 import type { CategoryBreakdown, Transaction } from '../types/api'
 import { formatMoney } from '../lib/format'
 import { Button } from '../components/Button'
@@ -12,6 +13,7 @@ import { CategoryManager } from '../components/ledger/CategoryManager'
 import { CategoryBreakdownPanel } from '../components/ledger/CategoryBreakdownPanel'
 import { TransactionTable } from '../components/ledger/TransactionTable'
 import { TransactionForm } from '../components/ledger/TransactionForm'
+import { ScanInvoiceModal } from '../components/ledger/ScanInvoiceModal'
 
 function breakdownFromTransactions(transactions: Transaction[]): CategoryBreakdown[] {
   const buckets = new Map<string, CategoryBreakdown>()
@@ -38,23 +40,35 @@ export function LedgerPage() {
 
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Transaction | undefined>(undefined)
+  const [scanDefaults, setScanDefaults] = useState<InvoiceScanResult | undefined>(undefined)
+  const [showScan, setShowScan] = useState(false)
 
   if (!businessId || !ledgerId) return null
   const currency = business?.currency ?? 'BDT'
 
   function openCreate() {
     setEditing(undefined)
+    setScanDefaults(undefined)
     setShowForm(true)
   }
 
   function openEdit(tx: Transaction) {
     setEditing(tx)
+    setScanDefaults(undefined)
     setShowForm(true)
   }
 
   function closeForm() {
     setShowForm(false)
     setEditing(undefined)
+    setScanDefaults(undefined)
+  }
+
+  function handleScanned(result: InvoiceScanResult) {
+    setShowScan(false)
+    setEditing(undefined)
+    setScanDefaults(result)
+    setShowForm(true)
   }
 
   return (
@@ -71,7 +85,12 @@ export function LedgerPage() {
             <p className="tabular mt-1 text-[14px] text-ink-soft">Balance {formatMoney(ledger.balance, currency)}</p>
           )}
         </div>
-        <Button onClick={openCreate}>+ Add entry</Button>
+        <div className="flex gap-3">
+          <Button variant="ghost" onClick={() => setShowScan(true)}>
+            Scan invoice
+          </Button>
+          <Button onClick={openCreate}>+ Add entry</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-[1.7fr_1fr]">
@@ -94,12 +113,23 @@ export function LedgerPage() {
         </div>
       </div>
 
+      {showScan && (
+        <ScanInvoiceModal
+          businessId={businessId}
+          ledgerId={ledgerId}
+          onScanned={handleScanned}
+          onClose={() => setShowScan(false)}
+        />
+      )}
+
       {showForm && (
         <TransactionForm
           businessId={businessId}
           ledgerId={ledgerId}
           categories={categories ?? []}
           transaction={editing}
+          initialAmount={scanDefaults?.amount}
+          initialDate={scanDefaults?.date}
           onClose={closeForm}
         />
       )}

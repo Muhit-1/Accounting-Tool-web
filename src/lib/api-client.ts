@@ -39,7 +39,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken()
   const headers = new Headers(options.headers)
   headers.set('Accept', 'application/json')
-  if (options.body) {
+  if (typeof options.body === 'string') {
+    // Left unset for FormData bodies — the browser sets the multipart
+    // boundary itself, which we can't reproduce by hand.
     headers.set('Content-Type', 'application/json')
   }
   if (token) {
@@ -80,6 +82,7 @@ export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, data?: unknown) =>
     request<T>(path, { method: 'POST', body: data ? JSON.stringify(data) : undefined }),
+  postForm: <T>(path: string, formData: FormData) => request<T>(path, { method: 'POST', body: formData }),
   patch: <T>(path: string, data?: unknown) =>
     request<T>(path, { method: 'PATCH', body: data ? JSON.stringify(data) : undefined }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
