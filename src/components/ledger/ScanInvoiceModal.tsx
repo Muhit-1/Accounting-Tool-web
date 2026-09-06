@@ -11,7 +11,10 @@ export function ScanInvoiceModal({
 }: {
   businessId: string
   ledgerId: string
-  onScanned: (result: InvoiceScanResult) => void
+  // Hands back the uploaded File itself alongside the extracted fields —
+  // the ledger page holds onto it and attaches it to the entry once the
+  // user actually saves, so they can reopen it later.
+  onScanned: (result: InvoiceScanResult, file: File) => void
   onClose: () => void
 }) {
   const scanInvoice = useScanInvoice(businessId, ledgerId)
@@ -26,7 +29,7 @@ export function ScanInvoiceModal({
     setError(null)
     try {
       const result = await scanInvoice.mutateAsync(file)
-      onScanned(result)
+      onScanned(result, file)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not scan that file. Please try again.')
     }
@@ -38,15 +41,15 @@ export function ScanInvoiceModal({
         className="w-full max-w-sm rounded-ledger border border-paper-line bg-paper p-7 shadow-lg"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 className="mb-2 font-display text-xl font-semibold">Scan invoice</h2>
+        <h2 className="mb-2 font-display text-xl font-semibold">Upload invoice</h2>
         <p className="mb-5 text-sm text-ink-soft">
-          Upload a photo of an invoice or receipt (JPG, PNG, or WEBP) — we'll read the amount and date so you can
-          confirm the rest.
+          Upload an invoice PDF, or a photo of one (JPG, PNG, WEBP) — we'll read who it's from/to, the amount, and
+          the date so you can confirm the rest.
         </p>
 
         {scanInvoice.isPending ? (
           <p className="rounded-ledger border border-dashed border-paper-line px-4 py-6 text-center text-sm text-ink-soft">
-            Scanning{fileName ? ` "${fileName}"` : ''}…
+            Reading{fileName ? ` "${fileName}"` : ''}…
           </p>
         ) : (
           <button
@@ -54,13 +57,13 @@ export function ScanInvoiceModal({
             onClick={() => fileInputRef.current?.click()}
             className="w-full rounded-ledger border border-dashed border-paper-line px-4 py-6 text-center text-sm text-ink-soft transition-colors hover:border-stamp hover:text-stamp"
           >
-            Click to choose a photo
+            Click to choose a PDF or photo
           </button>
         )}
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="application/pdf,image/jpeg,image/png,image/webp"
           className="hidden"
           onChange={handleFileChange}
         />

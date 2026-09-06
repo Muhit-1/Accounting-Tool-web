@@ -41,6 +41,7 @@ export function LedgerPage() {
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Transaction | undefined>(undefined)
   const [scanDefaults, setScanDefaults] = useState<InvoiceScanResult | undefined>(undefined)
+  const [scanFile, setScanFile] = useState<File | undefined>(undefined)
   const [showScan, setShowScan] = useState(false)
 
   if (!businessId || !ledgerId) return null
@@ -49,12 +50,14 @@ export function LedgerPage() {
   function openCreate() {
     setEditing(undefined)
     setScanDefaults(undefined)
+    setScanFile(undefined)
     setShowForm(true)
   }
 
   function openEdit(tx: Transaction) {
     setEditing(tx)
     setScanDefaults(undefined)
+    setScanFile(undefined)
     setShowForm(true)
   }
 
@@ -62,12 +65,14 @@ export function LedgerPage() {
     setShowForm(false)
     setEditing(undefined)
     setScanDefaults(undefined)
+    setScanFile(undefined)
   }
 
-  function handleScanned(result: InvoiceScanResult) {
+  function handleScanned(result: InvoiceScanResult, file: File) {
     setShowScan(false)
     setEditing(undefined)
     setScanDefaults(result)
+    setScanFile(file)
     setShowForm(true)
   }
 
@@ -87,7 +92,7 @@ export function LedgerPage() {
         </div>
         <div className="flex gap-3">
           <Button variant="ghost" onClick={() => setShowScan(true)}>
-            Scan invoice
+            Upload invoice
           </Button>
           <Button onClick={openCreate}>+ Add entry</Button>
         </div>
@@ -130,6 +135,8 @@ export function LedgerPage() {
           transaction={editing}
           initialAmount={scanDefaults?.amount}
           initialDate={scanDefaults?.date}
+          initialCounterparty={scanDefaults?.counterparty}
+          pendingReceiptFile={scanFile}
           onClose={closeForm}
         />
       )}

@@ -60,6 +60,8 @@ export interface Transaction {
   ledgerId: string
   date: string
   memo: string | null
+  counterparty: string | null
+  receiptFileName: string | null
   amount: number
   type: CategoryType | null
   category: Category | null

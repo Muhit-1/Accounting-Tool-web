@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useDeleteTransaction } from '../../lib/transactions'
+import { useDeleteTransaction, openReceipt } from '../../lib/transactions'
 import { formatMoney, formatShortDate } from '../../lib/format'
+import { ApiError } from '../../lib/api-client'
 import type { Transaction } from '../../types/api'
 import { ConfirmDialog } from '../ConfirmDialog'
 
@@ -17,11 +18,25 @@ export function TransactionTable({
 }) {
   const deleteTransaction = useDeleteTransaction(businessId)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [openingId, setOpeningId] = useState<string | null>(null)
+  const [openError, setOpenError] = useState<string | null>(null)
 
   async function confirmDelete() {
     if (!pendingDeleteId) return
     await deleteTransaction.mutateAsync(pendingDeleteId)
     setPendingDeleteId(null)
+  }
+
+  async function handleViewInvoice(tx: Transaction) {
+    setOpenError(null)
+    setOpeningId(tx.id)
+    try {
+      await openReceipt(businessId, tx.id, tx.receiptFileName ?? 'invoice')
+    } catch (err) {
+      setOpenError(err instanceof ApiError ? err.message : 'Could not open that invoice.')
+    } finally {
+      setOpeningId(null)
+    }
   }
 
   if (transactions.length === 0) {
@@ -57,7 +72,15 @@ export function TransactionTable({
               <td className="px-5 py-3.5 align-middle text-[13.5px] text-ink-soft whitespace-nowrap">
                 {formatShortDate(tx.date)}
               </td>
-              <td className="px-5 py-3.5 align-middle font-medium">{tx.memo || (tx.category ? tx.category.name : '—')}</td>
+              <td className="px-5 py-3.5 align-middle">
+                <div className="font-medium">{tx.memo || (tx.category ? tx.category.name : '—')}</div>
+                {tx.counterparty && (
+                  <div className="text-[12.5px] text-ink-soft">
+                    {tx.type === 'INCOME' ? 'From ' : 'To '}
+                    {tx.counterparty}
+                  </div>
+                )}
+              </td>
               <td className="px-5 py-3.5 align-middle">
                 {tx.category && (
                   <span className="inline-block rounded-[4px] border border-brass px-2 py-0.5 text-[11.5px] font-semibold tracking-wide text-brass uppercase">
@@ -73,7 +96,16 @@ export function TransactionTable({
                 {formatMoney(tx.runningBalance ?? 0, currency)}
               </td>
               <td className="px-5 py-3.5 text-right align-middle whitespace-nowrap">
-                <button onClick={() => onEdit(tx)} className="text-xs text-stamp hover:underline">
+                {tx.receiptFileName && (
+                  <button
+                    onClick={() => handleViewInvoice(tx)}
+                    disabled={openingId === tx.id}
+                    className="text-xs text-stamp hover:underline disabled:opacity-50"
+                  >
+                    {openingId === tx.id ? 'Opening…' : 'View invoice'}
+                  </button>
+                )}
+                <button onClick={() => onEdit(tx)} className="ml-3 text-xs text-stamp hover:underline">
                   Edit
                 </button>
                 <button onClick={() => setPendingDeleteId(tx.id)} className="ml-3 text-xs text-ink-soft hover:text-rust">
@@ -84,6 +116,8 @@ export function TransactionTable({
           ))}
         </tbody>
       </table>
+
+      {openError && <p className="px-5 py-2 text-sm text-rust">{openError}</p>}
 
       {pendingDeleteId && (
         <ConfirmDialog

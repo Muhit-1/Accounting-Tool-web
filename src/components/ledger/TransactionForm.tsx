@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useCreateTransaction, useUpdateTransaction, type TransactionInput } from '../../lib/transactions'
+import { useCreateTransaction, useUpdateTransaction, useUploadReceipt, type TransactionInput } from '../../lib/transactions'
 import { ApiError } from '../../lib/api-client'
 import type { Category, CategoryType, Transaction } from '../../types/api'
 import { TextField } from '../TextField'
@@ -13,21 +13,28 @@ export function TransactionForm({
   transaction,
   initialAmount,
   initialDate,
+  initialCounterparty,
+  pendingReceiptFile,
   onClose,
 }: {
   businessId: string
   ledgerId: string
   categories: Category[]
   transaction?: Transaction
-  // Prefill for a fresh entry seeded from a scanned invoice/receipt
+  // Prefill for a fresh entry seeded from an uploaded invoice/receipt
   // (ScanInvoiceModal) — ignored once `transaction` is set (edit mode).
   initialAmount?: number | null
   initialDate?: string | null
+  initialCounterparty?: string | null
+  // The file itself, attached to the new entry once it's actually saved so
+  // the user can open it again later (see TransactionTable's "View invoice").
+  pendingReceiptFile?: File
   onClose: () => void
 }) {
   const isEdit = Boolean(transaction)
   const createTransaction = useCreateTransaction(businessId)
   const updateTransaction = useUpdateTransaction(businessId)
+  const uploadReceipt = useUploadReceipt(businessId)
 
   const [type, setType] = useState<CategoryType>(transaction?.type ?? 'INCOME')
   const [amount, setAmount] = useState(transaction ? String(transaction.amount) : (initialAmount?.toString() ?? ''))
@@ -35,6 +42,9 @@ export function TransactionForm({
     transaction ? transaction.date.slice(0, 10) : (initialDate ?? new Date().toISOString().slice(0, 10)),
   )
   const [categoryId, setCategoryId] = useState(transaction?.category?.id ?? '')
+  const [counterparty, setCounterparty] = useState(
+    transaction ? (transaction.counterparty ?? '') : (initialCounterparty ?? ''),
+  )
   const [memo, setMemo] = useState(transaction?.memo ?? '')
   const [error, setError] = useState<string | null>(null)
 
@@ -56,13 +66,20 @@ export function TransactionForm({
       amount: Number(amount),
       type,
       categoryId: categoryId || undefined,
+      counterparty: counterparty || undefined,
       memo: memo || undefined,
     }
     try {
       if (isEdit && transaction) {
         await updateTransaction.mutateAsync({ id: transaction.id, ...input })
       } else {
-        await createTransaction.mutateAsync(input)
+        const created = await createTransaction.mutateAsync(input)
+        if (pendingReceiptFile) {
+          // Best-effort: the entry itself is already saved at this point,
+          // so a failure here shouldn't block the user — they just won't
+          // be able to reopen the source file for this one entry.
+          await uploadReceipt.mutateAsync({ transactionId: created.id, file: pendingReceiptFile }).catch(() => undefined)
+        }
       }
       onClose()
     } catch (err) {
@@ -70,7 +87,7 @@ export function TransactionForm({
     }
   }
 
-  const isPending = createTransaction.isPending || updateTransaction.isPending
+  const isPending = createTransaction.isPending || updateTransaction.isPending || uploadReceipt.isPending
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4" onClick={onClose}>
@@ -101,6 +118,12 @@ export function TransactionForm({
             </button>
           </div>
 
+          <TextField
+            label={type === 'INCOME' ? 'From' : 'To'}
+            placeholder={type === 'INCOME' ? 'Who paid you' : 'Who you paid'}
+            value={counterparty}
+            onChange={(event) => setCounterparty(event.target.value)}
+          />
           <TextField
             label="Amount"
             type="number"

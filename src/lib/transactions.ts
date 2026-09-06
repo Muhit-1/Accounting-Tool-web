@@ -17,6 +17,7 @@ export interface TransactionInput {
   ledgerId: string
   date: string
   memo?: string
+  counterparty?: string
   categoryId?: string
   amount: number
   type: CategoryType
@@ -52,6 +53,45 @@ export function useDeleteTransaction(businessId: string) {
     mutationFn: (id: string) => api.delete(`/businesses/${businessId}/transactions/${id}`),
     onSuccess: () => invalidateTransactionQueries(queryClient, businessId),
   })
+}
+
+// Attaches the invoice/receipt file the user uploaded (via "Upload
+// invoice") to an already-created entry — a follow-up request rather than
+// part of useCreateTransaction, so the main create call stays plain JSON.
+export function useUploadReceipt(businessId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ transactionId, file }: { transactionId: string; file: File }) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      return api.postForm<Transaction>(`/businesses/${businessId}/transactions/${transactionId}/receipt`, formData)
+    },
+    onSuccess: () => invalidateTransactionQueries(queryClient, businessId),
+  })
+}
+
+// Opens the uploaded invoice/receipt for a transaction in a new tab. Opens
+// the tab synchronously (before the fetch) so browsers don't treat it as a
+// blocked popup; falls back to a normal download if that's blocked anyway.
+export async function openReceipt(businessId: string, transactionId: string, filename: string) {
+  const newTab = window.open('', '_blank')
+  try {
+    const blob = await api.getBlob(`/businesses/${businessId}/transactions/${transactionId}/receipt`)
+    const url = URL.createObjectURL(blob)
+    if (newTab) {
+      newTab.location.href = url
+    } else {
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    }
+  } catch (err) {
+    newTab?.close()
+    throw err
+  }
 }
 
 export interface TransactionWithBusiness extends Transaction {

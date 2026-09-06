@@ -4,6 +4,7 @@ import { api } from './api-client'
 export interface InvoiceScanResult {
   amount: number | null
   date: string | null
+  counterparty: string | null
 }
 
 export function useScanInvoice(businessId: string, ledgerId: string) {
