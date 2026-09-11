@@ -1,15 +1,23 @@
-import { useParams } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
 import { useBusiness, useBusinesses } from '../lib/businesses'
 import { useBusinessDashboard, useCombinedDashboard } from '../lib/dashboard'
 import { useRecentTransactionsAcross, useTransactions, type TransactionWithBusiness } from '../lib/transactions'
 import { useInvoicesAcross, useInvoices, type InvoiceWithBusiness } from '../lib/invoices'
 import { useAccessGrantsAcross, useAccessGrants, type AccessGrantWithBusiness } from '../lib/access-grants'
+import { useAccounts } from '../lib/accounts'
 import { formatMoney } from '../lib/format'
+import { monthlyCashFlow, monthOverMonthDelta } from '../lib/cashflow'
 import { KpiBand, type KpiCell } from '../components/dashboard/KpiBand'
 import { RecentEntriesPanel } from '../components/dashboard/RecentEntriesPanel'
 import { InvoicesPanel } from '../components/dashboard/InvoicesPanel'
 import { SharedAccessPanel } from '../components/dashboard/SharedAccessPanel'
+import { AccountsSummaryPanel } from '../components/dashboard/AccountsSummaryPanel'
+import { CashFlowChart } from '../components/dashboard/CashFlowChart'
+import { InvoiceStatusDonut, type InvoiceStatusSlice } from '../components/dashboard/InvoiceStatusDonut'
+import { Panel } from '../components/Panel'
+import type { InvoiceStatus } from '../types/api'
 
 function greeting(): string {
   const hour = new Date().getHours()
@@ -25,10 +33,31 @@ function openInvoicesSummary(invoices: { status: string; total: number; currency
   return { count: open.length, outstanding, currency }
 }
 
+const STATUS_SLICE_ORDER: { status: InvoiceStatus; label: string; colorVar: string }[] = [
+  { status: 'DRAFT', label: 'Draft', colorVar: 'var(--color-ink-soft)' },
+  { status: 'SENT', label: 'Sent', colorVar: 'var(--color-brass)' },
+  { status: 'PAID', label: 'Paid', colorVar: 'var(--color-green)' },
+  { status: 'OVERDUE', label: 'Overdue', colorVar: 'var(--color-rust)' },
+]
+
+function invoicesThisMonth(invoices: { status: InvoiceStatus; issueDate: string }[]): InvoiceStatusSlice[] {
+  const now = new Date()
+  const thisMonth = invoices.filter((inv) => {
+    const d = new Date(inv.issueDate)
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+  })
+  return STATUS_SLICE_ORDER.map(({ status, label, colorVar }) => ({
+    label,
+    colorVar,
+    count: thisMonth.filter((inv) => inv.status === status).length,
+  }))
+}
+
 interface DashboardBody {
   heading: string
-  currency: string
   kpiCells: KpiCell[]
+  cashFlow: ReturnType<typeof monthlyCashFlow>
+  invoiceStatusSlices: InvoiceStatusSlice[]
   transactions: TransactionWithBusiness[]
   invoices: InvoiceWithBusiness[]
   grants: AccessGrantWithBusiness[]
@@ -36,12 +65,15 @@ interface DashboardBody {
   businessId?: string
   isOwner: boolean
   isLoading: boolean
+  accountsPanel?: ReactNode
   emptyNote?: { title: string; body: string }
 }
 
 function DashboardBody({
   heading,
   kpiCells,
+  cashFlow,
+  invoiceStatusSlices,
   transactions,
   invoices,
   grants,
@@ -49,6 +81,7 @@ function DashboardBody({
   businessId,
   isOwner,
   isLoading,
+  accountsPanel,
   emptyNote,
 }: DashboardBody) {
   return (
@@ -58,13 +91,27 @@ function DashboardBody({
           <p className="mb-1.5 text-xs tracking-wider text-ink-soft uppercase">
             {new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}
           </p>
-          <h1 className="text-pretty font-display text-[31px] font-medium tracking-tight">{heading}</h1>
+          <h1 className="text-pretty font-display text-[31px] font-bold tracking-tight">{heading}</h1>
         </div>
+        <Link
+          to={businessId ? `/businesses/${businessId}/reports` : '/reports'}
+          className="border-b border-current text-[13px] text-stamp no-underline"
+        >
+          View reports
+        </Link>
       </div>
 
       <KpiBand cells={kpiCells} />
 
-      <div className="rise rise-2 grid grid-cols-1 items-start gap-7 lg:grid-cols-[1.7fr_1fr]">
+      <div className="rise rise-2 mb-7">
+        <Panel title="Cash flow — last 6 months">
+          <div className="px-5 py-5">
+            <CashFlowChart data={cashFlow} />
+          </div>
+        </Panel>
+      </div>
+
+      <div className="rise rise-3 grid grid-cols-1 items-start gap-7 lg:grid-cols-[1.7fr_1fr]">
         <RecentEntriesPanel
           transactions={transactions}
           showBusiness={showBusiness}
@@ -73,6 +120,14 @@ function DashboardBody({
         />
 
         <div className="flex flex-col gap-5">
+          {accountsPanel}
+
+          <Panel title="Invoices this month">
+            <div className="px-5 py-5">
+              <InvoiceStatusDonut slices={invoiceStatusSlices} />
+            </div>
+          </Panel>
+
           <InvoicesPanel
             invoices={invoices}
             showBusiness={showBusiness}
@@ -87,7 +142,7 @@ function DashboardBody({
           />
 
           {emptyNote && (
-            <div className="mt-1 flex items-start gap-3 rounded-ledger border border-dashed border-stamp bg-stamp-soft px-4 py-3.5 text-[13.5px] text-[#33285F]">
+            <div className="mt-1 flex items-start gap-3 rounded-ledger border border-dashed border-stamp bg-stamp-soft px-4 py-3.5 text-[13.5px] text-ink">
               <div>
                 <b className="mb-0.5 block font-display text-[15px] text-stamp">{emptyNote.title}</b>
                 {emptyNote.body}
@@ -110,9 +165,16 @@ function CombinedDashboard() {
 
   const primaryCurrency = combined?.businesses[0]?.currency ?? 'BDT'
   const { count, outstanding, currency: openCurrency } = openInvoicesSummary(invoices)
+  const cashFlow = monthlyCashFlow(transactions)
+  const delta = monthOverMonthDelta(cashFlow)
 
   const kpiCells: KpiCell[] = [
-    { label: 'Combined balance', value: formatMoney(combined?.combined.balance ?? 0, primaryCurrency) },
+    {
+      label: 'Combined balance',
+      value: formatMoney(combined?.combined.balance ?? 0, primaryCurrency),
+      sub: delta?.label,
+      tone: delta?.tone,
+    },
     { label: 'Total income', value: formatMoney(combined?.combined.totalIncome ?? 0, primaryCurrency) },
     { label: 'Total expense', value: formatMoney(combined?.combined.totalExpense ?? 0, primaryCurrency) },
     {
@@ -125,8 +187,9 @@ function CombinedDashboard() {
   return (
     <DashboardBody
       heading={`${greeting()} — here's where things stand`}
-      currency={primaryCurrency}
       kpiCells={kpiCells}
+      cashFlow={cashFlow}
+      invoiceStatusSlices={invoicesThisMonth(invoices)}
       transactions={transactions}
       invoices={invoices}
       grants={grants}
@@ -145,6 +208,7 @@ function SingleBusinessDashboard({ businessId }: { businessId: string }) {
   const { data: rawTransactions, isLoading: isTxLoading } = useTransactions(businessId)
   const { data: rawInvoices, isLoading: isInvLoading } = useInvoices(businessId)
   const { data: rawGrants, isLoading: isGrantLoading } = useAccessGrants(businessId)
+  const { data: accounts, isLoading: isAccountsLoading } = useAccounts(businessId)
 
   const currency = business?.currency ?? 'BDT'
   const businessName = business?.name ?? ''
@@ -158,9 +222,11 @@ function SingleBusinessDashboard({ businessId }: { businessId: string }) {
 
   const { count, outstanding } = openInvoicesSummary(invoices)
   const hasActivity = (dashboard?.totalIncome ?? 0) > 0 || (dashboard?.totalExpense ?? 0) > 0
+  const cashFlow = monthlyCashFlow(rawTransactions ?? [])
+  const delta = monthOverMonthDelta(cashFlow)
 
   const kpiCells: KpiCell[] = [
-    { label: 'Balance', value: formatMoney(dashboard?.balance ?? 0, currency) },
+    { label: 'Balance', value: formatMoney(dashboard?.balance ?? 0, currency), sub: delta?.label, tone: delta?.tone },
     { label: 'Total income', value: formatMoney(dashboard?.totalIncome ?? 0, currency) },
     { label: 'Total expense', value: formatMoney(dashboard?.totalExpense ?? 0, currency) },
     {
@@ -173,8 +239,9 @@ function SingleBusinessDashboard({ businessId }: { businessId: string }) {
   return (
     <DashboardBody
       heading={`${greeting()} — ${businessName || 'this business'}`}
-      currency={currency}
       kpiCells={kpiCells}
+      cashFlow={cashFlow}
+      invoiceStatusSlices={invoicesThisMonth(invoices)}
       transactions={transactions}
       invoices={invoices}
       grants={grants}
@@ -182,11 +249,19 @@ function SingleBusinessDashboard({ businessId }: { businessId: string }) {
       businessId={businessId}
       isOwner={isOwner}
       isLoading={isDashLoading || isTxLoading || isInvLoading || isGrantLoading}
+      accountsPanel={
+        <AccountsSummaryPanel
+          businessId={businessId}
+          accounts={accounts ?? []}
+          currency={currency}
+          isLoading={isAccountsLoading}
+        />
+      }
       emptyNote={
         !isDashLoading && !hasActivity
           ? {
               title: businessName || 'New venture',
-              body: "No entries yet — it'll appear on the ledger the day its first transaction is recorded.",
+              body: "No entries yet — it'll appear on the books the day its first transaction is recorded.",
             }
           : undefined
       }

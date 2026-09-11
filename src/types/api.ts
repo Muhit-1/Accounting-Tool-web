@@ -44,7 +44,7 @@ export interface Category {
   createdAt: string
 }
 
-export interface Ledger {
+export interface Account {
   id: string
   businessId: string
   name: string
@@ -57,7 +57,7 @@ export interface Ledger {
 
 export interface Transaction {
   id: string
-  ledgerId: string
+  accountId: string
   date: string
   memo: string | null
   counterparty: string | null

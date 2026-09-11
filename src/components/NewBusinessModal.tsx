@@ -32,7 +32,7 @@ export function NewBusinessModal({ onClose }: { onClose: () => void }) {
         className="w-full max-w-sm rounded-ledger border border-paper-line bg-paper p-7 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-5 font-display text-xl font-semibold">New business</h2>
+        <h2 className="mb-5 font-display text-xl font-bold">New business</h2>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <TextField
             label="Name"

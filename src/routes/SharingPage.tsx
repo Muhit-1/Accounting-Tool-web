@@ -20,7 +20,7 @@ export function SharingPage() {
 
       <div className="mb-6">
         <p className="mb-1.5 text-xs tracking-wider text-ink-soft uppercase">{business?.name ?? '…'}</p>
-        <h1 className="font-display text-[28px] font-medium tracking-tight">Sharing</h1>
+        <h1 className="font-display text-[28px] font-bold tracking-tight">Sharing</h1>
         <p className="mt-1 max-w-lg text-sm text-ink-soft">
           Grant another registered user time-limited access to this whole business — view-only or full edit. They
           can see it in their own "Shared with you" list once granted.

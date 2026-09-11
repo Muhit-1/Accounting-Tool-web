@@ -47,7 +47,7 @@ export function InvoiceFormPage() {
 
       <div className="mb-6">
         <p className="mb-1.5 text-xs tracking-wider text-ink-soft uppercase">{business?.name ?? '…'}</p>
-        <h1 className="font-display text-[28px] font-medium tracking-tight">{isEdit ? 'Edit invoice' : 'New invoice'}</h1>
+        <h1 className="font-display text-[28px] font-bold tracking-tight">{isEdit ? 'Edit invoice' : 'New invoice'}</h1>
       </div>
 
       {!isReady ? (
@@ -202,7 +202,7 @@ function InvoiceForm({
                     placeholder="Service or product"
                     value={item.description}
                     onChange={(event) => updateItem(index, { description: event.target.value })}
-                    className="rounded-ledger border border-paper-line bg-white/40 px-3 py-2 text-[14px] text-ink focus:border-stamp focus:outline-none"
+                    className="rounded-ledger border border-paper-line bg-white px-3 py-2 text-[14px] text-ink focus:border-stamp focus:outline-none"
                   />
                   <input
                     required
@@ -211,7 +211,7 @@ function InvoiceForm({
                     step="0.01"
                     value={item.quantity}
                     onChange={(event) => updateItem(index, { quantity: event.target.value })}
-                    className="rounded-ledger border border-paper-line bg-white/40 px-2 py-2 text-[14px] text-ink focus:border-stamp focus:outline-none"
+                    className="rounded-ledger border border-paper-line bg-white px-2 py-2 text-[14px] text-ink focus:border-stamp focus:outline-none"
                   />
                   <input
                     required
@@ -221,7 +221,7 @@ function InvoiceForm({
                     placeholder="0.00"
                     value={item.rate}
                     onChange={(event) => updateItem(index, { rate: event.target.value })}
-                    className="rounded-ledger border border-paper-line bg-white/40 px-2 py-2 text-[14px] text-ink focus:border-stamp focus:outline-none"
+                    className="rounded-ledger border border-paper-line bg-white px-2 py-2 text-[14px] text-ink focus:border-stamp focus:outline-none"
                   />
                   <button
                     type="button"

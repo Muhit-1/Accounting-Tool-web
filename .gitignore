@@ -15,6 +15,9 @@ dist-ssr
 # environment
 .env
 
+# local design reference, not part of the shipped app
+THEME-STYLE-GUIDE.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

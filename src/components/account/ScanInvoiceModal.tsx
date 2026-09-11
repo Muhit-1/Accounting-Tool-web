@@ -5,19 +5,19 @@ import { Button } from '../Button'
 
 export function ScanInvoiceModal({
   businessId,
-  ledgerId,
+  accountId,
   onScanned,
   onClose,
 }: {
   businessId: string
-  ledgerId: string
+  accountId: string
   // Hands back the uploaded File itself alongside the extracted fields —
-  // the ledger page holds onto it and attaches it to the entry once the
+  // the account page holds onto it and attaches it to the entry once the
   // user actually saves, so they can reopen it later.
   onScanned: (result: InvoiceScanResult, file: File) => void
   onClose: () => void
 }) {
-  const scanInvoice = useScanInvoice(businessId, ledgerId)
+  const scanInvoice = useScanInvoice(businessId, accountId)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [fileName, setFileName] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -38,10 +38,10 @@ export function ScanInvoiceModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm rounded-ledger border border-paper-line bg-paper p-7 shadow-lg"
+        className="w-full max-w-sm rounded-ledger border border-paper-line bg-white p-7 shadow-lg"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 className="mb-2 font-display text-xl font-semibold">Upload invoice</h2>
+        <h2 className="mb-2 font-display text-xl font-bold">Upload invoice</h2>
         <p className="mb-5 text-sm text-ink-soft">
           Upload an invoice PDF, or a photo of one (JPG, PNG, WEBP) — we'll read who it's from/to, the amount, and
           the date so you can confirm the rest.

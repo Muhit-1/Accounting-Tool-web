@@ -23,10 +23,10 @@ export function RecentEntriesPanel({
       action={
         businessId ? (
           <Link
-            to={`/businesses/${businessId}/ledgers`}
+            to={`/businesses/${businessId}/accounts`}
             className="border-b border-current text-[13px] text-stamp no-underline"
           >
-            Open ledgers
+            Open accounts
           </Link>
         ) : undefined
       }

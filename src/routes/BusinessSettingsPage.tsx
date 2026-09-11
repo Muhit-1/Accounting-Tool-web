@@ -36,7 +36,7 @@ export function BusinessSettingsPage() {
 
       <div className="mb-6">
         <p className="mb-1.5 text-xs tracking-wider text-ink-soft uppercase">{business?.name ?? '…'}</p>
-        <h1 className="font-display text-[28px] font-medium tracking-tight">Business settings</h1>
+        <h1 className="font-display text-[28px] font-bold tracking-tight">Business settings</h1>
       </div>
 
       {isLoading || !business ? (
@@ -128,7 +128,7 @@ function BusinessSettingsForm({ businessId, business }: { businessId: string; bu
                 <img
                   src={logoUrl}
                   alt="Business logo"
-                  className="h-16 w-16 rounded-ledger border border-paper-line bg-white/60 object-contain"
+                  className="h-16 w-16 rounded-ledger border border-paper-line bg-white object-contain"
                 />
               ) : (
                 <div className="flex h-16 w-16 items-center justify-center rounded-ledger border border-dashed border-paper-line text-xs text-ink-soft">
@@ -218,7 +218,7 @@ function BusinessSettingsForm({ businessId, business }: { businessId: string; bu
           <div>
             <div className="font-medium">Delete this venture</div>
             <div className="text-[13px] text-ink-soft">
-              Removes every ledger, transaction, client, and invoice for this venture. This cannot be undone.
+              Removes every account, transaction, client, and invoice for this venture. This cannot be undone.
             </div>
           </div>
           <Button variant="danger" onClick={() => setConfirmingDelete(true)}>
@@ -230,7 +230,7 @@ function BusinessSettingsForm({ businessId, business }: { businessId: string; bu
       {confirmingDelete && (
         <ConfirmDialog
           title="Delete this venture?"
-          body="Every ledger, transaction, client, and invoice for this venture will be permanently removed."
+          body="Every account, transaction, client, and invoice for this venture will be permanently removed."
           confirmLabel="Delete venture"
           isPending={deleteBusiness.isPending}
           onConfirm={handleDelete}

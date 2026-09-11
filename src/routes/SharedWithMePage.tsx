@@ -9,7 +9,7 @@ export function SharedWithMePage() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="font-display text-[28px] font-medium tracking-tight">Shared with you</h1>
+        <h1 className="font-display text-[28px] font-bold tracking-tight">Shared with you</h1>
         <p className="mt-1 max-w-lg text-sm text-ink-soft">
           Businesses another owner has given you time-limited access to.
         </p>

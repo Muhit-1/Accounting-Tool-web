@@ -34,13 +34,13 @@ export function LoginPage() {
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <Seal size={44} />
           <div>
-            <h1 className="font-display text-2xl font-medium tracking-tight">Accounting Tool</h1>
-            <p className="text-sm text-ink-soft">Ledger for every venture</p>
+            <h1 className="font-display text-2xl font-bold tracking-tight">Accounting Tool</h1>
+            <p className="text-sm text-ink-soft">Bookkeeping for every venture</p>
           </div>
         </div>
 
-        <div className="rounded-ledger border border-paper-line bg-white/40 p-7">
-          <h2 className="mb-5 font-display text-xl font-semibold">Welcome back</h2>
+        <div className="rounded-ledger border border-paper-line bg-white p-7">
+          <h2 className="mb-5 font-display text-xl font-bold">Welcome back</h2>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <TextField
               label="Email"

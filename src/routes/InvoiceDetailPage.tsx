@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useBusiness } from '../lib/businesses'
-import { useDeleteInvoice, useInvoice, useUpdateInvoiceStatus, downloadInvoicePdf } from '../lib/invoices'
+import { useDeleteInvoice, useInvoice, useInvoicePdfPreview, useUpdateInvoiceStatus, downloadInvoicePdf } from '../lib/invoices'
 import { ApiError } from '../lib/api-client'
-import { formatMoney, formatShortDate } from '../lib/format'
 import type { InvoiceStatus } from '../types/api'
 import { Button } from '../components/Button'
 import { Select } from '../components/Select'
@@ -25,6 +24,7 @@ export function InvoiceDetailPage() {
   const navigate = useNavigate()
   const { data: business } = useBusiness(businessId)
   const { data: invoice, isLoading } = useInvoice(businessId, invoiceId)
+  const { url: previewUrl, isLoading: isPreviewLoading, error: previewError } = useInvoicePdfPreview(businessId, invoiceId)
   const updateStatus = useUpdateInvoiceStatus(businessId ?? '')
   const deleteInvoice = useDeleteInvoice(businessId ?? '')
 
@@ -33,7 +33,6 @@ export function InvoiceDetailPage() {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   if (!businessId || !invoiceId) return null
-  const currency = business?.currency ?? 'BDT'
 
   async function handleDownload() {
     if (!invoice) return
@@ -66,7 +65,7 @@ export function InvoiceDetailPage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="mb-1.5 text-xs tracking-wider text-ink-soft uppercase">{business?.name}</p>
-          <h1 className="font-display text-[28px] font-medium tracking-tight">INV-{invoice.number}</h1>
+          <h1 className="font-display text-[28px] font-bold tracking-tight">INV-{invoice.number}</h1>
         </div>
         <span
           className={`inline-block rounded-[4px] border px-3 py-1.5 text-[12.5px] font-semibold tracking-wide uppercase ${STATUS_STYLES[invoice.status]}`}
@@ -76,69 +75,23 @@ export function InvoiceDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-[1.7fr_1fr]">
-        <Panel title="Invoice">
-          <div className="grid grid-cols-2 gap-4 border-b border-paper-line px-5 py-4 text-[14px]">
-            <div>
-              <div className="mb-1 text-xs tracking-wider text-ink-soft uppercase">Bill to</div>
-              <div className="font-medium">{invoice.client.name}</div>
-              <div className="whitespace-pre-line text-ink-soft">{invoice.client.address}</div>
-            </div>
-            <div className="text-right">
-              <div className="mb-1">
-                <span className="text-ink-soft">Issue date: </span>
-                {formatShortDate(invoice.issueDate)}
+        <Panel title="Preview">
+          <div className="bg-black/[0.03] p-4">
+            {isPreviewLoading ? (
+              <div className="flex h-[720px] items-center justify-center text-sm text-ink-soft">
+                Rendering preview…
               </div>
-              <div className="mb-1">
-                <span className="text-ink-soft">Terms: </span>
-                {invoice.terms}
+            ) : previewError ? (
+              <div className="flex h-[720px] items-center justify-center px-6 text-center text-sm text-rust">
+                {previewError}
               </div>
-              <div>
-                <span className="text-ink-soft">Due date: </span>
-                {formatShortDate(invoice.dueDate)}
-              </div>
-            </div>
-          </div>
-
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-black/[0.02]">
-                <th className="border-b border-paper-line px-5 py-3 text-left text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
-                  Description
-                </th>
-                <th className="border-b border-paper-line px-5 py-3 text-right text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
-                  Qty
-                </th>
-                <th className="border-b border-paper-line px-5 py-3 text-right text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
-                  Rate
-                </th>
-                <th className="border-b border-paper-line px-5 py-3 text-right text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase">
-                  Amount
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoice.items?.map((item) => (
-                <tr key={item.id} className="border-b border-paper-line last:border-b-0">
-                  <td className="px-5 py-3.5 align-middle">{item.description}</td>
-                  <td className="tabular px-5 py-3.5 text-right align-middle">{item.quantity}</td>
-                  <td className="tabular px-5 py-3.5 text-right align-middle">{formatMoney(item.rate, currency)}</td>
-                  <td className="tabular px-5 py-3.5 text-right align-middle font-medium">
-                    {formatMoney(item.amount, currency)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <div className="flex flex-col items-end gap-1 px-5 py-4 text-[14px]">
-            <div className="flex w-48 justify-between">
-              <span className="text-ink-soft">Sub total</span>
-              <span className="tabular">{formatMoney(invoice.subTotal, currency)}</span>
-            </div>
-            <div className="flex w-48 justify-between font-semibold">
-              <span>Total</span>
-              <span className="tabular">{formatMoney(invoice.total, currency)}</span>
-            </div>
+            ) : (
+              <iframe
+                src={previewUrl ?? undefined}
+                title={`Invoice INV-${invoice.number} preview`}
+                className="h-[720px] w-full rounded-[6px] border border-paper-line bg-white"
+              />
+            )}
           </div>
         </Panel>
 

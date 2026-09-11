@@ -11,7 +11,7 @@ export function Select({ label, id, className = '', children, ...props }: Select
       <span className="text-xs font-medium tracking-wider text-ink-soft uppercase">{label}</span>
       <select
         id={selectId}
-        className={`rounded-ledger border border-paper-line bg-white/40 px-3.5 py-2.5 text-[15px] text-ink focus:border-stamp focus:outline-none ${className}`}
+        className={`rounded-ledger border border-paper-line bg-white px-3.5 py-2.5 text-[15px] text-ink focus:border-stamp focus:outline-none ${className}`}
         {...props}
       >
         {children}

@@ -12,7 +12,7 @@ export function TextField({ label, error, id, className = '', ...props }: TextFi
       <span className="text-xs font-medium tracking-wider text-ink-soft uppercase">{label}</span>
       <input
         id={inputId}
-        className={`rounded-ledger border border-paper-line bg-white/40 px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-soft/60 focus:border-stamp focus:outline-none ${className}`}
+        className={`rounded-ledger border border-paper-line bg-white px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-soft/60 focus:border-stamp focus:outline-none ${className}`}
         {...props}
       />
       {error && <span className="text-xs text-rust">{error}</span>}

@@ -1,27 +1,27 @@
 @import "tailwindcss";
 
-/* Ledger theme — see Assest and doc/Accounting-Tool-Ledger-Theme-Style-Guide_1.html */
+/* Workspace theme — see THEME-STYLE-GUIDE.md (git-ignored, local reference only) */
 @theme {
-  --color-paper: #efece1;
-  --color-paper-line: #dad5c4;
-  --color-paper-edge: #e4dfd1;
-  --color-ink: #182c27;
-  --color-ink-soft: #5c6560;
-  --color-stamp: #443789;
-  --color-stamp-soft: #eae6f7;
-  --color-brass: #8a6a22;
-  --color-brass-soft: #f1e9d3;
-  --color-rust: #9b4632;
-  --color-rust-soft: #f4e4de;
-  --color-rule-red: #b65b4e;
-  --color-green: #3e6a4f;
-  --color-green-soft: #e4eee6;
+  --color-paper: #f4f6fa;
+  --color-paper-line: #d7dde5;
+  --color-paper-edge: #e2e6ec;
+  --color-ink: #0f2a4a;
+  --color-ink-soft: #6b7684;
+  --color-ink-inverse-soft: #a9bcd6;
+  --color-stamp: #1c6dd0;
+  --color-stamp-soft: #e6f0fb;
+  --color-brass: #7a5c14;
+  --color-brass-soft: #f0e2b8;
+  --color-rust: #c8384f;
+  --color-rust-soft: #f6d0d0;
+  --color-green: #1a8a4c;
+  --color-green-soft: #dcefe6;
 
-  --font-display: "Fraunces", serif;
-  --font-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-mono: "Roboto Mono", ui-monospace, monospace;
 
-  --radius-ledger: 3px;
+  --radius-ledger: 8px;
 }
 
 html,
@@ -31,12 +31,10 @@ body {
 }
 
 body {
-  background:
-    linear-gradient(var(--color-paper-edge) 1px, transparent 1px) 0 0/100% 32px,
-    var(--color-paper);
+  background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-body);
-  font-size: 15.5px;
+  font-size: 15px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }

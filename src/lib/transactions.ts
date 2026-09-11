@@ -2,19 +2,19 @@ import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/rea
 import { api } from './api-client'
 import type { CategoryType, Transaction } from '../types/api'
 
-export function useTransactions(businessId: string | undefined, ledgerId?: string) {
+export function useTransactions(businessId: string | undefined, accountId?: string) {
   return useQuery({
-    queryKey: ['transactions', businessId, ledgerId],
+    queryKey: ['transactions', businessId, accountId],
     queryFn: () =>
       api.get<Transaction[]>(
-        `/businesses/${businessId}/transactions${ledgerId ? `?ledgerId=${ledgerId}` : ''}`,
+        `/businesses/${businessId}/transactions${accountId ? `?accountId=${accountId}` : ''}`,
       ),
     enabled: Boolean(businessId),
   })
 }
 
 export interface TransactionInput {
-  ledgerId: string
+  accountId: string
   date: string
   memo?: string
   counterparty?: string
@@ -25,7 +25,7 @@ export interface TransactionInput {
 
 function invalidateTransactionQueries(queryClient: ReturnType<typeof useQueryClient>, businessId: string) {
   queryClient.invalidateQueries({ queryKey: ['transactions', businessId] })
-  queryClient.invalidateQueries({ queryKey: ['ledgers', businessId] })
+  queryClient.invalidateQueries({ queryKey: ['accounts', businessId] })
   queryClient.invalidateQueries({ queryKey: ['dashboard', businessId] })
   queryClient.invalidateQueries({ queryKey: ['dashboard', 'combined'] })
 }

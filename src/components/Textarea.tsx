@@ -12,7 +12,7 @@ export function Textarea({ label, id, className = '', ...props }: TextareaProps)
       <textarea
         id={areaId}
         rows={3}
-        className={`rounded-ledger border border-paper-line bg-white/40 px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-soft/60 focus:border-stamp focus:outline-none ${className}`}
+        className={`rounded-ledger border border-paper-line bg-white px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-soft/60 focus:border-stamp focus:outline-none ${className}`}
         {...props}
       />
     </label>

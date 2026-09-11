@@ -8,7 +8,7 @@ import { Button } from '../Button'
 
 export function TransactionForm({
   businessId,
-  ledgerId,
+  accountId,
   categories,
   transaction,
   initialAmount,
@@ -18,7 +18,7 @@ export function TransactionForm({
   onClose,
 }: {
   businessId: string
-  ledgerId: string
+  accountId: string
   categories: Category[]
   transaction?: Transaction
   // Prefill for a fresh entry seeded from an uploaded invoice/receipt
@@ -61,7 +61,7 @@ export function TransactionForm({
     event.preventDefault()
     setError(null)
     const input: TransactionInput = {
-      ledgerId,
+      accountId,
       date,
       amount: Number(amount),
       type,
@@ -92,10 +92,10 @@ export function TransactionForm({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm rounded-ledger border border-paper-line bg-paper p-7 shadow-lg"
+        className="w-full max-w-sm rounded-ledger border border-paper-line bg-white p-7 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-5 font-display text-xl font-semibold">{isEdit ? 'Edit entry' : 'New entry'}</h2>
+        <h2 className="mb-5 font-display text-xl font-bold">{isEdit ? 'Edit entry' : 'New entry'}</h2>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <div className="flex gap-2">
             <button

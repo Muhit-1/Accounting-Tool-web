@@ -2,11 +2,19 @@ import type { CategoryBreakdown } from '../../types/api'
 import { formatMoney } from '../../lib/format'
 import { Panel } from '../Panel'
 
-export function CategoryBreakdownPanel({ byCategory, currency }: { byCategory: CategoryBreakdown[]; currency: string }) {
+export function CategoryBreakdownPanel({
+  byCategory,
+  currency,
+  title = 'Spend by category',
+}: {
+  byCategory: CategoryBreakdown[]
+  currency: string
+  title?: string
+}) {
   const scale = Math.max(...byCategory.map((c) => Math.abs(c.total)), 1)
 
   return (
-    <Panel title="Spend by category">
+    <Panel title={title}>
       {byCategory.length === 0 ? (
         <p className="px-5 py-6 text-sm text-ink-soft">Nothing recorded yet.</p>
       ) : (

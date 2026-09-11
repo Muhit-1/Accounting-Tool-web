@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useBusiness } from '../lib/businesses'
-import { useLedger } from '../lib/ledgers'
+import { useAccount } from '../lib/accounts'
 import { useCategories } from '../lib/categories'
 import { useTransactions } from '../lib/transactions'
 import type { InvoiceScanResult } from '../lib/invoice-scan'
@@ -9,11 +9,11 @@ import type { CategoryBreakdown, Transaction } from '../types/api'
 import { formatMoney } from '../lib/format'
 import { Button } from '../components/Button'
 import { Panel } from '../components/Panel'
-import { CategoryManager } from '../components/ledger/CategoryManager'
-import { CategoryBreakdownPanel } from '../components/ledger/CategoryBreakdownPanel'
-import { TransactionTable } from '../components/ledger/TransactionTable'
-import { TransactionForm } from '../components/ledger/TransactionForm'
-import { ScanInvoiceModal } from '../components/ledger/ScanInvoiceModal'
+import { CategoryManager } from '../components/account/CategoryManager'
+import { CategoryBreakdownPanel } from '../components/account/CategoryBreakdownPanel'
+import { TransactionTable } from '../components/account/TransactionTable'
+import { TransactionForm } from '../components/account/TransactionForm'
+import { ScanInvoiceModal } from '../components/account/ScanInvoiceModal'
 
 function breakdownFromTransactions(transactions: Transaction[]): CategoryBreakdown[] {
   const buckets = new Map<string, CategoryBreakdown>()
@@ -31,12 +31,12 @@ function breakdownFromTransactions(transactions: Transaction[]): CategoryBreakdo
   return [...buckets.values()].sort((a, b) => b.total - a.total)
 }
 
-export function LedgerPage() {
-  const { businessId, ledgerId } = useParams<{ businessId: string; ledgerId: string }>()
+export function AccountPage() {
+  const { businessId, accountId } = useParams<{ businessId: string; accountId: string }>()
   const { data: business } = useBusiness(businessId)
-  const { data: ledger } = useLedger(businessId, ledgerId)
+  const { data: account } = useAccount(businessId, accountId)
   const { data: categories } = useCategories(businessId)
-  const { data: transactions, isLoading } = useTransactions(businessId, ledgerId)
+  const { data: transactions, isLoading } = useTransactions(businessId, accountId)
 
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Transaction | undefined>(undefined)
@@ -44,7 +44,7 @@ export function LedgerPage() {
   const [scanFile, setScanFile] = useState<File | undefined>(undefined)
   const [showScan, setShowScan] = useState(false)
 
-  if (!businessId || !ledgerId) return null
+  if (!businessId || !accountId) return null
   const currency = business?.currency ?? 'BDT'
 
   function openCreate() {
@@ -78,16 +78,16 @@ export function LedgerPage() {
 
   return (
     <>
-      <Link to={`/businesses/${businessId}/ledgers`} className="mb-3 inline-block text-sm text-stamp underline underline-offset-2">
-        ← Back to ledgers
+      <Link to={`/businesses/${businessId}/accounts`} className="mb-3 inline-block text-sm text-stamp underline underline-offset-2">
+        ← Back to accounts
       </Link>
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-1.5 text-xs tracking-wider text-ink-soft uppercase">{business?.name ?? '…'}</p>
-          <h1 className="font-display text-[28px] font-medium tracking-tight">{ledger?.name ?? 'Ledger'}</h1>
-          {ledger && (
-            <p className="tabular mt-1 text-[14px] text-ink-soft">Balance {formatMoney(ledger.balance, currency)}</p>
+          <h1 className="font-display text-[28px] font-bold tracking-tight">{account?.name ?? 'Account'}</h1>
+          {account && (
+            <p className="tabular mt-1 text-[14px] text-ink-soft">Balance {formatMoney(account.balance, currency)}</p>
           )}
         </div>
         <div className="flex gap-3">
@@ -121,7 +121,7 @@ export function LedgerPage() {
       {showScan && (
         <ScanInvoiceModal
           businessId={businessId}
-          ledgerId={ledgerId}
+          accountId={accountId}
           onScanned={handleScanned}
           onClose={() => setShowScan(false)}
         />
@@ -130,7 +130,7 @@ export function LedgerPage() {
       {showForm && (
         <TransactionForm
           businessId={businessId}
-          ledgerId={ledgerId}
+          accountId={accountId}
           categories={categories ?? []}
           transaction={editing}
           initialAmount={scanDefaults?.amount}

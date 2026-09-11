@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from './api-client'
+import { api, ApiError } from './api-client'
 import type { Invoice, InvoiceStatus } from '../types/api'
 
 export function useInvoices(businessId: string | undefined) {
@@ -87,6 +88,45 @@ export function useDeleteInvoice(businessId: string) {
       queryClient.invalidateQueries({ queryKey: ['dashboard', businessId] })
     },
   })
+}
+
+// Renders the same PDF the download button saves, inline — so the user can
+// see exactly what they're about to send before deciding to download it
+// (mirrors how most invoicing tools show a live preview alongside the list).
+export function useInvoicePdfPreview(businessId: string | undefined, invoiceId: string | undefined) {
+  const [url, setUrl] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!businessId || !invoiceId) return
+    let cancelled = false
+    let objectUrl: string | null = null
+
+    setUrl(null)
+    setError(null)
+    setIsLoading(true)
+    api
+      .getBlob(`/businesses/${businessId}/invoices/${invoiceId}/pdf`)
+      .then((blob) => {
+        if (cancelled) return
+        objectUrl = URL.createObjectURL(blob)
+        setUrl(objectUrl)
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Could not load the preview.')
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [businessId, invoiceId])
+
+  return { url, isLoading, error }
 }
 
 export async function downloadInvoicePdf(businessId: string, invoiceId: string, filename: string) {
