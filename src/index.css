@@ -44,6 +44,38 @@ body {
   font-family: var(--font-mono);
 }
 
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 42, 74, 0.2) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(15, 42, 74, 0.18);
+  border-radius: 999px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 42, 74, 0.3);
+}
+
+.scrollbar-thin-dark {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+.scrollbar-thin-dark::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-thin-dark::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+}
+.scrollbar-thin-dark::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
 :focus-visible {
   outline: 2px solid var(--color-stamp);
   outline-offset: 2px;

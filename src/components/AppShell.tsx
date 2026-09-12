@@ -137,7 +137,7 @@ function TopBar() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-paper-line bg-white px-5 py-3 md:px-10">
+    <header className="flex flex-none items-center justify-between gap-4 border-b border-paper-line bg-white px-5 py-3 md:px-10">
       <form onSubmit={handleSearch} className="max-w-xs flex-1">
         <label className="relative block">
           <IconSearch width={16} height={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-soft" />
@@ -189,8 +189,8 @@ export function AppShell() {
   const { user, logout } = useAuth()
 
   return (
-    <div className="grid min-h-screen grid-cols-1 md:grid-cols-[248px_1fr]">
-      <aside className="flex flex-col gap-6 bg-ink p-5 text-white md:p-5">
+    <div className="md:grid md:h-screen md:grid-cols-[248px_1fr] md:overflow-hidden">
+      <aside className="scrollbar-thin-dark flex flex-col gap-6 bg-ink p-5 text-white md:overflow-y-auto md:p-5">
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2.5">
             <Seal />
@@ -271,9 +271,9 @@ export function AppShell() {
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-col">
+      <div className="min-w-0 md:flex md:flex-col md:overflow-hidden">
         <TopBar />
-        <main className="flex-1 bg-paper px-5 pt-8 pb-14 md:px-10">
+        <main className="scrollbar-thin bg-paper px-5 pt-8 pb-14 md:flex-1 md:overflow-y-auto md:px-10">
           <Outlet />
         </main>
       </div>
