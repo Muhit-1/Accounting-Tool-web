@@ -94,39 +94,37 @@ export function useDeleteInvoice(businessId: string) {
 // see exactly what they're about to send before deciding to download it
 // (mirrors how most invoicing tools show a live preview alongside the list).
 export function useInvoicePdfPreview(businessId: string | undefined, invoiceId: string | undefined) {
-  const [url, setUrl] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const key = businessId && invoiceId ? `${businessId}/${invoiceId}` : null
+  // Results are tagged with the invoice they belong to, so "loading" is
+  // derived (no result for the current key yet) instead of being set
+  // synchronously inside the effect.
+  const [result, setResult] = useState<{ key: string; url: string | null; error: string | null } | null>(null)
 
   useEffect(() => {
-    if (!businessId || !invoiceId) return
+    if (!key || !businessId || !invoiceId) return
     let cancelled = false
     let objectUrl: string | null = null
 
-    setUrl(null)
-    setError(null)
-    setIsLoading(true)
     api
       .getBlob(`/businesses/${businessId}/invoices/${invoiceId}/pdf`)
       .then((blob) => {
         if (cancelled) return
         objectUrl = URL.createObjectURL(blob)
-        setUrl(objectUrl)
+        setResult({ key, url: objectUrl, error: null })
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Could not load the preview.')
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false)
+        if (cancelled) return
+        setResult({ key, url: null, error: err instanceof ApiError ? err.message : 'Could not load the preview.' })
       })
 
     return () => {
       cancelled = true
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [businessId, invoiceId])
+  }, [key, businessId, invoiceId])
 
-  return { url, isLoading, error }
+  const current = result && result.key === key ? result : null
+  return { url: current?.url ?? null, isLoading: key !== null && current === null, error: current?.error ?? null }
 }
 
 export async function downloadInvoicePdf(businessId: string, invoiceId: string, filename: string) {

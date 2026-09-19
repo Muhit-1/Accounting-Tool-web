@@ -13,7 +13,7 @@ Visual direction is the "Workspace" theme (dark sidebar app shell, Plus Jakarta 
 | Styling | Tailwind CSS v4, theme tokens in `src/index.css` |
 | Routing | React Router |
 | Server state | TanStack Query |
-| Fonts | Fraunces (display), IBM Plex Sans (body), IBM Plex Mono (figures) — loaded via Google Fonts in `index.html` |
+| Fonts | Plus Jakarta Sans (display + body), Roboto Mono (figures) — loaded via Google Fonts in `index.html`, tokens in `src/index.css` |
 
 ## Setup
 

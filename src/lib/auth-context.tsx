@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { api, getToken, setToken } from './api-client'
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { api, getToken, onUnauthorized, setToken } from './api-client'
 import type { AuthResponse, User } from '../types/api'
 
 interface AuthContextValue {
@@ -14,14 +15,25 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  // Only "loading" if there's a stored token to verify with /auth/me.
+  const [isLoading, setIsLoading] = useState(() => getToken() !== null)
+  const queryClient = useQueryClient()
+
+  // Ends the session and wipes cached server data, so the next person to
+  // sign in on this browser never sees the previous user's records.
+  const endSession = useCallback(() => {
+    setToken(null)
+    setUser(null)
+    queryClient.clear()
+  }, [queryClient])
 
   useEffect(() => {
-    const token = getToken()
-    if (!token) {
-      setIsLoading(false)
-      return
-    }
+    onUnauthorized(endSession)
+    return () => onUnauthorized(null)
+  }, [endSession])
+
+  useEffect(() => {
+    if (getToken() === null) return
     api
       .get<User>('/auth/me')
       .then(setUser)
@@ -42,8 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
-    setToken(null)
-    setUser(null)
+    endSession()
   }
 
   return (

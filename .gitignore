@@ -28,3 +28,8 @@ THEME-STYLE-GUIDE.md
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code guidance / local settings (kept out of the repo)
+CLAUDE.md
+CLAUDE.local.md
+.claude/

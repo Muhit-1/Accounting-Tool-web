@@ -14,6 +14,22 @@ export function setToken(token: string | null): void {
   }
 }
 
+// Registered by AuthProvider: called when an authenticated request comes back
+// 401 (token expired, revoked, or its user deleted) so the app can drop the
+// dead session and send the user back to the login screen instead of
+// leaving them on a page where every request now fails.
+let unauthorizedHandler: (() => void) | null = null
+
+export function onUnauthorized(handler: (() => void) | null): void {
+  unauthorizedHandler = handler
+}
+
+function handleUnauthorized(hadToken: boolean): void {
+  if (hadToken) {
+    unauthorizedHandler?.()
+  }
+}
+
 export class ApiError extends Error {
   status: number
 
@@ -58,6 +74,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const body = isJson ? await response.json() : undefined
 
   if (!response.ok) {
+    // A 401 from /auth/login or /auth/register just means bad credentials —
+    // only a 401 on an already-authenticated request means the session died.
+    if (response.status === 401 && !path.startsWith('/auth/login') && !path.startsWith('/auth/register')) {
+      handleUnauthorized(token !== null)
+    }
     throw new ApiError(response.status, extractErrorMessage(body, response.statusText))
   }
 
@@ -73,7 +94,10 @@ async function requestBlob(path: string): Promise<Blob> {
 
   const response = await fetch(`${API_URL}${path}`, { headers })
   if (!response.ok) {
-    throw new ApiError(response.status, response.statusText)
+    if (response.status === 401) handleUnauthorized(token !== null)
+    const isJson = response.headers.get('content-type')?.includes('application/json')
+    const body = isJson ? await response.json().catch(() => undefined) : undefined
+    throw new ApiError(response.status, extractErrorMessage(body, response.statusText))
   }
   return response.blob()
 }

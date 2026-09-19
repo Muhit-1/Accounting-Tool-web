@@ -36,12 +36,31 @@ body {
   font-family: var(--font-body);
   font-size: 15px;
   line-height: 1.5;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+  letter-spacing: -0.015em;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+::selection {
+  background: var(--color-stamp-soft);
+  color: var(--color-ink);
 }
 
 .tabular {
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums slashed-zero;
   font-family: var(--font-mono);
+  letter-spacing: -0.01em;
 }
 
 .scrollbar-thin {

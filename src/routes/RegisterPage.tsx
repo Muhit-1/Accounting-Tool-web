@@ -48,6 +48,7 @@ export function RegisterPage() {
               type="text"
               name="name"
               autoComplete="name"
+              maxLength={120}
               required
               value={name}
               onChange={(event) => setName(event.target.value)}
@@ -68,6 +69,7 @@ export function RegisterPage() {
               autoComplete="new-password"
               required
               minLength={8}
+              maxLength={72}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />

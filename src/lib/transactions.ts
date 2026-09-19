@@ -75,6 +75,9 @@ export function useUploadReceipt(businessId: string) {
 // blocked popup; falls back to a normal download if that's blocked anyway.
 export async function openReceipt(businessId: string, transactionId: string, filename: string) {
   const newTab = window.open('', '_blank')
+  // The tab only ever shows our own blob; there's no reason for it to keep a
+  // handle back to this app's window.
+  if (newTab) newTab.opener = null
   try {
     const blob = await api.getBlob(`/businesses/${businessId}/transactions/${transactionId}/receipt`)
     const url = URL.createObjectURL(blob)
