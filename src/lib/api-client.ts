@@ -1,4 +1,18 @@
-const API_URL = import.meta.env.VITE_API_URL
+// VITE_API_URL is inlined at build time, so a missing value would otherwise
+// surface as requests to "undefined/auth/login" — fail at load with a message
+// that says what to fix instead. Trailing slashes are stripped because every
+// request path below starts with "/".
+function resolveApiUrl(): string {
+  const raw = import.meta.env.VITE_API_URL?.trim()
+  if (!raw) {
+    throw new Error(
+      'VITE_API_URL is not set. It is a build-time variable: set it (e.g. https://api.example.com) and rebuild.',
+    )
+  }
+  return raw.replace(/\/+$/, '')
+}
+
+const API_URL = resolveApiUrl()
 
 const TOKEN_STORAGE_KEY = 'accounting_tool_token'
 

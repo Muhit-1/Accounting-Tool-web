@@ -1,0 +1,19 @@
+node_modules
+dist
+.git
+.gitignore
+# Secrets and local config must never enter an image layer. The API URL comes
+# from the VITE_API_URL build argument instead.
+.env
+.env.*
+!.env.example
+*.log
+.vscode
+.idea
+Dockerfile
+.dockerignore
+README.md
+THEME-STYLE-GUIDE.md
+CLAUDE.md
+CLAUDE.local.md
+.claude

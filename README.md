@@ -28,6 +28,21 @@ npm run dev
 
 Opens at `http://localhost:5173`. The API must have `CORS_ORIGIN` set to this origin (already the default in `accounting-api/.env.example`).
 
+## Deployment (Docker / Coolify)
+
+The `Dockerfile` has two stages: a Node build (`node:24-bookworm-slim`, `npm ci` + `npm run build`), then `nginx:alpine` serving `dist/` on port `80` with `nginx.conf`.
+
+- **`VITE_API_URL` is a build argument.** Vite inlines it into the bundle, so it must be provided at build time (in Coolify: a build variable) and **changing it needs a rebuild**. The build fails if it is missing or empty. Trailing slashes are stripped.
+  ```bash
+  docker build --build-arg VITE_API_URL=https://api.exin-finance.sam-trek.com -t accounting-web .
+  docker run --rm -p 8080:80 accounting-web
+  ```
+- **Port:** `80`.
+- **SPA fallback:** unknown paths (e.g. `/businesses/abc/invoices`) serve `index.html`; missing files under `/assets/` return `404` instead.
+- **Caching:** hashed files under `/assets/` are cached for a year (`immutable`); `index.html` is `no-cache`. Responses are gzip-compressed.
+- **Headers:** `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`. A CSP is not set yet (the app loads Google Fonts).
+- The API must list this site's exact origin in its `CORS_ORIGIN`.
+
 ## Scripts
 
 | Command | What it does |
