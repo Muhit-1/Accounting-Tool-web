@@ -5,6 +5,7 @@ import { ApiError } from '../lib/api-client'
 import { TextField } from '../components/TextField'
 import { Button } from '../components/Button'
 import { Seal } from '../components/Seal'
+import { LegalFooter } from '../components/LegalFooter'
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -74,6 +75,7 @@ export function LoginPage() {
             Create an account
           </Link>
         </p>
+        <LegalFooter className="mt-8" />
       </div>
     </div>
   )

@@ -13,6 +13,7 @@ import { SharingPage } from './routes/SharingPage'
 import { SharedWithMePage } from './routes/SharedWithMePage'
 import { AdminPage } from './routes/AdminPage'
 import { NotFoundPage } from './routes/NotFoundPage'
+import { LegalPage } from './routes/LegalPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AppShell } from './components/AppShell'
 
@@ -21,6 +22,9 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      {/* Public on purpose (Google's OAuth review needs login-free URLs): outside ProtectedRoute. */}
+      <Route path="/privacy" element={<LegalPage slug="privacy" />} />
+      <Route path="/terms" element={<LegalPage slug="terms" />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
           <Route path="/" element={<DashboardPage />} />

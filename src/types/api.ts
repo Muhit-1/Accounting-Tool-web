@@ -153,3 +153,19 @@ export interface CombinedDashboard {
   businesses: CombinedDashboardEntry[]
   combined: { totalIncome: number; totalExpense: number; balance: number }
 }
+
+// Public legal documents (GET /legal/:slug) — structured plain text, never HTML.
+export interface LegalSection {
+  heading: string
+  paragraphs?: string[]
+  bullets?: string[]
+}
+
+export interface LegalDocument {
+  slug: 'privacy' | 'terms'
+  title: string
+  version: string
+  effectiveDate: string
+  language: 'en'
+  sections: LegalSection[]
+}

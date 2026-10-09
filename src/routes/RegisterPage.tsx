@@ -5,6 +5,7 @@ import { ApiError } from '../lib/api-client'
 import { TextField } from '../components/TextField'
 import { Button } from '../components/Button'
 import { Seal } from '../components/Seal'
+import { LegalFooter } from '../components/LegalFooter'
 
 export function RegisterPage() {
   const { register } = useAuth()
@@ -77,6 +78,18 @@ export function RegisterPage() {
             <Button type="submit" disabled={isSubmitting} className="mt-2">
               {isSubmitting ? 'Creating account…' : 'Create account'}
             </Button>
+            {/* New tab so a half-filled form isn't lost when someone reads the texts. */}
+            <p className="text-xs text-ink-soft">
+              By creating an account you agree to the{' '}
+              <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-stamp underline underline-offset-2">
+                Terms of Service
+              </Link>{' '}
+              and{' '}
+              <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-stamp underline underline-offset-2">
+                Privacy Policy
+              </Link>
+              .
+            </p>
           </form>
         </div>
 
@@ -86,6 +99,7 @@ export function RegisterPage() {
             Sign in
           </Link>
         </p>
+        <LegalFooter className="mt-8" />
       </div>
     </div>
   )

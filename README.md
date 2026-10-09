@@ -76,6 +76,7 @@ Auth state lives in `AuthProvider` (wraps the whole app in `main.tsx`). The JWT 
 | `/businesses/:businessId/invoices`, `/invoices/new`, `/invoices/:id`, `/invoices/:id/edit` | Invoices — create, edit, revisit, and download past invoices as PDF |
 | `/businesses/:businessId/reports`, `/reports` | Reports — pick a date range (presets or custom) for one venture (optionally one account) or combined across every venture; view on-screen or export CSV/PDF |
 | `/businesses/:businessId/sharing`, `/shared-with-me` | Sharing — grant/revoke time-limited access to a venture |
+| `/privacy`, `/terms` | Privacy Policy and Terms of Service — **public** (outside the auth guard, needed for Google's OAuth review). Text comes from the API (`GET /legal/:slug`), rendered by `routes/LegalPage.tsx`; `LegalFooter` links them (plus the external legal notice) on the login and register screens |
 | `/businesses/:businessId/settings` | Settings — venture name, currency (BDT/EUR/USD/CNY), logo, and bank/payment details used on invoices |
 
 ## Status
