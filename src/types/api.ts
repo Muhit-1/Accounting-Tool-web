@@ -149,9 +149,20 @@ export interface CombinedDashboardEntry {
   balance: number
 }
 
+// Totals for one currency. Amounts in different currencies are never added together.
+export interface CurrencyTotals {
+  currency: string
+  totalIncome: number
+  totalExpense: number
+  balance: number
+}
+
 export interface CombinedDashboard {
   businesses: CombinedDashboardEntry[]
+  // A plain sum — only meaningful when mixedCurrencies is false. Prefer byCurrency.
   combined: { totalIncome: number; totalExpense: number; balance: number }
+  byCurrency: CurrencyTotals[]
+  mixedCurrencies: boolean
 }
 
 // Public legal documents (GET /legal/:slug) — structured plain text, never HTML.

@@ -1,6 +1,6 @@
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './routes/LoginPage'
-import { RegisterPage } from './routes/RegisterPage'
+import { AuthCallbackPage } from './routes/AuthCallbackPage'
 import { DashboardPage } from './routes/DashboardPage'
 import { AccountsPage } from './routes/AccountsPage'
 import { AccountPage } from './routes/AccountPage'
@@ -21,7 +21,9 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+      {/* Google is the only way in, so one page serves both sign-in and sign-up. */}
+      <Route path="/register" element={<Navigate to="/login" replace />} />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
       {/* Public on purpose (Google's OAuth review needs login-free URLs): outside ProtectedRoute. */}
       <Route path="/privacy" element={<LegalPage slug="privacy" />} />
       <Route path="/terms" element={<LegalPage slug="terms" />} />

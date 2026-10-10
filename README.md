@@ -56,6 +56,7 @@ The `Dockerfile` has two stages: a Node build (`node:24-bookworm-slim`, `npm ci`
 ```
 lib/            api-client.ts (typed fetch wrapper, JWT header injection),
                 auth-context.tsx (auth state, token persistence),
+                google-login.ts (Google login URL, error-code messages, token-from-fragment parsing),
                 one file per resource (businesses, accounts, transactions,
                 invoices, reports, dashboard, access-grants) — each exports
                 typed TanStack Query hooks that wrap api-client
@@ -76,11 +77,14 @@ Auth state lives in `AuthProvider` (wraps the whole app in `main.tsx`). The JWT 
 | `/businesses/:businessId/invoices`, `/invoices/new`, `/invoices/:id`, `/invoices/:id/edit` | Invoices — create, edit, revisit, and download past invoices as PDF |
 | `/businesses/:businessId/reports`, `/reports` | Reports — pick a date range (presets or custom) for one venture (optionally one account) or combined across every venture; view on-screen or export CSV/PDF |
 | `/businesses/:businessId/sharing`, `/shared-with-me` | Sharing — grant/revoke time-limited access to a venture |
-| `/privacy`, `/terms` | Privacy Policy and Terms of Service — **public** (outside the auth guard, needed for Google's OAuth review). Text comes from the API (`GET /legal/:slug`), rendered by `routes/LegalPage.tsx`; `LegalFooter` links them (plus the external legal notice) on the login and register screens |
+| `/privacy`, `/terms` | Privacy Policy and Terms of Service — **public** (outside the auth guard, needed for Google's OAuth review). Text comes from the API (`GET /legal/:slug`), rendered by `routes/LegalPage.tsx`; `LegalFooter` links them (plus the external legal notice) on the login screen |
+| `/login`, `/auth/callback` | Sign in / sign up — one page with a single "Continue with Google" button that navigates to `${VITE_API_URL}/auth/google`. The API sends the browser back to `/auth/callback#token=<jwt>`; `AuthCallbackPage` reads the token from the URL fragment, erases it from the address bar, stores it and goes to the dashboard. Failures arrive as `/login?error=<code>` (`access_denied`, `drive_permission_required`, `invalid_state`, `google_failed`). `/register` redirects to `/login`. |
 | `/businesses/:businessId/settings` | Settings — venture name, currency (BDT/EUR/USD/CNY), logo, and bank/payment details used on invoices |
 
 ## Status
 
 Phases 1–3 from planning are done: auth, business/venture management with multi-currency and multi-account support, bookkeeping, invoicing (create/edit/reopen), invoice upload-to-prefill, date-range reporting, dashboards, and sharing UI are all wired to the real API.
 
-Not built yet (tracked on the API side — see `accounting-api`'s README): table-scoped sharing enforcement, Google OAuth/Drive (Stage 2), and cross-currency conversion in the combined dashboard/report.
+Google is the only way to sign in or sign up (Stage 2, step 1); Drive storage is not built yet.
+
+Not built yet (tracked on the API side — see `accounting-api`'s README): table-scoped sharing enforcement, Google Drive file storage, and cross-currency conversion in the combined dashboard/report.

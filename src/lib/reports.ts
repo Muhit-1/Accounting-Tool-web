@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from './api-client'
-import type { CategoryType } from '../types/api'
+import type { CategoryType, CurrencyTotals } from '../types/api'
 
 export interface ReportCategoryRow {
   categoryId: string | null
@@ -44,6 +44,8 @@ export interface CombinedReport {
   period: { from: string; to: string }
   businesses: { business: { id: string; name: string; currency: string }; totals: ReportTotals; byCategory: ReportCategoryRow[] }[]
   combinedTotals: ReportTotals
+  byCurrency: CurrencyTotals[]
+  mixedCurrencies: boolean
   transactions: CombinedReportTransaction[]
 }
 

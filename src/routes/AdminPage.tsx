@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
 import { useBusinesses } from '../lib/businesses'
 import { useAccessGrantsAcross } from '../lib/access-grants'
-import { formatMoney } from '../lib/format'
+import { formatMoney, formatPerCurrency } from '../lib/format'
 import { useCombinedDashboard } from '../lib/dashboard'
 import { Panel } from '../components/Panel'
 
@@ -43,9 +43,20 @@ export function AdminPage() {
         </div>
         <div className="flex flex-col gap-1.5 rounded-ledger border border-paper-line bg-white px-[18px] py-4">
           <div className="text-[11.5px] tracking-wider text-ink-soft uppercase">Combined balance</div>
-          <div className="tabular text-[24px] font-bold">
-            {formatMoney(combined?.combined.balance ?? 0, primaryCurrency)}
-          </div>
+          {combined?.mixedCurrencies ? (
+            <>
+              <div className="tabular flex flex-col text-[18px] leading-snug font-bold">
+                {formatPerCurrency(combined.byCurrency, 'balance').map((line) => (
+                  <span key={line}>{line}</span>
+                ))}
+              </div>
+              <div className="text-[13px] text-ink-soft">Currencies are not converted</div>
+            </>
+          ) : (
+            <div className="tabular text-[24px] font-bold">
+              {formatMoney(combined?.combined.balance ?? 0, primaryCurrency)}
+            </div>
+          )}
         </div>
       </div>
 

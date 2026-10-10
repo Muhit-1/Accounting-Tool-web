@@ -1,33 +1,14 @@
-import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../lib/auth-context'
-import { ApiError } from '../lib/api-client'
-import { TextField } from '../components/TextField'
-import { Button } from '../components/Button'
+import { Link, useSearchParams } from 'react-router-dom'
+import { GoogleSignInButton } from '../components/GoogleSignInButton'
 import { Seal } from '../components/Seal'
 import { LegalFooter } from '../components/LegalFooter'
+import { googleLoginErrorMessage } from '../lib/google-login'
 
+// One page for signing in and signing up: Google is the only way in, and the
+// first Google login creates the account.
 export function LoginPage() {
-  const { login } = useAuth()
-  const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    setError(null)
-    setIsSubmitting(true)
-    try {
-      await login(email, password)
-      navigate('/')
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+  const [searchParams] = useSearchParams()
+  const error = googleLoginErrorMessage(searchParams.get('error'))
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
@@ -41,40 +22,32 @@ export function LoginPage() {
         </div>
 
         <div className="rounded-ledger border border-paper-line bg-white p-7">
-          <h2 className="mb-5 font-display text-xl font-bold">Welcome back</h2>
-          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-            <TextField
-              label="Email"
-              type="email"
-              name="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-            <TextField
-              label="Password"
-              type="password"
-              name="password"
-              autoComplete="current-password"
-              maxLength={72}
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-            {error && <p className="text-sm text-rust">{error}</p>}
-            <Button type="submit" disabled={isSubmitting} className="mt-2">
-              {isSubmitting ? 'Signing in…' : 'Sign in'}
-            </Button>
-          </form>
+          <h2 className="mb-1 font-display text-xl font-bold">Welcome</h2>
+          <p className="mb-5 text-sm text-ink-soft">Sign in or create your account with Google.</p>
+          {error && (
+            <p role="alert" className="mb-4 rounded-ledger bg-rust-soft px-3 py-2 text-sm text-rust">
+              {error}
+            </p>
+          )}
+          <GoogleSignInButton />
+          <p className="mt-4 text-xs text-ink-soft">
+            Exin Finance keeps your invoice PDFs and receipts in a folder it creates in your own Google Drive, so
+            Google will ask for that permission. It is required, and Exin Finance cannot see any other file in your
+            Drive.
+          </p>
+          <p className="mt-3 text-xs text-ink-soft">
+            By continuing you agree to the{' '}
+            <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-stamp underline underline-offset-2">
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-stamp underline underline-offset-2">
+              Privacy Policy
+            </Link>
+            .
+          </p>
         </div>
 
-        <p className="mt-5 text-center text-sm text-ink-soft">
-          New here?{' '}
-          <Link to="/register" className="text-stamp underline underline-offset-2">
-            Create an account
-          </Link>
-        </p>
         <LegalFooter className="mt-8" />
       </div>
     </div>

@@ -12,7 +12,7 @@ function resolveApiUrl(): string {
   return raw.replace(/\/+$/, '')
 }
 
-const API_URL = resolveApiUrl()
+export const API_URL = resolveApiUrl()
 
 const TOKEN_STORAGE_KEY = 'accounting_tool_token'
 
@@ -88,8 +88,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const body = isJson ? await response.json() : undefined
 
   if (!response.ok) {
-    // A 401 from /auth/login or /auth/register just means bad credentials —
-    // only a 401 on an already-authenticated request means the session died.
+    // Only a 401 on an already-authenticated request means the session died
+    // (the /auth/login and /auth/register 401s just mean bad credentials).
     if (response.status === 401 && !path.startsWith('/auth/login') && !path.startsWith('/auth/register')) {
       handleUnauthorized(token !== null)
     }

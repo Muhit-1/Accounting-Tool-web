@@ -11,7 +11,7 @@ import {
   type ReportCategoryRow,
   type ReportTransaction,
 } from '../lib/reports'
-import { formatMoney } from '../lib/format'
+import { formatMoney, formatPerCurrency } from '../lib/format'
 import { Button } from '../components/Button'
 import { Panel } from '../components/Panel'
 import { Select } from '../components/Select'
@@ -285,12 +285,18 @@ function CombinedReportView() {
   const dateRange = useDateRange()
   const { data: report, isLoading } = useCombinedReport(dateRange.range)
 
+  // Different currencies are listed side by side, never added together.
+  const singleCurrency = report && !report.mixedCurrencies ? report.byCurrency[0]?.currency : undefined
+  const kpiCell = (label: string, field: 'totalIncome' | 'totalExpense' | 'balance'): KpiCell => {
+    const total = report!.combinedTotals[field]
+    if (report!.mixedCurrencies) {
+      const lines = formatPerCurrency(report!.byCurrency, field)
+      return { label, value: lines.join(' · '), lines }
+    }
+    return { label, value: singleCurrency ? formatMoney(total, singleCurrency) : total.toFixed(2) }
+  }
   const kpiCells: KpiCell[] = report
-    ? [
-        { label: 'Combined income', value: report.combinedTotals.totalIncome.toFixed(2) },
-        { label: 'Combined expense', value: report.combinedTotals.totalExpense.toFixed(2) },
-        { label: 'Combined balance', value: report.combinedTotals.balance.toFixed(2) },
-      ]
+    ? [kpiCell('Combined income', 'totalIncome'), kpiCell('Combined expense', 'totalExpense'), kpiCell('Combined balance', 'balance')]
     : []
 
   async function handleDownloadPdf() {
@@ -327,9 +333,11 @@ function CombinedReportView() {
         <p className="text-sm text-ink-soft">Loading…</p>
       ) : (
         <>
-          <p className="mb-4 text-[13px] text-ink-soft">
-            Totals are combined across currencies as raw numbers — each venture below shows its own currency.
-          </p>
+          {report.mixedCurrencies && (
+            <p className="mb-4 text-[13px] text-ink-soft">
+              Your businesses use different currencies, so totals are shown per currency and are not converted.
+            </p>
+          )}
           <KpiBand cells={kpiCells} />
 
           <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

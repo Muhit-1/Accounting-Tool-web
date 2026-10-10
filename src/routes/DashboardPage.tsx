@@ -7,7 +7,7 @@ import { useRecentTransactionsAcross, useTransactions, type TransactionWithBusin
 import { useInvoicesAcross, useInvoices, type InvoiceWithBusiness } from '../lib/invoices'
 import { useAccessGrantsAcross, useAccessGrants, type AccessGrantWithBusiness } from '../lib/access-grants'
 import { useAccounts } from '../lib/accounts'
-import { formatMoney } from '../lib/format'
+import { formatMoney, formatPerCurrency } from '../lib/format'
 import { monthlyCashFlow, monthOverMonthDelta } from '../lib/cashflow'
 import { KpiBand, type KpiCell } from '../components/dashboard/KpiBand'
 import { RecentEntriesPanel } from '../components/dashboard/RecentEntriesPanel'
@@ -168,15 +168,30 @@ function CombinedDashboard() {
   const cashFlow = monthlyCashFlow(transactions)
   const delta = monthOverMonthDelta(cashFlow)
 
+  // With businesses in different currencies a single "combined" figure is
+  // meaningless, so each total is listed per currency (not converted).
+  const mixed = combined?.mixedCurrencies ?? false
+  const perCurrency = (field: 'balance' | 'totalIncome' | 'totalExpense') =>
+    mixed && combined ? { lines: formatPerCurrency(combined.byCurrency, field) } : {}
+
   const kpiCells: KpiCell[] = [
     {
       label: 'Combined balance',
       value: formatMoney(combined?.combined.balance ?? 0, primaryCurrency),
-      sub: delta?.label,
-      tone: delta?.tone,
+      ...perCurrency('balance'),
+      sub: mixed ? 'Currencies are not converted' : delta?.label,
+      tone: mixed ? undefined : delta?.tone,
     },
-    { label: 'Total income', value: formatMoney(combined?.combined.totalIncome ?? 0, primaryCurrency) },
-    { label: 'Total expense', value: formatMoney(combined?.combined.totalExpense ?? 0, primaryCurrency) },
+    {
+      label: 'Total income',
+      value: formatMoney(combined?.combined.totalIncome ?? 0, primaryCurrency),
+      ...perCurrency('totalIncome'),
+    },
+    {
+      label: 'Total expense',
+      value: formatMoney(combined?.combined.totalExpense ?? 0, primaryCurrency),
+      ...perCurrency('totalExpense'),
+    },
     {
       label: 'Open invoices',
       value: String(count),

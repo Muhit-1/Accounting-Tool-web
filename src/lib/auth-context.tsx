@@ -1,13 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, getToken, onUnauthorized, setToken } from './api-client'
-import type { AuthResponse, User } from '../types/api'
+import type { User } from '../types/api'
 
 interface AuthContextValue {
   user: User | null
   isLoading: boolean
-  login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, name: string) => Promise<void>
+  // Finishes a Google sign-in: stores the API's JWT and loads the user it
+  // belongs to. Rejects (and keeps nothing stored) if the token is not accepted.
+  completeLogin: (token: string) => Promise<void>
   logout: () => void
 }
 
@@ -41,16 +42,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsLoading(false))
   }, [])
 
-  async function login(email: string, password: string) {
-    const result = await api.post<AuthResponse>('/auth/login', { email, password })
-    setToken(result.accessToken)
-    setUser(result.user)
-  }
-
-  async function register(email: string, password: string, name: string) {
-    const result = await api.post<AuthResponse>('/auth/register', { email, password, name })
-    setToken(result.accessToken)
-    setUser(result.user)
+  async function completeLogin(token: string) {
+    setToken(token)
+    try {
+      setUser(await api.get<User>('/auth/me'))
+    } catch (error) {
+      setToken(null)
+      throw error
+    }
   }
 
   function logout() {
@@ -58,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, isLoading, completeLogin, logout }}>{children}</AuthContext.Provider>
   )
 }
 

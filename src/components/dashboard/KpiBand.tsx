@@ -3,6 +3,8 @@ import { IconArrowDownRight, IconArrowUpRight } from '../icons'
 export interface KpiCell {
   label: string
   value: string
+  // Set instead of showing `value` when the figure has to be split per currency.
+  lines?: string[]
   sub?: string
   tone?: 'up' | 'down' | 'neutral'
 }
@@ -19,7 +21,15 @@ export function KpiBand({ cells }: { cells: KpiCell[] }) {
       {cells.map((cell) => (
         <div key={cell.label} className="flex flex-col gap-1.5 rounded-ledger border border-paper-line bg-white px-[18px] py-4">
           <div className="text-[11.5px] tracking-wider text-ink-soft uppercase">{cell.label}</div>
-          <div className="tabular text-[24px] font-bold">{cell.value}</div>
+          {cell.lines ? (
+            <div className="tabular flex flex-col text-[18px] leading-snug font-bold">
+              {cell.lines.map((line) => (
+                <span key={line}>{line}</span>
+              ))}
+            </div>
+          ) : (
+            <div className="tabular text-[24px] font-bold">{cell.value}</div>
+          )}
           {cell.sub && (
             <div className={`flex items-center gap-1 text-[13px] ${TONE_CLASS[cell.tone ?? 'neutral']}`}>
               {cell.tone === 'up' && <IconArrowUpRight width={13} height={13} strokeWidth="2.4" />}

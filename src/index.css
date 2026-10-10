@@ -20,6 +20,8 @@
   --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-mono: "Roboto Mono", ui-monospace, monospace;
+  /* Google's sign-in button guidelines require Roboto Medium. */
+  --font-google: "Roboto", Arial, sans-serif;
 
   --radius-ledger: 8px;
 }

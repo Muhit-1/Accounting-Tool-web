@@ -6,6 +6,15 @@ export function formatMoney(amount: number, currency: string): string {
   }
 }
 
+// One formatted amount per currency, for totals across businesses. Different
+// currencies are listed side by side, never added (no rate source is agreed).
+export function formatPerCurrency(
+  totals: { currency: string; totalIncome: number; totalExpense: number; balance: number }[],
+  field: 'totalIncome' | 'totalExpense' | 'balance',
+): string[] {
+  return totals.map((t) => formatMoney(t[field], t.currency))
+}
+
 export function formatShortDate(date: string | Date): string {
   return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short' }).format(new Date(date))
 }
