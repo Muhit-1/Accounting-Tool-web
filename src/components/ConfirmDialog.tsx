@@ -5,6 +5,7 @@ export function ConfirmDialog({
   body,
   confirmLabel = 'Delete',
   isPending,
+  error,
   onConfirm,
   onCancel,
 }: {
@@ -12,6 +13,7 @@ export function ConfirmDialog({
   body: string
   confirmLabel?: string
   isPending?: boolean
+  error?: string | null
   onConfirm: () => void
   onCancel: () => void
 }) {
@@ -22,7 +24,8 @@ export function ConfirmDialog({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 className="mb-2 font-display text-xl font-bold">{title}</h2>
-        <p className="mb-6 text-sm text-ink-soft">{body}</p>
+        <p className={`text-sm text-ink-soft ${error ? 'mb-3' : 'mb-6'}`}>{body}</p>
+        {error && <p className="mb-6 text-sm text-rust">{error}</p>}
         <div className="flex justify-end gap-3">
           <Button type="button" variant="ghost" onClick={onCancel}>
             Cancel

@@ -40,7 +40,7 @@ The `Dockerfile` has two stages: a Node build (`node:24-bookworm-slim`, `npm ci`
 - **Port:** `80`.
 - **SPA fallback:** unknown paths (e.g. `/businesses/abc/invoices`) serve `index.html`; missing files under `/assets/` return `404` instead.
 - **Caching:** hashed files under `/assets/` are cached for a year (`immutable`); `index.html` is `no-cache`. Responses are gzip-compressed.
-- **Headers:** `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`. A CSP is not set yet (the app loads Google Fonts).
+- **Headers:** `Content-Security-Policy`, `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, all in `security-headers.conf` (included by every location in `nginx.conf`). The CSP allows scripts from `'self'` only, Google Fonts for styles/fonts, `data:`/`blob:` images and `blob:` frames (logos, receipts, the PDF preview), and `connect-src` to the API origin. The Dockerfile derives that origin from `VITE_API_URL` at build time and fails the build if it is not an `http(s)://` URL. If you add a new external host (analytics, another font CDN, images), add it to `security-headers.conf` or the browser will block it.
 - The API must list this site's exact origin in its `CORS_ORIGIN`.
 
 ## Scripts

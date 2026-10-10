@@ -19,6 +19,24 @@ export function useInvoice(businessId: string | undefined, invoiceId: string | u
   })
 }
 
+// Mirrors accounting-api/src/invoice/invoice-status.ts (the API is the one that
+// enforces it); keep both in step. Used only to offer sensible choices.
+const NEXT_STATUSES: Record<InvoiceStatus, InvoiceStatus[]> = {
+  DRAFT: ['SENT', 'CANCELLED'],
+  SENT: ['PAID', 'OVERDUE', 'CANCELLED'],
+  OVERDUE: ['PAID', 'SENT', 'CANCELLED'],
+  PAID: ['SENT'],
+  CANCELLED: [],
+}
+
+export function statusChoices(current: InvoiceStatus): InvoiceStatus[] {
+  return [current, ...NEXT_STATUSES[current]]
+}
+
+// Only a draft can still change; a sent invoice is what the customer holds.
+export const isInvoiceEditable = (status: InvoiceStatus) => status === 'DRAFT'
+export const isInvoiceDeletable = (status: InvoiceStatus) => status === 'DRAFT' || status === 'CANCELLED'
+
 export interface InvoiceItemInput {
   description: string
   quantity: number

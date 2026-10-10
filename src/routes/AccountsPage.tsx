@@ -127,6 +127,7 @@ export function AccountsPage() {
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   if (!businessId) return null
   const currency = business?.currency ?? 'BDT'
@@ -145,8 +146,19 @@ export function AccountsPage() {
 
   async function confirmDelete() {
     if (!pendingDeleteId) return
-    await deleteAccount.mutateAsync(pendingDeleteId)
+    setDeleteError(null)
+    try {
+      await deleteAccount.mutateAsync(pendingDeleteId)
+      setPendingDeleteId(null)
+    } catch (err) {
+      // e.g. 409 "still has entries" — keep the dialog open so the reason is read.
+      setDeleteError(err instanceof ApiError ? err.message : 'Could not delete the account. Please try again.')
+    }
+  }
+
+  function closeDeleteDialog() {
     setPendingDeleteId(null)
+    setDeleteError(null)
   }
 
   return (
@@ -203,10 +215,11 @@ export function AccountsPage() {
       {pendingDeleteId && (
         <ConfirmDialog
           title="Delete this account?"
-          body="This deletes every entry in this account. This cannot be undone."
+          body="An account can only be deleted once it has no entries. This cannot be undone."
           isPending={deleteAccount.isPending}
+          error={deleteError}
           onConfirm={confirmDelete}
-          onCancel={() => setPendingDeleteId(null)}
+          onCancel={closeDeleteDialog}
         />
       )}
     </>

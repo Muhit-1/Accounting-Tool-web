@@ -1,7 +1,16 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useBusiness } from '../lib/businesses'
-import { useDeleteInvoice, useInvoice, useInvoicePdfPreview, useUpdateInvoiceStatus, downloadInvoicePdf } from '../lib/invoices'
+import {
+  useDeleteInvoice,
+  useInvoice,
+  useInvoicePdfPreview,
+  useUpdateInvoiceStatus,
+  downloadInvoicePdf,
+  statusChoices,
+  isInvoiceEditable,
+  isInvoiceDeletable,
+} from '../lib/invoices'
 import { ApiError } from '../lib/api-client'
 import type { InvoiceStatus } from '../types/api'
 import { Button } from '../components/Button'
@@ -17,8 +26,6 @@ const STATUS_STYLES: Record<InvoiceStatus, string> = {
   CANCELLED: 'border-ink-soft text-ink-soft line-through',
 }
 
-const STATUS_OPTIONS: InvoiceStatus[] = ['DRAFT', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED']
-
 export function InvoiceDetailPage() {
   const { businessId, invoiceId } = useParams<{ businessId: string; invoiceId: string }>()
   const navigate = useNavigate()
@@ -31,6 +38,7 @@ export function InvoiceDetailPage() {
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [statusError, setStatusError] = useState<string | null>(null)
 
   if (!businessId || !invoiceId) return null
 
@@ -45,6 +53,14 @@ export function InvoiceDetailPage() {
     } finally {
       setIsDownloading(false)
     }
+  }
+
+  function handleStatusChange(status: InvoiceStatus) {
+    setStatusError(null)
+    updateStatus.mutate(
+      { id: invoiceId!, status },
+      { onError: (err) => setStatusError(err instanceof ApiError ? err.message : 'Could not change the status.') },
+    )
   }
 
   async function handleDelete() {
@@ -101,29 +117,43 @@ export function InvoiceDetailPage() {
               <Select
                 label="Status"
                 value={invoice.status}
-                onChange={(event) => updateStatus.mutate({ id: invoiceId!, status: event.target.value as InvoiceStatus })}
+                onChange={(event) => handleStatusChange(event.target.value as InvoiceStatus)}
               >
-                {STATUS_OPTIONS.map((status) => (
+                {statusChoices(invoice.status).map((status) => (
                   <option key={status} value={status}>
                     {status}
                   </option>
                 ))}
               </Select>
+              {statusError && <p className="text-sm text-rust">{statusError}</p>}
+              {invoice.status === 'PAID' && (
+                <p className="text-xs text-ink-soft">
+                  Marking an invoice paid does not record the money. Add the income as an entry in one of your accounts.
+                </p>
+              )}
 
               <Button variant="ghost" onClick={handleDownload} disabled={isDownloading}>
                 {isDownloading ? 'Downloading…' : 'Download PDF'}
               </Button>
               {downloadError && <p className="text-sm text-rust">{downloadError}</p>}
 
-              <Link to={`/businesses/${businessId}/invoices/${invoiceId}/edit`}>
-                <Button variant="ghost" className="w-full">
-                  Edit invoice
-                </Button>
-              </Link>
+              {isInvoiceEditable(invoice.status) ? (
+                <Link to={`/businesses/${businessId}/invoices/${invoiceId}/edit`}>
+                  <Button variant="ghost" className="w-full">
+                    Edit invoice
+                  </Button>
+                </Link>
+              ) : (
+                <p className="text-xs text-ink-soft">
+                  Only draft invoices can be edited. To correct this one, cancel it and issue a new invoice.
+                </p>
+              )}
 
-              <Button variant="danger" onClick={() => setConfirmingDelete(true)}>
-                Delete invoice
-              </Button>
+              {isInvoiceDeletable(invoice.status) && (
+                <Button variant="danger" onClick={() => setConfirmingDelete(true)}>
+                  Delete invoice
+                </Button>
+              )}
             </div>
           </Panel>
         </div>
