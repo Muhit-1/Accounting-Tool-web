@@ -11,6 +11,7 @@ import {
   IconChevronDown,
   IconGrid,
   IconPlus,
+  IconBag,
   IconReceipt,
   IconSearch,
   IconSettings,
@@ -215,6 +216,12 @@ export function AppShell() {
               label="Accounts"
               icon={IconBank}
               active={location.pathname.startsWith(`/businesses/${businessId}/accounts`)}
+            />
+            <NavLink
+              to={`/businesses/${businessId}/orders`}
+              label="Orders"
+              icon={IconBag}
+              active={location.pathname.startsWith(`/businesses/${businessId}/orders`)}
             />
             <NavLink
               to={`/businesses/${businessId}/invoices`}

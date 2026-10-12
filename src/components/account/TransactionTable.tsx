@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useDeleteTransaction, openReceipt } from '../../lib/transactions'
 import { formatMoney, formatShortDate } from '../../lib/format'
 import { ApiError } from '../../lib/api-client'
@@ -169,12 +170,24 @@ export function TransactionTable({
                       {openingId === tx.id ? 'Opening…' : 'View invoice'}
                     </button>
                   )}
-                  <button onClick={() => onEdit(tx)} className="ml-3 text-xs text-stamp hover:underline">
-                    Edit
-                  </button>
-                  <button onClick={() => setPendingDeleteId(tx.id)} className="ml-3 text-xs text-ink-soft hover:text-rust">
-                    Delete
-                  </button>
+                  {tx.orderId ? (
+                    // Posted by a delivered order: it only changes through the order.
+                    <Link
+                      to={`/businesses/${businessId}/orders?open=${tx.orderId}`}
+                      className="ml-3 text-xs text-stamp hover:underline"
+                    >
+                      View order
+                    </Link>
+                  ) : (
+                    <>
+                      <button onClick={() => onEdit(tx)} className="ml-3 text-xs text-stamp hover:underline">
+                        Edit
+                      </button>
+                      <button onClick={() => setPendingDeleteId(tx.id)} className="ml-3 text-xs text-ink-soft hover:text-rust">
+                        Delete
+                      </button>
+                    </>
+                  )}
                 </td>
               </tr>
             )

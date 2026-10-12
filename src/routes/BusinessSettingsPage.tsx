@@ -66,6 +66,7 @@ function BusinessSettingsForm({ businessId, business }: { businessId: string; bu
   const [bankSwiftCode, setBankSwiftCode] = useState(business.bankSwiftCode ?? '')
   const [bankBranch, setBankBranch] = useState(business.bankBranch ?? '')
   const [defaultTerms, setDefaultTerms] = useState(business.defaultTerms ?? '')
+  const [orderPrefix, setOrderPrefix] = useState(business.orderPrefix ?? '')
 
   const [logoError, setLogoError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -106,6 +107,7 @@ function BusinessSettingsForm({ businessId, business }: { businessId: string; bu
         bankSwiftCode: bankSwiftCode || null,
         bankBranch: bankBranch || null,
         defaultTerms: defaultTerms || null,
+        orderPrefix: orderPrefix.trim() || null,
       })
       setSaved(true)
     } catch (err) {
@@ -168,6 +170,13 @@ function BusinessSettingsForm({ businessId, business }: { businessId: string; bu
               onChange={(event) => setContactEmail(event.target.value)}
             />
             <TextField label="Website" value={website} onChange={(event) => setWebsite(event.target.value)} />
+            <TextField
+              label="Order prefix"
+              maxLength={10}
+              placeholder="e.g. SJ → SJ-0001"
+              value={orderPrefix}
+              onChange={(event) => setOrderPrefix(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
+            />
             <Textarea
               label="Default terms & conditions"
               placeholder="Shown on every invoice unless overridden"

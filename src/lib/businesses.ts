@@ -17,6 +17,7 @@ export type UpdateBusinessInput = Partial<
     | 'bankSwiftCode'
     | 'bankBranch'
     | 'defaultTerms'
+    | 'orderPrefix'
   >
 >
 

@@ -1,4 +1,5 @@
 import { compactNumber, niceCeiling } from '../../lib/chart-scale'
+import { useElementWidth } from '../../lib/use-element-width'
 
 export interface CashFlowPoint {
   label: string
@@ -6,17 +7,17 @@ export interface CashFlowPoint {
   expense: number
 }
 
-const WIDTH = 600
-const HEIGHT = 200
-const PAD_LEFT = 34
-const PAD_RIGHT = 8
-const PAD_TOP = 14
-const PAD_BOTTOM = 24
-const INNER_WIDTH = WIDTH - PAD_LEFT - PAD_RIGHT
+// Drawn at its real pixel size (width measured from the card, fixed height) so
+// the text stays the same size as the rest of the page on any screen.
+const HEIGHT = 190
+const PAD_LEFT = 40
+const PAD_RIGHT = 24
+const PAD_TOP = 12
+const PAD_BOTTOM = 26
 const INNER_HEIGHT = HEIGHT - PAD_TOP - PAD_BOTTOM
 
-function pointsFor(values: number[], ceiling: number): { x: number; y: number }[] {
-  const step = values.length > 1 ? INNER_WIDTH / (values.length - 1) : 0
+function pointsFor(values: number[], ceiling: number, innerWidth: number): { x: number; y: number }[] {
+  const step = values.length > 1 ? innerWidth / (values.length - 1) : 0
   return values.map((value, index) => ({
     x: PAD_LEFT + step * index,
     y: PAD_TOP + INNER_HEIGHT * (1 - value / ceiling),
@@ -28,15 +29,19 @@ function toPath(points: { x: number; y: number }[]): string {
 }
 
 export function CashFlowChart({ data }: { data: CashFlowPoint[] }) {
+  const { ref, width: WIDTH } = useElementWidth<HTMLDivElement>()
+  const INNER_WIDTH = WIDTH - PAD_LEFT - PAD_RIGHT
   const hasActivity = data.some((d) => d.income > 0 || d.expense > 0)
   const ceiling = niceCeiling(Math.max(1, ...data.map((d) => Math.max(d.income, d.expense))))
   const incomePoints = pointsFor(
     data.map((d) => d.income),
     ceiling,
+    INNER_WIDTH,
   )
   const expensePoints = pointsFor(
     data.map((d) => d.expense),
     ceiling,
+    INNER_WIDTH,
   )
   const incomePath = toPath(incomePoints)
   const expensePath = toPath(expensePoints)
@@ -51,8 +56,8 @@ export function CashFlowChart({ data }: { data: CashFlowPoint[] }) {
   }))
 
   return (
-    <div className="relative">
-      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="w-full" role="img" aria-label="Cash flow over the last 6 months">
+    <div ref={ref} className="relative">
+      <svg width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="block" role="img" aria-label="Cash flow over the last 6 months">
         <defs>
           <linearGradient id="cashflow-fill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--color-stamp)" stopOpacity="0.16" />
@@ -65,12 +70,12 @@ export function CashFlowChart({ data }: { data: CashFlowPoint[] }) {
             <line
               x1={PAD_LEFT}
               y1={tick.y}
-              x2={WIDTH - PAD_RIGHT}
+              x2={WIDTH - PAD_RIGHT + 8}
               y2={tick.y}
               stroke="var(--color-paper-line)"
               strokeWidth="1"
             />
-            <text x={PAD_LEFT - 8} y={tick.y + 3.5} textAnchor="end" fontSize="10.5" fill="var(--color-ink-soft)">
+            <text x={PAD_LEFT - 8} y={tick.y + 3.5} textAnchor="end" fontSize="11" fill="var(--color-ink-soft)">
               {compactNumber(tick.value)}
             </text>
           </g>

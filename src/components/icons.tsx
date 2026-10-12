@@ -40,6 +40,16 @@ export function IconBank(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function IconBag(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M6 3h12l1 4H5z" />
+      <path d="M5 7v13h14V7" />
+      <path d="M9 11a3 3 0 0 0 6 0" />
+    </Icon>
+  )
+}
+
 export function IconReceipt(props: SVGProps<SVGSVGElement>) {
   return (
     <Icon {...props}>

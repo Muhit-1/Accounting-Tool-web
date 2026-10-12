@@ -1,4 +1,5 @@
 import type { AmountType } from '../lib/calc'
+import type { OrderPostingRule, OrderStatus } from '../lib/order-status'
 
 export interface User {
   id: string
@@ -26,6 +27,8 @@ export interface Business {
   bankSwiftCode: string | null
   bankBranch: string | null
   defaultTerms: string | null
+  // Letters in front of order numbers; null = initials of the name.
+  orderPrefix: string | null
   driveFolderId: string | null
   createdAt: string
   updatedAt: string
@@ -68,6 +71,8 @@ export interface Transaction {
   receiptFileName: string | null
   // https link to a screenshot/receipt, opened in a new tab.
   proofUrl: string | null
+  // Set for an entry posted by a delivered order; it can only change through the order.
+  orderId: string | null
   // null = a fixed amount (every entry made before amount types existed).
   amountType: AmountType | null
   // The named boxes of a calculated amount, in order; null for fixed amounts.
@@ -247,4 +252,47 @@ export interface MonthlyView {
   totals: MonthlyFigures
   // Entries dated before the first or after the last month shown (0 for a full-range view).
   outsideRange: MonthlyFigures
+}
+
+// /businesses/:id/orders
+export interface Order {
+  id: string
+  accountId: string
+  number: number
+  // "SJ-0003"
+  displayNumber: string
+  orderDate: string
+  customerName: string
+  customerPhone: string | null
+  customerEmail: string | null
+  customerAddress: string | null
+  items: string | null
+  subtotal: number
+  deliveryCharge: number
+  discount: number
+  // Always worked out by the server: subtotal + delivery charge - discount.
+  total: number
+  paymentMethod: string | null
+  status: OrderStatus
+  postingRule: OrderPostingRule
+  deliveryDate: string | null
+  notes: string | null
+  // The fund entry this order owns while it is delivered.
+  transactionId: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface OrderSummary {
+  orders: number
+  inProgress: number
+  delivered: number
+  // Totals of delivered orders that brought money in.
+  deliveredValue: number
+  discountsOnDelivered: number
+}
+
+export interface OrderList {
+  summary: OrderSummary
+  orders: Order[]
 }

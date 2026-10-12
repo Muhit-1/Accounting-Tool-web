@@ -28,3 +28,8 @@ export function daysUntil(date: string | Date): number {
 export function formatAmount(amount: number): string {
   return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
 }
+
+// "13 Oct 2026"
+export function formatDate(date: string | Date): string {
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(date))
+}

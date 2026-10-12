@@ -32,7 +32,7 @@ export interface TransactionInput {
   proofUrl?: string | null
 }
 
-function invalidateTransactionQueries(queryClient: ReturnType<typeof useQueryClient>, businessId: string) {
+export function invalidateTransactionQueries(queryClient: ReturnType<typeof useQueryClient>, businessId: string) {
   queryClient.invalidateQueries({ queryKey: ['transactions', businessId] })
   queryClient.invalidateQueries({ queryKey: ['statement', businessId] })
   queryClient.invalidateQueries({ queryKey: ['monthly', businessId] })
