@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useBusiness } from '../lib/businesses'
 import { useAccount } from '../lib/accounts'
 import { useCategories } from '../lib/categories'
@@ -14,6 +14,15 @@ import { CategoryBreakdownPanel } from '../components/account/CategoryBreakdownP
 import { TransactionTable } from '../components/account/TransactionTable'
 import { TransactionForm } from '../components/account/TransactionForm'
 import { ScanInvoiceModal } from '../components/account/ScanInvoiceModal'
+import { StatementPanel } from '../components/account/StatementPanel'
+import { MonthlyPanel } from '../components/account/MonthlyPanel'
+
+const TABS = [
+  { id: 'entries', label: 'Entries' },
+  { id: 'statement', label: 'Statement' },
+  { id: 'monthly', label: 'Monthly view' },
+] as const
+type TabId = (typeof TABS)[number]['id']
 
 function breakdownFromTransactions(transactions: Transaction[]): CategoryBreakdown[] {
   const buckets = new Map<string, CategoryBreakdown>()
@@ -37,6 +46,10 @@ export function AccountPage() {
   const { data: account } = useAccount(businessId, accountId)
   const { data: categories } = useCategories(businessId)
   const { data: transactions, isLoading } = useTransactions(businessId, accountId)
+  const [searchParams, setSearchParams] = useSearchParams()
+  // The tab lives in the address (?tab=statement) so it survives a reload and the back button.
+  const requestedTab = searchParams.get('tab')
+  const tab: TabId = TABS.some((t) => t.id === requestedTab) ? (requestedTab as TabId) : 'entries'
 
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Transaction | undefined>(undefined)
@@ -66,6 +79,10 @@ export function AccountPage() {
     setEditing(undefined)
     setScanDefaults(undefined)
     setScanFile(undefined)
+  }
+
+  function selectTab(next: TabId) {
+    setSearchParams(next === 'entries' ? {} : { tab: next }, { replace: true })
   }
 
   function handleScanned(result: InvoiceScanResult, file: File) {
@@ -98,24 +115,49 @@ export function AccountPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-[1.7fr_1fr]">
-        <Panel title="All entries" margined>
-          {isLoading ? (
-            <p className="px-5 py-8 text-sm text-ink-soft">Loading…</p>
-          ) : (
-            <TransactionTable
-              businessId={businessId}
-              transactions={transactions ?? []}
-              currency={currency}
-              onEdit={openEdit}
-            />
-          )}
-        </Panel>
+      <div role="tablist" aria-label="Account views" className="mb-6 flex gap-1 border-b border-paper-line">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            id={`tab-${t.id}`}
+            aria-selected={tab === t.id}
+            aria-controls="account-tabpanel"
+            onClick={() => selectTab(t.id)}
+            className={`-mb-px border-b-2 px-4 py-2.5 text-[14px] font-semibold transition-colors ${
+              tab === t.id ? 'border-stamp text-stamp' : 'border-transparent text-ink-soft hover:text-ink'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-        <div className="flex flex-col gap-5">
-          <CategoryManager businessId={businessId} categories={categories ?? []} />
-          <CategoryBreakdownPanel byCategory={breakdownFromTransactions(transactions ?? [])} currency={currency} />
-        </div>
+      <div role="tabpanel" id="account-tabpanel" aria-labelledby={`tab-${tab}`}>
+        {tab === 'entries' && (
+          <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-[1.7fr_1fr]">
+            <Panel title="All entries" margined>
+              {isLoading ? (
+                <p className="px-5 py-8 text-sm text-ink-soft">Loading…</p>
+              ) : (
+                <TransactionTable
+                  businessId={businessId}
+                  transactions={transactions ?? []}
+                  currency={currency}
+                  onEdit={openEdit}
+                />
+              )}
+            </Panel>
+
+            <div className="flex flex-col gap-5">
+              <CategoryManager businessId={businessId} categories={categories ?? []} />
+              <CategoryBreakdownPanel byCategory={breakdownFromTransactions(transactions ?? [])} currency={currency} />
+            </div>
+          </div>
+        )}
+        {tab === 'statement' && <StatementPanel businessId={businessId} accountId={accountId} currency={currency} />}
+        {tab === 'monthly' && <MonthlyPanel businessId={businessId} accountId={accountId} currency={currency} />}
       </div>
 
       {showScan && (
@@ -132,6 +174,7 @@ export function AccountPage() {
           businessId={businessId}
           accountId={accountId}
           categories={categories ?? []}
+          currency={currency}
           transaction={editing}
           initialAmount={scanDefaults?.amount}
           initialDate={scanDefaults?.date}

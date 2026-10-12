@@ -1,3 +1,5 @@
+import type { AmountType } from '../lib/calc'
+
 export interface User {
   id: string
   email: string
@@ -41,6 +43,8 @@ export interface Category {
   businessId: string
   name: string
   type: CategoryType
+  // Heading the category is listed under; null = shown under "Other".
+  groupName: string | null
   createdAt: string
 }
 
@@ -62,6 +66,12 @@ export interface Transaction {
   memo: string | null
   counterparty: string | null
   receiptFileName: string | null
+  // https link to a screenshot/receipt, opened in a new tab.
+  proofUrl: string | null
+  // null = a fixed amount (every entry made before amount types existed).
+  amountType: AmountType | null
+  // The named boxes of a calculated amount, in order; null for fixed amounts.
+  amountInputs: number[] | null
   amount: number
   type: CategoryType | null
   category: Category | null
@@ -179,4 +189,62 @@ export interface LegalDocument {
   effectiveDate: string
   language: 'en'
   sections: LegalSection[]
+}
+
+// GET /businesses/:id/fund-statement
+export interface StatementCategory {
+  categoryId: string | null
+  name: string
+  total: number
+  entries: number
+}
+
+export interface StatementGroup {
+  name: string
+  total: number
+  entries: number
+  categories: StatementCategory[]
+}
+
+export interface StatementSide {
+  groups: StatementGroup[]
+  total: number
+  entries: number
+}
+
+export interface FundStatement {
+  currency: string
+  accountId: string | null
+  from: string | null
+  to: string | null
+  moneyIn: StatementSide
+  moneyOut: StatementSide
+  balance: number
+}
+
+// GET /businesses/:id/monthly
+export interface MonthlyRow {
+  month: string // 'YYYY-MM'
+  moneyIn: number
+  moneyOut: number
+  net: number
+  closingBalance: number
+}
+
+export interface MonthlyFigures {
+  moneyIn: number
+  moneyOut: number
+  net: number
+}
+
+export interface MonthlyView {
+  currency: string
+  accountId: string | null
+  start: string
+  months: number
+  openingBalance: number
+  rows: MonthlyRow[]
+  totals: MonthlyFigures
+  // Entries dated before the first or after the last month shown (0 for a full-range view).
+  outsideRange: MonthlyFigures
 }

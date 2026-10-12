@@ -1,6 +1,7 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api-client'
 import type { CategoryType, Transaction } from '../types/api'
+import type { AmountType } from './calc'
 
 export function useTransactions(businessId: string | undefined, accountId?: string) {
   return useQuery({
@@ -19,12 +20,22 @@ export interface TransactionInput {
   memo?: string
   counterparty?: string
   categoryId?: string
-  amount: number
+  // Needed for a fixed amount; for the calculated types the server works the
+  // amount out from amountInputs and ignores this.
+  amount?: number
   type: CategoryType
+  // Leave out for a plain fixed entry. Send 'FIXED' when editing a calculated
+  // entry back to a typed-in amount (the server then drops the old boxes).
+  amountType?: AmountType
+  amountInputs?: number[]
+  // null clears the link on an edit.
+  proofUrl?: string | null
 }
 
 function invalidateTransactionQueries(queryClient: ReturnType<typeof useQueryClient>, businessId: string) {
   queryClient.invalidateQueries({ queryKey: ['transactions', businessId] })
+  queryClient.invalidateQueries({ queryKey: ['statement', businessId] })
+  queryClient.invalidateQueries({ queryKey: ['monthly', businessId] })
   queryClient.invalidateQueries({ queryKey: ['accounts', businessId] })
   queryClient.invalidateQueries({ queryKey: ['dashboard', businessId] })
   queryClient.invalidateQueries({ queryKey: ['dashboard', 'combined'] })

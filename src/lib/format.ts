@@ -23,3 +23,8 @@ export function daysUntil(date: string | Date): number {
   const diffMs = new Date(date).getTime() - Date.now()
   return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 }
+
+// "46,966.00": the figure alone, for tables whose heading already names the currency.
+export function formatAmount(amount: number): string {
+  return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
+}
