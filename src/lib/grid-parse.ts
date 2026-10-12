@@ -61,6 +61,13 @@ export function todayIso(now: Date = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
 }
 
+// The API refuses entries dated more than a day ahead (the server may be a few
+// hours behind the viewer). The same words, shown in the cell instead of after a round trip.
+export function futureDateError(iso: string, now: Date = new Date()): string | null {
+  const limit = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+  return iso > todayIso(limit) ? "Entries can't be dated in the future." : null
+}
+
 export type MoneyParse = { kind: 'empty' } | { kind: 'ok'; value: number } | { kind: 'error'; message: string }
 
 const MAX_MONEY = 9_999_999_999

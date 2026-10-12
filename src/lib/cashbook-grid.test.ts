@@ -227,3 +227,11 @@ describe('buildNewEntry', () => {
     expect(result).toMatchObject({ ok: true, input: { amountType: 'MULTIPLY', amountInputs: [1000, 5], amount: 5000, type: 'EXPENSE' } })
   })
 })
+
+describe('future dates', () => {
+  it('are refused with the same words as the server', () => {
+    expect(planDateEdit(tx(), '1 Jan 2099')).toEqual({ kind: 'error', message: "Entries can't be dated in the future." })
+    const result = buildNewEntry({ date: '1 Jan 2099', memo: '', categoryId: 'out1', moneyIn: '', moneyOut: '5', proofUrl: '' }, CATS)
+    expect(result).toEqual({ ok: false, column: 'date', message: "Entries can't be dated in the future." })
+  })
+})

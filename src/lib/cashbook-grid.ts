@@ -3,7 +3,7 @@
 // it again (and recomputes every calculated amount) — this only gives the
 // plain-words message in the cell instead of a round trip.
 import { describeCalculation, type AmountType } from './calc'
-import { parseDateInput, parseMoneyInput } from './grid-parse'
+import { futureDateError, parseDateInput, parseMoneyInput } from './grid-parse'
 import { proofUrlError } from './proof-url'
 import { groupCategories } from './category-groups'
 import type { Category, CategoryType, Transaction } from '../types/api'
@@ -117,7 +117,9 @@ export function planCategoryEdit(tx: Transaction, categoryId: string, categories
 export function planDateEdit(tx: Transaction, text: string): Plan {
   const iso = parseDateInput(text)
   if (!iso) return fail('Use a date like 12 May 2026.')
-  return iso === tx.date.slice(0, 10) ? NOOP : { kind: 'patch', patch: { date: iso } }
+  if (iso === tx.date.slice(0, 10)) return NOOP
+  const future = futureDateError(iso)
+  return future ? fail(future) : { kind: 'patch', patch: { date: iso } }
 }
 
 export const MAX_MEMO = 1000
@@ -155,6 +157,8 @@ export type NewEntryResult =
 export function buildNewEntry(draft: NewEntryDraft, categories: Category[]): NewEntryResult {
   const date = parseDateInput(draft.date)
   if (!date) return { ok: false, column: 'date', message: 'Date: use a date like 12 May 2026.' }
+  const future = futureDateError(date)
+  if (future) return { ok: false, column: 'date', message: future }
 
   if (!draft.categoryId) return { ok: false, column: 'category', message: 'Category: choose one.' }
   const category = categories.find((candidate) => candidate.id === draft.categoryId)

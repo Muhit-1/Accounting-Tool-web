@@ -31,12 +31,14 @@ import { useCreateTransaction, useDeleteTransaction, useTransactions, useUpdateT
 import type { AmountType } from '../../lib/calc'
 import type { Category, CategoryType, Transaction } from '../../types/api'
 import { Grid } from '../grid/Grid'
+import { PasteModal } from '../grid/PasteModal'
 import { NEW_CHOICE, type BulkAction, type GridColumn, type GridFilter } from '../grid/grid-types'
 import { StatTile } from '../StatTile'
 import { AmountPopover, type AmountChoice } from './AmountPopover'
 import { CategoriesDialog } from './CategoriesDialog'
 import { EntryCards } from './EntryCards'
 import { NewCategoryDialog } from './NewCategoryDialog'
+import { useCashbookAdapter } from './use-cashbook-adapter'
 
 const EMPTY: Transaction[] = []
 const rowId = (tx: Transaction) => tx.id
@@ -97,6 +99,9 @@ export function CashBookTab({
   const [newCategory, setNewCategory] = useState<NewCategoryTarget | null>(null)
   const [showCategories, setShowCategories] = useState(false)
   const [adding, setAdding] = useState(false)
+  // Text pasted into the grid, waiting in the preview (null = no preview open).
+  const [paste, setPaste] = useState<string | null>(null)
+  const adapter = useCashbookAdapter(businessId, accountId, categories, transactions)
 
   const deleteRows = useCallback((rows: Transaction[]) => Promise.all(rows.map((tx) => deleteTx.mutateAsync(tx.id))), [deleteTx])
   const { hiddenIds, schedule } = useDeferredDelete(rowId, deleteRows, describeDeleted)
@@ -439,10 +444,20 @@ export function CashBookTab({
               bulkActions={bulkActions}
               filter={filter}
               leadRow={leadRow}
+              onPasteText={setPaste}
               hiddenIds={hiddenIds}
               noun="entry"
               emptyTitle="No entries yet"
               emptyHint="Fill the empty row below and press Enter."
+              toolbarRight={
+                <button
+                  type="button"
+                  onClick={() => setPaste('')}
+                  className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft"
+                >
+                  Paste from Excel
+                </button>
+              }
               toolbarLeft={
                 <>
                   <button
@@ -494,6 +509,8 @@ export function CashBookTab({
           onClose={() => setNewCategory(null)}
         />
       )}
+
+      {paste !== null && <PasteModal adapter={adapter} initialText={paste} onClose={() => setPaste(null)} />}
 
       {showCategories && <CategoriesDialog businessId={businessId} categories={categories} onClose={() => setShowCategories(false)} />}
     </div>

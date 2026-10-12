@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDateCell, formatMoneyCell, parseDateInput, parseMoneyInput, parseWholeNumber, todayIso } from './grid-parse'
+import { formatDateCell, formatMoneyCell, futureDateError, parseDateInput, parseMoneyInput, parseWholeNumber, todayIso } from './grid-parse'
 
 describe('parseDateInput', () => {
   it.each([
@@ -53,6 +53,18 @@ describe('todayIso', () => {
   it('uses the local calendar day', () => {
     expect(todayIso(new Date(2026, 9, 13, 23, 30))).toBe('2026-10-13')
     expect(todayIso(new Date(2026, 0, 5, 0, 5))).toBe('2026-01-05')
+  })
+})
+
+describe('futureDateError', () => {
+  const now = new Date(2026, 9, 13, 10, 0)
+  it('allows today and tomorrow (the server may be behind), refuses later', () => {
+    expect(futureDateError('2026-10-13', now)).toBeNull()
+    expect(futureDateError('2026-10-14', now)).toBeNull()
+    expect(futureDateError('2026-10-15', now)).toBe("Entries can't be dated in the future.")
+  })
+  it('allows any past date', () => {
+    expect(futureDateError('2000-01-01', now)).toBeNull()
   })
 })
 
