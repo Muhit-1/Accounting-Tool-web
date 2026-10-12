@@ -5,18 +5,17 @@ import { useAuth } from '../lib/auth-context'
 import { Seal } from './Seal'
 import { NewBusinessModal } from './NewBusinessModal'
 import {
-  IconBank,
   IconBell,
   IconChartBar,
   IconChevronDown,
   IconGrid,
   IconPlus,
-  IconBag,
   IconReceipt,
   IconSearch,
   IconSettings,
   IconShare,
   IconShield,
+  IconTable,
 } from './icons'
 
 function initials(name: string): string {
@@ -47,6 +46,10 @@ function NavLink({
       {label}
     </Link>
   )
+}
+
+function NavHeading({ children }: { children: string }) {
+  return <div className="mt-2.5 mb-0.5 px-1 text-[11px] tracking-wider text-ink-inverse-soft uppercase first:mt-0">{children}</div>
 }
 
 function BusinessSwitcher({ businessId }: { businessId?: string }) {
@@ -203,25 +206,20 @@ export function AppShell() {
         <BusinessSwitcher businessId={businessId} />
 
         {businessId && (
-          <nav className="flex flex-col gap-1" aria-label="This venture">
-            <div className="mb-0.5 px-1 text-[11px] tracking-wider text-ink-inverse-soft uppercase">This venture</div>
+          <nav className="flex flex-col gap-1" aria-label="This business">
+            <NavHeading>Overview</NavHeading>
             <NavLink
               to={`/businesses/${businessId}`}
               label="Dashboard"
               icon={IconGrid}
               active={location.pathname === `/businesses/${businessId}`}
             />
+            <NavHeading>Workspace</NavHeading>
             <NavLink
-              to={`/businesses/${businessId}/accounts`}
-              label="Accounts"
-              icon={IconBank}
-              active={location.pathname.startsWith(`/businesses/${businessId}/accounts`)}
-            />
-            <NavLink
-              to={`/businesses/${businessId}/orders`}
-              label="Orders"
-              icon={IconBag}
-              active={location.pathname.startsWith(`/businesses/${businessId}/orders`)}
+              to={`/businesses/${businessId}/workspace`}
+              label="Cash book"
+              icon={IconTable}
+              active={['workspace', 'accounts', 'orders'].some((part) => location.pathname.startsWith(`/businesses/${businessId}/${part}`))}
             />
             <NavLink
               to={`/businesses/${businessId}/invoices`}
@@ -229,12 +227,20 @@ export function AppShell() {
               icon={IconReceipt}
               active={location.pathname.startsWith(`/businesses/${businessId}/invoices`)}
             />
+            <NavHeading>Reports</NavHeading>
             <NavLink
-              to={`/businesses/${businessId}/reports`}
-              label="Reports"
+              to={`/businesses/${businessId}/statement`}
+              label="Statement"
               icon={IconChartBar}
-              active={location.pathname.startsWith(`/businesses/${businessId}/reports`)}
+              active={location.pathname.startsWith(`/businesses/${businessId}/statement`) || location.pathname.startsWith(`/businesses/${businessId}/reports`)}
             />
+            <NavLink
+              to={`/businesses/${businessId}/monthly`}
+              label="Monthly view"
+              icon={IconChartBar}
+              active={location.pathname.startsWith(`/businesses/${businessId}/monthly`)}
+            />
+            <NavHeading>Manage</NavHeading>
             <NavLink
               to={`/businesses/${businessId}/sharing`}
               label="Sharing"

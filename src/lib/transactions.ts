@@ -19,7 +19,8 @@ export interface TransactionInput {
   date: string
   memo?: string
   counterparty?: string
-  categoryId?: string
+  // null clears the category on an edit.
+  categoryId?: string | null
   // Needed for a fixed amount; for the calculated types the server works the
   // amount out from amountInputs and ignores this.
   amount?: number
@@ -144,4 +145,33 @@ export function useRecentTransactionsAcross(businesses: BusinessRef[]) {
   merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   return { data: merged, isLoading }
+}
+
+export type BulkTransactionRow = Omit<TransactionInput, 'accountId'>
+
+export interface BulkCreateResult {
+  importBatchId: string
+  created: number
+  totalIn: number
+  totalOut: number
+}
+
+// Adds many entries at once, all or nothing (POST .../transactions/bulk).
+export function useBulkCreateTransactions(businessId: string, accountId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { rows: BulkTransactionRow[]; importBatchId?: string }) =>
+      api.post<BulkCreateResult>(`/businesses/${businessId}/accounts/${accountId}/transactions/bulk`, input),
+    onSuccess: () => invalidateTransactionQueries(queryClient, businessId),
+  })
+}
+
+// "Undo" for a paste or import: removes the entries of that batch.
+export function useUndoTransactionBatch(businessId: string, accountId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (importBatchId: string) =>
+      api.delete<{ deleted: number }>(`/businesses/${businessId}/accounts/${accountId}/transactions/batch/${importBatchId}`),
+    onSuccess: () => invalidateTransactionQueries(queryClient, businessId),
+  })
 }

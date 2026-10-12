@@ -93,9 +93,9 @@ function Side({ title, side, tone }: { title: string; side: StatementSide; tone:
   )
 }
 
-// Money in and out for one account, grouped by category group, with the
+// Money in and out for one account (or, with no account, the whole business), grouped by category group, with the
 // balance. Dates are optional: left empty it covers every date.
-export function StatementPanel({ businessId, accountId, currency }: { businessId: string; accountId: string; currency: string }) {
+export function StatementPanel({ businessId, accountId, currency }: { businessId: string; accountId?: string; currency: string }) {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const rangeInvalid = from !== '' && to !== '' && from > to

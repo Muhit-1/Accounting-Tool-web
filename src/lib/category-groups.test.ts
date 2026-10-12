@@ -8,6 +8,7 @@ const cat = (name: string, groupName: string | null, type: Category['type'] = 'E
   name,
   type,
   groupName,
+  isSystem: false,
   createdAt: '2026-01-01T00:00:00.000Z',
 })
 

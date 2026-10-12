@@ -48,6 +48,8 @@ export interface Category {
   type: CategoryType
   // Heading the category is listed under; null = shown under "Other".
   groupName: string | null
+  // Filed under by the system itself ("Orders (auto)", ...): locked, "Posted automatically".
+  isSystem: boolean
   createdAt: string
 }
 

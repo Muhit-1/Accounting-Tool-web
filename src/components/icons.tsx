@@ -187,3 +187,30 @@ export function IconTrash(props: SVGProps<SVGSVGElement>) {
     </Icon>
   )
 }
+
+export function IconLock(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </Icon>
+  )
+}
+
+export function IconLink(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+      <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+    </Icon>
+  )
+}
+
+export function IconTable(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 10h18M3 15h18M9 4v16" />
+    </Icon>
+  )
+}

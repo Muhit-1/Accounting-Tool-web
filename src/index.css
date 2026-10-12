@@ -12,6 +12,11 @@
   --color-stamp-soft: #e6f0fb;
   --color-brass: #7a5c14;
   --color-brass-soft: #f0e2b8;
+  /* Rows another table posted (gold, locked), a ticked row, a refused cell. */
+  --color-brass-row: #f8f1dc;
+  --color-brass-line: #e3d29a;
+  --color-sel: #eef5fd;
+  --color-err: #fdf1f1;
   --color-rust: #c8384f;
   --color-rust-soft: #f6d0d0;
   --color-green: #1a8a4c;

@@ -3,8 +3,10 @@ import { LoginPage } from './routes/LoginPage'
 import { AuthCallbackPage } from './routes/AuthCallbackPage'
 import { DashboardPage } from './routes/DashboardPage'
 import { AccountsPage } from './routes/AccountsPage'
-import { AccountPage } from './routes/AccountPage'
-import { OrdersPage } from './routes/OrdersPage'
+import { WorkspacePage } from './routes/WorkspacePage'
+import { OrdersRedirect } from './routes/OrdersRedirect'
+import { StatementPage } from './routes/StatementPage'
+import { MonthlyPage } from './routes/MonthlyPage'
 import { InvoicesPage } from './routes/InvoicesPage'
 import { InvoiceFormPage } from './routes/InvoiceFormPage'
 import { InvoiceDetailPage } from './routes/InvoiceDetailPage'
@@ -37,8 +39,11 @@ export default function App() {
           <Route path="/businesses/:businessId" element={<DashboardPage />} />
           <Route path="/businesses/:businessId/reports" element={<ReportsPage />} />
           <Route path="/businesses/:businessId/accounts" element={<AccountsPage />} />
-          <Route path="/businesses/:businessId/accounts/:accountId" element={<AccountPage />} />
-          <Route path="/businesses/:businessId/orders" element={<OrdersPage />} />
+          <Route path="/businesses/:businessId/accounts/:accountId" element={<WorkspacePage />} />
+          <Route path="/businesses/:businessId/workspace" element={<WorkspacePage />} />
+          <Route path="/businesses/:businessId/orders" element={<OrdersRedirect />} />
+          <Route path="/businesses/:businessId/statement" element={<StatementPage />} />
+          <Route path="/businesses/:businessId/monthly" element={<MonthlyPage />} />
           <Route path="/businesses/:businessId/invoices" element={<InvoicesPage />} />
           <Route path="/businesses/:businessId/invoices/new" element={<InvoiceFormPage />} />
           <Route path="/businesses/:businessId/invoices/:invoiceId" element={<InvoiceDetailPage />} />

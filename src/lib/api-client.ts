@@ -46,10 +46,13 @@ function handleUnauthorized(hadToken: boolean): void {
 
 export class ApiError extends Error {
   status: number
+  // The response body, for errors that carry more than a message (per-row problems of a bulk add).
+  body: unknown
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, body?: unknown) {
     super(message)
     this.status = status
+    this.body = body
   }
 }
 
@@ -93,7 +96,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     if (response.status === 401 && !path.startsWith('/auth/login') && !path.startsWith('/auth/register')) {
       handleUnauthorized(token !== null)
     }
-    throw new ApiError(response.status, extractErrorMessage(body, response.statusText))
+    throw new ApiError(response.status, extractErrorMessage(body, response.statusText), body)
   }
 
   return body as T

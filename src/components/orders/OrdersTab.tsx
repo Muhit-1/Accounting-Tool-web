@@ -1,31 +1,22 @@
 import { useState } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
-import { useAccounts } from '../lib/accounts'
-import { useBusiness } from '../lib/businesses'
-import { formatAmount, formatDate, formatMoney } from '../lib/format'
-import { ORDER_STATUSES, ORDER_STATUS_LABEL, fundEffect, type OrderStatus } from '../lib/order-status'
-import { useOrders } from '../lib/orders'
-import type { Order } from '../types/api'
-import { Button } from '../components/Button'
-import { Panel } from '../components/Panel'
-import { Select } from '../components/Select'
-import { OrderDetailPanel } from '../components/orders/OrderDetailPanel'
-import { OrderForm } from '../components/orders/OrderForm'
-import { OrderStatusBadge } from '../components/orders/OrderStatusBadge'
-
-function Tile({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rounded-ledger border border-paper-line bg-white px-4 py-3.5">
-      <div className="text-[11.5px] tracking-wider text-ink-soft uppercase">{label}</div>
-      <div className="tabular text-[22px] font-medium">{value}</div>
-    </div>
-  )
-}
+import { useSearchParams } from 'react-router-dom'
+import { useAccounts } from '../../lib/accounts'
+import { useBusiness } from '../../lib/businesses'
+import { formatAmount, formatDate, formatMoney } from '../../lib/format'
+import { ORDER_STATUSES, ORDER_STATUS_LABEL, fundEffect, type OrderStatus } from '../../lib/order-status'
+import { useOrders } from '../../lib/orders'
+import type { Order } from '../../types/api'
+import { Button } from '../Button'
+import { Panel } from '../Panel'
+import { Select } from '../Select'
+import { StatTile } from '../StatTile'
+import { OrderDetailPanel } from './OrderDetailPanel'
+import { OrderForm } from './OrderForm'
+import { OrderStatusBadge } from './OrderStatusBadge'
 
 const HEAD = 'border-b border-paper-line px-3 py-2.5 text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase'
 
-export function OrdersPage() {
-  const { businessId } = useParams<{ businessId: string }>()
+export function OrdersTab({ businessId }: { businessId: string }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const { data: business } = useBusiness(businessId)
   const { data: accounts } = useAccounts(businessId)
@@ -37,7 +28,6 @@ export function OrdersPage() {
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Order | undefined>(undefined)
 
-  if (!businessId) return null
   const currency = business?.currency ?? 'BDT'
   const orders = data?.orders ?? []
   const shown = filter === 'ALL' ? orders : orders.filter((order) => order.status === filter)
@@ -45,7 +35,16 @@ export function OrdersPage() {
   const accountName = (id: string) => accounts?.find((account) => account.id === id)?.name ?? 'Fund'
 
   function select(id: string | null) {
-    setSearchParams(id ? { open: id } : {}, { replace: true })
+    // The tab stays in the address next to the open order.
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        if (id) next.set('open', id)
+        else next.delete('open')
+        return next
+      },
+      { replace: true },
+    )
   }
 
   function closeForm() {
@@ -55,11 +54,7 @@ export function OrdersPage() {
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="mb-1.5 text-xs tracking-wider text-ink-soft uppercase">{business?.name ?? '…'}</p>
-          <h1 className="font-display text-[28px] font-bold tracking-tight">Orders</h1>
-        </div>
+      <div className="mb-4 flex justify-end">
         <Button
           onClick={() => {
             setEditing(undefined)
@@ -71,11 +66,11 @@ export function OrdersPage() {
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
-        <Tile label="Orders" value={data?.summary.orders ?? 0} />
-        <Tile label="In progress" value={data?.summary.inProgress ?? 0} />
-        <Tile label="Delivered" value={data?.summary.delivered ?? 0} />
-        <Tile label="Delivered value" value={formatAmount(data?.summary.deliveredValue ?? 0)} />
-        <Tile label="Discounts on delivered" value={formatAmount(data?.summary.discountsOnDelivered ?? 0)} />
+        <StatTile label="Orders" value={data?.summary.orders ?? 0} />
+        <StatTile label="In progress" value={data?.summary.inProgress ?? 0} />
+        <StatTile label="Delivered" value={data?.summary.delivered ?? 0} />
+        <StatTile label="Delivered value" value={formatAmount(data?.summary.deliveredValue ?? 0)} />
+        <StatTile label="Discounts on delivered" value={formatAmount(data?.summary.discountsOnDelivered ?? 0)} />
       </div>
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]">

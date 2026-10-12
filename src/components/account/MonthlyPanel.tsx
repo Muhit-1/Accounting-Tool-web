@@ -18,7 +18,7 @@ const HEAD = 'border-b border-paper-line px-3 py-2.5 text-[12.5px] font-semibold
 
 // Money in / out / net / closing balance for each month of a window, a bar
 // chart, and a check that nothing falls outside the months shown.
-export function MonthlyPanel({ businessId, accountId, currency }: { businessId: string; accountId: string; currency: string }) {
+export function MonthlyPanel({ businessId, accountId, currency }: { businessId: string; accountId?: string; currency: string }) {
   const [months, setMonths] = useState(12)
   // null = follow the default: the window that ends this month.
   const [chosenStart, setChosenStart] = useState<string | null>(null)

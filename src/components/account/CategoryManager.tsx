@@ -7,6 +7,7 @@ import { TextField } from '../TextField'
 import { Button } from '../Button'
 import { Panel } from '../Panel'
 import { ConfirmDialog } from '../ConfirmDialog'
+import { IconLock } from '../icons'
 
 const MAX_GROUP_LENGTH = 60
 
@@ -159,9 +160,14 @@ export function CategoryManager({ businessId, categories }: { businessId: string
         categories.map((category) => (
           <div
             key={category.id}
-            className="flex items-center justify-between border-b border-paper-edge px-5 py-2.5 last:border-b-0"
+            className={`flex items-center justify-between border-b border-paper-edge px-5 py-2.5 last:border-b-0 ${category.isSystem ? 'bg-brass-row' : ''}`}
           >
             <div className="flex flex-wrap items-center gap-2">
+              {category.isSystem && (
+                <span className="text-brass" title="Posted automatically">
+                  <IconLock width={13} height={13} />
+                </span>
+              )}
               <span className="text-[14.5px]">{category.name}</span>
               <span
                 className={`rounded-[4px] border px-2 py-0.5 text-[11.5px] font-semibold tracking-wide uppercase ${
@@ -172,6 +178,9 @@ export function CategoryManager({ businessId, categories }: { businessId: string
               </span>
               {category.groupName && <span className="text-xs text-ink-soft">{category.groupName}</span>}
             </div>
+            {category.isSystem ? (
+              <span className="flex-none text-xs text-ink-soft">Posted automatically</span>
+            ) : (
             <div className="flex flex-none items-center gap-3">
               <button
                 onClick={() => startEdit(category)}
@@ -187,6 +196,7 @@ export function CategoryManager({ businessId, categories }: { businessId: string
                 Delete
               </button>
             </div>
+            )}
           </div>
         ))
       )}
