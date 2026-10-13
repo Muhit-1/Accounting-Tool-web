@@ -13,6 +13,7 @@ import {
   type OrderStatus,
 } from '../../lib/order-status'
 import { useDeleteOrder, useUpdateOrderStatus } from '../../lib/orders'
+import { DEFAULT_POSTING_CONFIG, orderPosts, usePostingConfig } from '../../lib/posting-config'
 import type { Order } from '../../types/api'
 import { Button } from '../Button'
 import { ConfirmDialog } from '../ConfirmDialog'
@@ -64,7 +65,11 @@ export function OrderDetailPanel({
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const { data: postingConfig } = usePostingConfig(businessId)
   const forward = forwardStep(order.status)
+  // The entry exists exactly while the posting settings say this status posts.
+  const posted = Boolean(order.transactionId)
+  const postsAt = STATUS_STEPS.slice(STATUS_STEPS.indexOf(order.status) + 1).find((status) => orderPosts(postingConfig ?? DEFAULT_POSTING_CONFIG, status))
   const choices = nextStatuses(order.status)
   const closed = isOrderFinal(order.status)
   const sign = order.postingRule === 'MONEY_IN' ? '+' : '–'
@@ -160,7 +165,7 @@ export function OrderDetailPanel({
       {order.notes && <div className="text-[13px] whitespace-pre-line text-ink-soft">{order.notes}</div>}
 
       <div className="flex flex-col gap-1 rounded-ledger border border-stamp/30 bg-stamp-soft px-3.5 py-3 text-[13.5px]">
-        {order.status === 'DELIVERED' ? (
+        {posted ? (
           <>
             <div className="font-bold">In the books</div>
             <div>
@@ -178,9 +183,14 @@ export function OrderDetailPanel({
             <div className="font-bold">Not counted</div>
             <div className="text-ink-soft">A {ORDER_STATUS_LABEL[order.status].toLowerCase()} order is not in the fund.</div>
           </>
+        ) : !postsAt ? (
+          <>
+            <div className="font-bold">Not in the Cash book</div>
+            <div className="text-ink-soft">This order is not sent to the Cash book.</div>
+          </>
         ) : (
           <>
-            <div className="font-bold">When you mark it Delivered</div>
+            <div className="font-bold">When you mark it {ORDER_STATUS_LABEL[postsAt]}</div>
             <div>
               {order.postingRule === 'MONEY_IN' ? 'Money in' : 'Money out'}{' '}
               <span className="tabular">
@@ -269,7 +279,7 @@ export function OrderDetailPanel({
             </button>
           )}
         </div>
-        {order.status === 'DELIVERED' && (
+        {posted && (
           <Link to={`/businesses/${businessId}/accounts/${order.accountId}`} className="text-stamp hover:underline">
             Open {accountName}
           </Link>

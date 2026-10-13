@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth-context'
 import { useBusiness } from '../lib/businesses'
 import { useCategories } from '../lib/categories'
 import { tablePrefsKey } from '../lib/grid-prefs'
+import { DEFAULT_POSTING_CONFIG, tablePosts, usePostingConfig, type PostingTable } from '../lib/posting-config'
 import type { InvoiceScanResult } from '../lib/invoice-scan'
 import { useToast } from '../lib/toast-context'
 import { useTablePrefs } from '../lib/use-grid-prefs'
@@ -19,6 +20,8 @@ import { ImportWizardHost } from '../components/import/ImportWizardHost'
 import { CostsTab } from '../components/costs/CostsTab'
 import { OrdersTab } from '../components/orders/OrdersTab'
 import { CashBookTab } from '../components/workspace/CashBookTab'
+import { PostingDialog } from '../components/workspace/PostingDialog'
+import { PostsButton } from '../components/workspace/PostsButton'
 import { WorkspaceTabs, type WorkspaceTab } from '../components/workspace/WorkspaceTabs'
 
 interface BuiltInTable {
@@ -34,6 +37,8 @@ const BUILT_IN_TABLES: BuiltInTable[] = [
   { key: 'costs', name: 'Costs' },
 ]
 
+const isPostingTable = (key: string): key is PostingTable => key === 'orders' || key === 'costs' || key === 'invoices'
+
 export function WorkspacePage() {
   const { businessId, accountId: accountIdParam } = useParams<{ businessId: string; accountId?: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -43,6 +48,8 @@ export function WorkspacePage() {
   const { data: business } = useBusiness(businessId)
   const { data: accounts } = useAccounts(businessId)
   const { data: categories } = useCategories(businessId)
+  const { data: postingData } = usePostingConfig(businessId)
+  const postingConfig = postingData ?? DEFAULT_POSTING_CONFIG
   const tablePrefs = useTablePrefs(tablePrefsKey(user?.id ?? 'anonymous', businessId ?? ''))
 
   const [showForm, setShowForm] = useState(false)
@@ -53,6 +60,8 @@ export function WorkspacePage() {
   const [renaming, setRenaming] = useState<BuiltInTable | null>(null)
   // The table whose Import button was clicked (the import screen is open), or null.
   const [importing, setImporting] = useState<string | null>(null)
+  // The table whose "Posts to Cash book" dialog is open, or null.
+  const [postingTable, setPostingTable] = useState<PostingTable | null>(null)
 
   if (!businessId) return null
   const currency = business?.currency ?? 'BDT'
@@ -75,6 +84,7 @@ export function WorkspacePage() {
   function openPosted(transaction: Transaction) {
     if (transaction.orderId) setSearchParams({ tab: 'orders', open: transaction.orderId })
     else if (transaction.costItemId) setSearchParams({ tab: 'costs' })
+    else if (transaction.invoiceId) navigate(`/businesses/${businessId}/invoices/${transaction.invoiceId}`)
   }
 
   function openCreate() {
@@ -95,6 +105,9 @@ export function WorkspacePage() {
     const table = BUILT_IN_TABLES.find((candidate) => candidate.key === key)
     if (!table) return []
     const items: MenuEntry[] = [{ label: 'Rename table', onSelect: () => setRenaming(table) }]
+    if (isPostingTable(key)) {
+      items.push({ label: 'Posts to Cash book…', hint: 'Choose what this table sends.', onSelect: () => setPostingTable(key) })
+    }
     if (key !== 'cashbook') {
       items.push({
         label: 'Hide table',
@@ -109,7 +122,12 @@ export function WorkspacePage() {
     return items
   }
 
-  const tabs: WorkspaceTab[] = visibleTables.map((table) => ({ key: table.key, name: nameOf(table) }))
+  const tabs: WorkspaceTab[] = visibleTables.map((table) => ({
+    key: table.key,
+    name: nameOf(table),
+    posts: isPostingTable(table.key) && tablePosts(postingConfig, table.key),
+  }))
+  const postsButton = (key: PostingTable) => <PostsButton on={tablePosts(postingConfig, key)} onClick={() => setPostingTable(key)} />
 
   return (
     <>
@@ -173,13 +191,25 @@ export function WorkspacePage() {
         ))}
       {active.key === 'orders' &&
         (account ? (
-          <OrdersTab businessId={businessId} accountId={account.id} tableName={nameOf(active)} onImport={() => setImporting('orders')} />
+          <OrdersTab
+            businessId={businessId}
+            accountId={account.id}
+            tableName={nameOf(active)}
+            onImport={() => setImporting('orders')}
+            postsButton={postsButton('orders')}
+          />
         ) : (
           <p className="text-sm text-ink-soft">Loading…</p>
         ))}
 
       {active.key === 'costs' && (
-        <CostsTab businessId={businessId} currency={currency} tableName={nameOf(active)} onImport={() => setImporting('costs')} />
+        <CostsTab
+          businessId={businessId}
+          currency={currency}
+          tableName={nameOf(active)}
+          onImport={() => setImporting('costs')}
+          postsButton={postsButton('costs')}
+        />
       )}
 
       <div className="mt-3">
@@ -198,6 +228,16 @@ export function WorkspacePage() {
 
       {importing && account && (
         <ImportWizardHost businessId={businessId} accountId={account.id} initialTableKey={importing} onClose={() => setImporting(null)} />
+      )}
+
+      {postingTable && (
+        <PostingDialog
+          businessId={businessId}
+          table={postingTable}
+          tableName={nameOf(BUILT_IN_TABLES.find((table) => table.key === postingTable) ?? active)}
+          config={postingConfig}
+          onClose={() => setPostingTable(null)}
+        />
       )}
 
       {renaming && (

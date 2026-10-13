@@ -2,6 +2,8 @@ import { useState, type ComponentType, type FormEvent, type SVGProps } from 'rea
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useBusinesses } from '../lib/businesses'
 import { useAuth } from '../lib/auth-context'
+import { useCosts } from '../lib/costs'
+import { usePartners } from '../lib/partners'
 import { Seal } from './Seal'
 import { NewBusinessModal } from './NewBusinessModal'
 import {
@@ -191,6 +193,10 @@ export function AppShell() {
   const { businessId } = useParams<{ businessId?: string }>()
   const location = useLocation()
   const { user, logout } = useAuth()
+  // The report only makes sense once there are costs and someone who can pay them.
+  const { data: costData } = useCosts(businessId)
+  const { data: partnerData } = usePartners(businessId)
+  const showPartnerPayments = (costData?.summary.count ?? 0) > 0 && (partnerData?.length ?? 0) > 0
 
   return (
     <div className="md:grid md:h-screen md:grid-cols-[248px_1fr] md:overflow-hidden">
@@ -240,6 +246,14 @@ export function AppShell() {
               icon={IconChartBar}
               active={location.pathname.startsWith(`/businesses/${businessId}/monthly`)}
             />
+            {showPartnerPayments && (
+              <NavLink
+                to={`/businesses/${businessId}/partner-payments`}
+                label="Partner payments"
+                icon={IconChartBar}
+                active={location.pathname.startsWith(`/businesses/${businessId}/partner-payments`)}
+              />
+            )}
             <NavHeading>Manage</NavHeading>
             <NavLink
               to={`/businesses/${businessId}/sharing`}

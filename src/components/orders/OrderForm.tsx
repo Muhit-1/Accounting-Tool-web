@@ -56,7 +56,7 @@ export function OrderForm({
   const total = orderTotal(money(subtotal), money(deliveryCharge), money(discount))
   const discountTooBig = total === null
   const isPending = createOrder.isPending || updateOrder.isPending
-  const delivered = order?.status === 'DELIVERED'
+  const delivered = Boolean(order?.transactionId)
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -248,7 +248,7 @@ export function OrderForm({
 
             {delivered && (
               <p className="text-[13px] text-ink-soft">
-                This order is delivered. Changing its total, account, treatment or delivery date also updates its entry in the fund.
+                This order is in the Cash book. Changing its total, account, treatment or delivery date also updates that entry.
               </p>
             )}
             {order && isOrderFinal(order.status) && (

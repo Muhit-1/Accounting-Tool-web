@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiError } from '../../lib/api-client'
 import { useAuth } from '../../lib/auth-context'
@@ -33,11 +33,14 @@ export function CostsTab({
   currency,
   tableName,
   onImport,
+  postsButton,
 }: {
   businessId: string
   currency: string
   tableName: string
   onImport: () => void
+  // "Posts to Cash book: On/Off" for the toolbar.
+  postsButton?: ReactNode
 }) {
   const { user } = useAuth()
   const toast = useToast()
@@ -99,9 +102,9 @@ export function CostsTab({
     }
     setAdding(true)
     try {
-      await createCost.mutateAsync(result.input)
+      const created = await createCost.mutateAsync(result.input)
       setDraft({ values: {}, bad: null })
-      toast(result.input.paidFrom === 'BUSINESS' ? 'Cost added. Posted to the Cash book as money out.' : 'Cost added.')
+      toast(created.transactionId ? 'Cost added. Posted to the Cash book as money out.' : 'Cost added.')
       window.setTimeout(() => document.querySelector<HTMLElement>('[data-grid-cell][data-draft][data-col="item"]')?.focus(), 0)
     } catch (err) {
       toast(messageOf(err))
@@ -227,6 +230,7 @@ export function CostsTab({
               }
               toolbarRight={
                 <>
+                  {postsButton}
                   <button
                     type="button"
                     onClick={() => setPaste('')}

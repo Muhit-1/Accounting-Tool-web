@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ApiError } from '../../lib/api-client'
 import { useAccounts } from '../../lib/accounts'
@@ -9,6 +9,7 @@ import { formatDateCell, formatMoneyCell, todayIso } from '../../lib/grid-parse'
 import { gridPrefsKey } from '../../lib/grid-prefs'
 import { ORDER_STATUSES, ORDER_STATUS_LABEL, POSTING_RULE_LABEL, fundEffect, type OrderStatus } from '../../lib/order-status'
 import { PAYMENT_METHODS, buildNewOrder, planOrderEdit, type NewOrderDraft } from '../../lib/orders-grid'
+import { DEFAULT_POSTING_CONFIG, orderPosts, usePostingConfig } from '../../lib/posting-config'
 import { useCreateOrder, useDeleteOrder, useOrders, useUpdateOrder, useUpdateOrderStatus } from '../../lib/orders'
 import { useToast } from '../../lib/toast-context'
 import { useDeferredDelete } from '../../lib/use-deferred-delete'
@@ -46,18 +47,22 @@ function messageOf(err: unknown): string {
 }
 
 // The Orders table as a sheet. The server numbers every order and works out
-// its total; a delivered order posts its money to the Cash book.
+// its total; an order posts its money to the Cash book when the posting
+// settings say its status counts (Delivered, by default).
 export function OrdersTab({
   businessId,
   accountId,
   tableName,
   onImport,
+  postsButton,
 }: {
   businessId: string
   // The fund account new orders post into.
   accountId: string
   tableName: string
   onImport: () => void
+  // "Posts to Cash book: On/Off" for the toolbar.
+  postsButton?: ReactNode
 }) {
   const { user } = useAuth()
   const toast = useToast()
@@ -65,6 +70,8 @@ export function OrdersTab({
   const { data: business } = useBusiness(businessId)
   const { data: accounts } = useAccounts(businessId)
   const { data, isLoading, error } = useOrders(businessId)
+  const { data: postingData } = usePostingConfig(businessId)
+  const postingConfig = postingData ?? DEFAULT_POSTING_CONFIG
   const orders = data?.orders ?? EMPTY
   const createOrder = useCreateOrder(businessId)
   const updateOrder = useUpdateOrder(businessId)
@@ -112,8 +119,10 @@ export function OrdersTab({
       try {
         if (plan.kind === 'status') {
           await statusAsync({ id: order.id, status: plan.status, deliveryDate: plan.deliveryDate })
-          if (plan.status === 'DELIVERED') toast(`${order.displayNumber} is delivered — posted to the Cash book.`)
-          else if (order.status === 'DELIVERED') toast(`${order.displayNumber} left Delivered — removed from the Cash book.`)
+          const before = orderPosts(postingConfig, order.status)
+          const after = orderPosts(postingConfig, plan.status)
+          if (after && !before) toast(`${order.displayNumber} is ${ORDER_STATUS_LABEL[plan.status].toLowerCase()} — posted to the Cash book.`)
+          else if (before && !after) toast(`${order.displayNumber} is now ${ORDER_STATUS_LABEL[plan.status].toLowerCase()} — removed from the Cash book.`)
         } else {
           await updateAsync({ id: order.id, ...plan.patch })
         }
@@ -122,7 +131,7 @@ export function OrdersTab({
         return messageOf(err)
       }
     },
-    [statusAsync, updateAsync, toast],
+    [statusAsync, updateAsync, toast, postingConfig],
   )
 
   const changeDraft = useCallback((columnId: string, text: string) => {
@@ -156,7 +165,7 @@ export function OrdersTab({
     try {
       const created = await createOrder.mutateAsync({ accountId, ...result.input })
       setDraft({ values: freshDraft(), bad: null })
-      toast(`${created.displayNumber} added.${created.status === 'DELIVERED' ? ' Posted to the Cash book.' : ''}`)
+      toast(`${created.displayNumber} added.${created.transactionId ? ' Posted to the Cash book.' : ''}`)
       window.setTimeout(() => document.querySelector<HTMLElement>('[data-grid-cell][data-draft][data-col="customer"]')?.focus(), 0)
     } catch (err) {
       toast(messageOf(err))
@@ -315,6 +324,7 @@ export function OrdersTab({
               emptyHint="Fill the empty row below and press Enter — or paste from Excel, or import a file."
               toolbarRight={
                 <>
+                  {postsButton}
                   <button
                     type="button"
                     onClick={() => setPaste('')}

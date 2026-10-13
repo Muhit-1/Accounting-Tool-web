@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from './api-client'
+import { invalidateTransactionQueries } from './transactions'
 import type { Invoice, InvoiceStatus } from '../types/api'
 
 export function useInvoices(businessId: string | undefined) {
@@ -27,6 +28,14 @@ const NEXT_STATUSES: Record<InvoiceStatus, InvoiceStatus[]> = {
   OVERDUE: ['PAID', 'SENT', 'CANCELLED'],
   PAID: ['SENT'],
   CANCELLED: [],
+}
+
+export const INVOICE_STATUS_LABEL: Record<InvoiceStatus, string> = {
+  PAID: 'Paid',
+  SENT: 'Pending',
+  OVERDUE: 'Overdue',
+  DRAFT: 'Draft',
+  CANCELLED: 'Cancelled',
 }
 
 export function statusChoices(current: InvoiceStatus): InvoiceStatus[] {
@@ -63,6 +72,8 @@ export function useNextInvoiceNumber(businessId: string | undefined) {
 function invalidateInvoiceQueries(queryClient: ReturnType<typeof useQueryClient>, businessId: string) {
   queryClient.invalidateQueries({ queryKey: ['invoices', businessId] })
   queryClient.invalidateQueries({ queryKey: ['dashboard', businessId] })
+  // A sent or paid invoice can own a Cash book entry (see the posting settings).
+  invalidateTransactionQueries(queryClient, businessId)
 }
 
 export function useCreateInvoice(businessId: string) {
@@ -104,6 +115,7 @@ export function useDeleteInvoice(businessId: string) {
       // once the page navigates away, with nothing left needing a refetch.
       queryClient.invalidateQueries({ queryKey: ['invoices', businessId], exact: true })
       queryClient.invalidateQueries({ queryKey: ['dashboard', businessId] })
+      invalidateTransactionQueries(queryClient, businessId)
     },
   })
 }

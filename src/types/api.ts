@@ -79,6 +79,8 @@ export interface Transaction {
   orderId: string | null
   // Set for an entry posted by a cost paid from Business money; it can only change through the cost.
   costItemId: string | null
+  // Set for an entry posted by an invoice; it can only change through the invoice.
+  invoiceId: string | null
   // null = a fixed amount (every entry made before amount types existed).
   amountType: AmountType | null
   // The named boxes of a calculated amount, in order; null for fixed amounts.
@@ -121,6 +123,8 @@ export interface Invoice {
   subTotal: number
   total: number
   status: InvoiceStatus
+  // When the invoice became Paid (the date its Cash book entry carries).
+  paidAt: string | null
   fileReference: string | null
   createdAt: string
   updatedAt: string
@@ -351,4 +355,49 @@ export interface CostSummary {
 export interface CostList {
   summary: CostSummary
   costs: CostItem[]
+}
+
+// /businesses/:id/posting-config — what the other tables send to the Cash book.
+export interface PostingConfig {
+  orders: { on: boolean; when: OrderStatus[] }
+  costs: { on: boolean }
+  invoices: { on: boolean; when: InvoiceStatus[] }
+}
+
+export interface PostingChange {
+  posted: number
+  removed: number
+}
+
+export interface PostingSaveResult {
+  config: PostingConfig
+  changes: { orders: PostingChange; costs: PostingChange; invoices: PostingChange }
+}
+
+// /businesses/:id/partner-payments
+export interface PartnerPayer {
+  // A partner id, or "BUSINESS".
+  key: string
+  name: string
+  kind: 'PARTNER' | 'BUSINESS'
+  paid: number
+  // Of everything that was paid, in percent with one decimal.
+  sharePercent: number
+}
+
+export interface PartnerPaymentsGroup {
+  name: string
+  paid: Record<string, number>
+  due: number
+  total: number
+}
+
+export interface PartnerPayments {
+  currency: string
+  payers: PartnerPayer[]
+  groups: PartnerPaymentsGroup[]
+  totals: { paid: Record<string, number>; paidAll: number; due: number; total: number }
+  stillDue: { id: string; number: number; item: string; groupName: string; total: number }[]
+  // Paid minus what the payers add up to: 0 unless a cost names a payer who is not listed.
+  check: number
 }
