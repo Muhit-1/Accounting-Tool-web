@@ -29,6 +29,8 @@ export interface Business {
   defaultTerms: string | null
   // Letters in front of order numbers; null = initials of the name.
   orderPrefix: string | null
+  // Two-letter country code; null = made before it existed, treated as Bangladesh.
+  country: string | null
   driveFolderId: string | null
   createdAt: string
   updatedAt: string

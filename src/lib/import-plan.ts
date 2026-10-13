@@ -181,3 +181,18 @@ export function checkPlans(
   }
   return checks
 }
+
+export interface CashbookAfter extends MoneyTotals {
+  balance: number
+}
+
+// What the Cash book would hold once everything ready is imported: what it
+// holds now, plus the entries, plus the money delivered orders (and, later,
+// costs paid from Business money) post to it. null when nothing moves money.
+export function cashbookAfter(checks: TableCheck[], now: MoneyTotals): CashbookAfter | null {
+  const moving = checks.filter((check) => check.readyTotals !== null)
+  if (moving.length === 0) return null
+  const moneyIn = sumMoney([now.moneyIn, ...moving.map((check) => check.readyTotals?.moneyIn ?? 0)])
+  const moneyOut = sumMoney([now.moneyOut, ...moving.map((check) => check.readyTotals?.moneyOut ?? 0)])
+  return { moneyIn, moneyOut, balance: sumMoney([moneyIn, -moneyOut]) }
+}

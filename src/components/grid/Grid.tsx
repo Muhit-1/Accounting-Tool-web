@@ -150,7 +150,15 @@ function BodyRowImpl<R>({
           )
         } else if (column.locked || column.type === 'calc') {
           content = (
-            <ReadCell align={isRightAligned(column) ? 'right' : undefined}>{text}</ReadCell>
+            <ReadCell align={isRightAligned(column) ? 'right' : undefined}>
+              {column.onActivate ? (
+                <button type="button" onClick={() => column.onActivate?.(row)} className="font-semibold text-stamp underline-offset-2 hover:underline">
+                  {text}
+                </button>
+              ) : (
+                text
+              )}
+            </ReadCell>
           )
         } else if (column.type === 'pill') {
           content = (
@@ -166,7 +174,7 @@ function BodyRowImpl<R>({
               value={value}
               choices={column.choices?.(row) ?? []}
               newChoice={column.newChoice}
-              placeholder={column.placeholder ?? ''}
+              placeholder={column.placeholder ?? (column.required ? undefined : '')}
               disabled={disabled}
               ariaLabel={column.label}
               bad={isBad}

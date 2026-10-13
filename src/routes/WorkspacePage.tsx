@@ -167,7 +167,12 @@ export function WorkspacePage() {
             )}
           </p>
         ))}
-      {active.key === 'orders' && <OrdersTab businessId={businessId} />}
+      {active.key === 'orders' &&
+        (account ? (
+          <OrdersTab businessId={businessId} accountId={account.id} tableName={nameOf(active)} onImport={() => setImporting('orders')} />
+        ) : (
+          <p className="text-sm text-ink-soft">Loading…</p>
+        ))}
 
       <div className="mt-3">
         <WorkspaceTabs

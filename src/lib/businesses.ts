@@ -18,6 +18,7 @@ export type UpdateBusinessInput = Partial<
     | 'bankBranch'
     | 'defaultTerms'
     | 'orderPrefix'
+    | 'country'
   >
 >
 

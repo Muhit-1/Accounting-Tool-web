@@ -19,6 +19,8 @@ export interface OrderInput {
   postingRule?: OrderPostingRule
   deliveryDate?: string | null
   notes?: string | null
+  // Only when an order is made (a delivered one can be entered); later moves go through the status endpoint.
+  status?: OrderStatus
 }
 
 export function useOrders(businessId: string | undefined) {
@@ -70,6 +72,36 @@ export function useDeleteOrder(businessId: string) {
   const afterChange = useAfterOrderChange(businessId)
   return useMutation({
     mutationFn: (id: string) => api.delete(`/businesses/${businessId}/orders/${id}`),
+    onSuccess: afterChange,
+  })
+}
+
+export type BulkOrderRow = Omit<OrderInput, 'accountId'>
+
+export interface BulkOrdersResult {
+  importBatchId: string
+  created: number
+  // How many of them were delivered and posted to the fund, and the money they moved.
+  posted: number
+  totalIn: number
+  totalOut: number
+}
+
+// Adds many orders at once, all or nothing (POST .../orders/bulk).
+export function useBulkCreateOrders(businessId: string) {
+  const afterChange = useAfterOrderChange(businessId)
+  return useMutation({
+    mutationFn: (input: { accountId: string; rows: BulkOrderRow[]; importBatchId?: string }) =>
+      api.post<BulkOrdersResult>(`/businesses/${businessId}/orders/bulk`, input),
+    onSuccess: afterChange,
+  })
+}
+
+// "Undo" for a paste or import: removes that batch's orders and the fund entries they posted.
+export function useUndoOrderBatch(businessId: string) {
+  const afterChange = useAfterOrderChange(businessId)
+  return useMutation({
+    mutationFn: (importBatchId: string) => api.delete<{ deleted: number }>(`/businesses/${businessId}/orders/batch/${importBatchId}`),
     onSuccess: afterChange,
   })
 }

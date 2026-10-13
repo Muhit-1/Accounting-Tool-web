@@ -2,8 +2,8 @@ import { useMemo, useState, type ChangeEvent } from 'react'
 import { ApiError } from '../../lib/api-client'
 import { bulkRowErrors } from '../../lib/bulk-errors'
 import { formatMoneyCell } from '../../lib/grid-parse'
-import { checkPlans, planColumns, planSheets, withMapping, withTable, type FileComparison, type SheetPlan } from '../../lib/import-plan'
-import type { CommitResult, ImportRunner } from '../../lib/paste-import'
+import { cashbookAfter, checkPlans, planColumns, planSheets, withMapping, withTable, type FileComparison, type SheetPlan } from '../../lib/import-plan'
+import type { CommitResult, ImportRunner, MoneyTotals } from '../../lib/paste-import'
 import type { ImportTableInfo } from '../../lib/sheet-import'
 import { useToast } from '../../lib/toast-context'
 import { checkWorkbookFile, fileExtension, readDelimitedFile, readWorkbook, type ReadResult } from '../../lib/workbook'
@@ -75,10 +75,13 @@ export function ImportWizard({
   tables,
   runners,
   initialTableKey,
+  cashbookNow,
   onClose,
 }: {
   tables: ImportTableInfo[]
   runners: Record<string, ImportRunner>
+  // What the Cash book holds now, to show what it would hold after the import.
+  cashbookNow: MoneyTotals
   // The table whose Import button was clicked: a plain CSV goes there.
   initialTableKey?: string
   onClose: () => void
@@ -97,6 +100,7 @@ export function ImportWizard({
     () => (step === 3 ? checkPlans(plans, tables, runners, { createCategories }) : []),
     [step, plans, tables, runners, createCategories],
   )
+  const after = useMemo(() => cashbookAfter(checks, cashbookNow), [checks, cashbookNow])
   const readyTotal = checks.reduce((total, check) => total + check.counts.ready, 0)
   const offersNewCategories = checks.some((check) => runners[check.tableKey]?.offersNewCategories)
   const oneTable = tables.length === 1
@@ -380,6 +384,12 @@ export function ImportWizard({
               )}
             </section>
           ))}
+          {after && (
+            <div className="rounded-ledger border border-stamp/30 bg-stamp-soft px-3 py-2 text-[13px]">
+              <b>The Cash book would then show:</b> money in <span className="tabular">{formatMoneyCell(after.moneyIn)}</span> · money out{' '}
+              <span className="tabular">{formatMoneyCell(after.moneyOut)}</span> · balance <span className="tabular">{formatMoneyCell(after.balance)}</span>
+            </div>
+          )}
           {offersNewCategories && (
             <label className="flex items-center gap-2 text-[13.5px]">
               <input type="checkbox" checked={createCategories} onChange={(event) => setCreateCategories(event.target.checked)} className="h-4 w-4 accent-stamp" />

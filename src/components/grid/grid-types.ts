@@ -39,6 +39,8 @@ export interface GridColumn<R> {
   fx?: boolean
   // Added to the header menu, e.g. "Manage categories…".
   menu?: { label: string; hint?: string; onSelect: () => void }[]
+  // A worked-out cell that is also a way in (the order number opens the order).
+  onActivate?: (row: R) => void
   // A link opened from the cell (a proof link).
   href?: (row: R) => string | null
   // This cell cannot be typed in for this row (a calculated amount).

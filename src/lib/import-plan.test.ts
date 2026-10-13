@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs'
 import * as XLSX from 'xlsx'
 import { describe, expect, it } from 'vitest'
 import { CASHBOOK_TABLE, checkCashbookRows, existingCashbookKeys, moneyOfValues, summarizeCashbookRows, type CashbookImportRow } from './cashbook-import'
-import { checkPlans, planColumns, planSheets, withMapping, withTable } from './import-plan'
+import { cashbookAfter, checkPlans, planColumns, planSheets, withMapping, withTable } from './import-plan'
+import { ORDERS_TABLE, checkOrderRows, existingOrderKeys, orderCashbookTotals, summarizeOrderRows, type OrderImportRow } from './orders-import'
 import { runnerOf } from './paste-import'
 import { readWorkbook } from './workbook'
 import type { Category, Transaction } from '../types/api'
@@ -155,3 +156,80 @@ function categoriesFor(rows: CashbookImportRow[]): Category[] {
 function transactionsFor(rows: CashbookImportRow[]): Transaction[] {
   return rows.map((row, index) => ({ id: `t${index}`, date: `${row.date}T00:00:00.000Z`, memo: row.memo, amount: row.amount, type: row.type }) as Transaction)
 }
+
+
+function ordersRunner() {
+  return runnerOf<OrderImportRow>(
+    {
+      noun: 'orders',
+      singular: 'order',
+      title: 'Orders',
+      targets: ORDERS_TABLE.targets,
+      existing: existingOrderKeys([]),
+      check: (list) => checkOrderRows(list),
+      summarize: summarizeOrderRows,
+      commit: async (rows) => ({ batchId: 'o', created: rows.length }),
+      undo: async () => undefined,
+    },
+    orderCashbookTotals,
+  )
+}
+
+describe('the whole workbook: Fund Ledger -> Cash book and Orders -> Orders', () => {
+  const both = [CASHBOOK_TABLE, ORDERS_TABLE]
+  const plans = planSheets(sheets, both)
+
+  it('sends the Orders sheet to Orders and still leaves the Costs sheet alone', () => {
+    expect(Object.fromEntries(plans.map((p) => [p.sheet.name, p.tableKey]))).toEqual({
+      Guide: null,
+      'Fund Ledger': 'cashbook',
+      Orders: 'orders',
+      Costs: null,
+      'Owner Payments': null,
+      'Monthly View': null,
+    })
+  })
+
+  it('matches the order columns by name, leaving the own total and posting columns out', () => {
+    const columns = planColumns(plans[2])
+    const goes = Object.fromEntries(columns.map((c) => [c.header, c.targetId]))
+    expect(goes).toMatchObject({
+      'Order Date': 'orderDate',
+      'Customer Name': 'customer',
+      Phone: 'phone',
+      'Email (optional)': 'email',
+      'Delivery Address': 'address',
+      'Items Ordered': 'items',
+      'Items Subtotal (BDT)': 'subtotal',
+      'Delivery Charge (BDT)': 'delivery',
+      'Discount (BDT)': 'discount',
+      'Order Total (BDT)': null,
+      'Payment Method': 'payment',
+      Status: 'status',
+      'Fund Treatment': 'fund',
+      'Delivery Date': 'deliveredOn',
+      Notes: 'notes',
+      'Order ID': null,
+      'Fund Posting (auto)': null,
+      'Counted on (auto)': null,
+    })
+  })
+
+  it('dry run: money in 46,966, money out 46,041, balance 925', () => {
+    const checks = checkPlans(plans, both, { cashbook: cashbookRunner(), orders: ordersRunner() }, OPTIONS)
+    const orders = checks.find((c) => c.tableKey === 'orders')!
+    expect(orders.counts).toEqual({ ready: 1, duplicate: 0, problem: 0, skipped: 0 })
+    expect(orders.readyTotals).toEqual({ moneyIn: 100, moneyOut: 0 })
+    const after = cashbookAfter(checks, { moneyIn: 0, moneyOut: 0 })
+    expect(after).toEqual({ moneyIn: 46966, moneyOut: 46041, balance: 925 })
+  })
+
+  it('adds to what the Cash book already holds', () => {
+    const checks = checkPlans(plans, both, { cashbook: cashbookRunner(), orders: ordersRunner() }, OPTIONS)
+    expect(cashbookAfter(checks, { moneyIn: 1000, moneyOut: 200 })).toEqual({ moneyIn: 47966, moneyOut: 46241, balance: 1725 })
+  })
+
+  it('says nothing when no table moves money', () => {
+    expect(cashbookAfter([], { moneyIn: 5, moneyOut: 1 })).toBeNull()
+  })
+})

@@ -2,7 +2,7 @@ import { useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useBusiness, useDeleteBusiness, useUpdateBusiness } from '../lib/businesses'
 import { ApiError } from '../lib/api-client'
-import { CURRENCY_OPTIONS } from '../lib/currencies'
+import { COUNTRY_OPTIONS, CURRENCY_OPTIONS } from '../lib/currencies'
 import type { Business } from '../types/api'
 import { TextField } from '../components/TextField'
 import { Textarea } from '../components/Textarea'
@@ -67,6 +67,7 @@ function BusinessSettingsForm({ businessId, business }: { businessId: string; bu
   const [bankBranch, setBankBranch] = useState(business.bankBranch ?? '')
   const [defaultTerms, setDefaultTerms] = useState(business.defaultTerms ?? '')
   const [orderPrefix, setOrderPrefix] = useState(business.orderPrefix ?? '')
+  const [country, setCountry] = useState(business.country ?? '')
 
   const [logoError, setLogoError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -108,6 +109,7 @@ function BusinessSettingsForm({ businessId, business }: { businessId: string; bu
         bankBranch: bankBranch || null,
         defaultTerms: defaultTerms || null,
         orderPrefix: orderPrefix.trim() || null,
+        country: country || null,
       })
       setSaved(true)
     } catch (err) {
@@ -162,6 +164,17 @@ function BusinessSettingsForm({ businessId, business }: { businessId: string; bu
                 </option>
               ))}
             </Select>
+            <div className="flex flex-col gap-1">
+              <Select label="Country" value={country} onChange={(event) => setCountry(event.target.value)}>
+                <option value="">Not set (Bangladesh rules)</option>
+                {COUNTRY_OPTIONS.map((option) => (
+                  <option key={option.code} value={option.code}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+              <span className="text-xs text-ink-soft">Bangladesh adds the missing 0 to phone numbers (1712… becomes 01712…).</span>
+            </div>
             <Textarea label="Address" value={address} onChange={(event) => setAddress(event.target.value)} />
             <TextField
               label="Contact email"
