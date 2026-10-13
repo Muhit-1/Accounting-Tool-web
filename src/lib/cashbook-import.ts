@@ -1,9 +1,10 @@
 // Paste / import rules for the Cash book: one row of cells becomes one entry,
 // or a plain-words reason why not. The server checks every row again.
 import { buildNewEntry } from './cashbook-grid'
-import { parseDateInput } from './grid-parse'
+import { parseDateInput, parseMoneyInput } from './grid-parse'
 import { sumMoney } from './grid-rows'
 import { countKeys, type ImportTarget, type RowCheck } from './paste-import'
+import { SECTION_CATEGORY, SECTION_DIRECTION, type ImportTableInfo } from './sheet-import'
 import type { Category, CategoryType, Transaction } from '../types/api'
 import type { BulkTransactionRow } from './transactions'
 
@@ -14,7 +15,10 @@ export const CASHBOOK_TARGETS: ImportTarget[] = [
   { id: 'inn', label: 'Money in', synonyms: ['in', 'income', 'credit', 'received', 'deposit', 'cr'] },
   { id: 'out', label: 'Money out', synonyms: ['out', 'expense', 'debit', 'paid', 'spent', 'dr'] },
   { id: 'proof', label: 'Proof link', synonyms: ['proof', 'link', 'receipt', 'url'] },
+  // One amount column for a sheet whose blocks say "(money in)" / "(money out)" in their heading.
+  { id: 'amt', label: 'Amount', synonyms: ['amount bdt', 'amount in bdt', 'total', 'value'] },
 ]
+
 
 // The group a category made by an import goes under, so it is easy to find and tidy.
 export const IMPORTED_GROUP = 'Imported'
@@ -57,10 +61,23 @@ export function checkCashbookRows(
 
   return list.map((values) => {
     const date = parseDateInput(values.date ?? '')
-    const inText = (values.inn ?? '').trim()
-    const outText = (values.out ?? '').trim()
+    let inText = (values.inn ?? '').trim()
+    let outText = (values.out ?? '').trim()
+    // A single Amount column goes where the block's heading says.
+    const amtText = (values.amt ?? '').trim()
+    if (amtText !== '' && inText === '' && outText === '') {
+      if (values[SECTION_DIRECTION] === 'in') inText = amtText
+      else if (values[SECTION_DIRECTION] === 'out') outText = amtText
+      else {
+        return {
+          check: { status: 'error', message: 'Money in or money out? Use Money in / Money out columns, or a heading that says (money in) or (money out).' } as RowCheck<CashbookImportRow>,
+          key: null,
+        }
+      }
+    }
     const side: CategoryType | null = inText !== '' && outText === '' ? 'INCOME' : outText !== '' && inText === '' ? 'EXPENSE' : null
-    const name = (values.cat ?? '').trim()
+    // No category column? The block's heading names it.
+    const name = (values.cat ?? '').trim() || (values[SECTION_CATEGORY] ?? '').trim()
     const fail = (message: string) => ({ check: { status: 'error', message } as RowCheck<CashbookImportRow>, key: null })
 
     if (!date) return fail('Date: use a date like 12 May 2026.')
@@ -110,4 +127,31 @@ export function categoriesToCreate(rows: CashbookImportRow[]): { name: string; t
     if (row.newCategory && !seen.has(lower(row.newCategory.name))) seen.set(lower(row.newCategory.name), row.newCategory)
   }
   return [...seen.values()]
+}
+
+// How the import screens recognise a sheet that belongs in the Cash book.
+export const CASHBOOK_TABLE: ImportTableInfo = {
+  key: 'cashbook',
+  label: 'Cash book',
+  targets: CASHBOOK_TARGETS,
+  nameHint: /ledger|cash|fund|transactions?|entries|bank/i,
+  isMatch: (matched) => matched.has('date') && (matched.has('inn') || matched.has('out') || matched.has('amt')),
+}
+
+// The money in raw rows, without checking them: for the lines an import leaves
+// out on purpose (their date may be blank), so the screen can say how much.
+export function moneyOfValues(list: Record<string, string>[]): { moneyIn: number; moneyOut: number } {
+  const ins: number[] = []
+  const outs: number[] = []
+  for (const values of list) {
+    const parse = (text: string | undefined) => {
+      const parsed = parseMoneyInput(text ?? '')
+      return parsed.kind === 'ok' ? parsed.value : 0
+    }
+    const direction = values[SECTION_DIRECTION]
+    const amount = parse(values.amt)
+    ins.push(parse(values.inn), direction === 'in' ? amount : 0)
+    outs.push(parse(values.out), direction === 'out' ? amount : 0)
+  }
+  return { moneyIn: sumMoney(ins), moneyOut: sumMoney(outs) }
 }

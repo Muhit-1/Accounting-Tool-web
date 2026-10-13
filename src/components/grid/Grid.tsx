@@ -1,5 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { formatDateCell, formatMoneyCell, parseDateInput, parseMoneyInput } from '../../lib/grid-parse'
+import { downloadFile } from '../../lib/download'
+import { exportFileName, toCsv, toXlsx, type ExportCell } from '../../lib/export-table'
 import { searchRows, sortRows, sumMoney, type SortDir } from '../../lib/grid-rows'
 import { useGridPrefs } from '../../lib/use-grid-prefs'
 import { useToast } from '../../lib/toast-context'
@@ -21,6 +23,16 @@ function normalizer(type: string): ((typed: string) => string) | undefined {
   }
   if (type === 'date') return (typed) => formatDateCell(parseDateInput(typed))
   return (typed) => typed.trim()
+}
+
+// What a cell becomes in an exported file: numbers stay numbers, the rest is its text.
+function exportCell<R>(column: GridColumn<R>, row: R): ExportCell {
+  if (column.type === 'money' || column.type === 'number' || column.type === 'calc') {
+    const value = column.value(row)
+    return typeof value === 'number' ? value : null
+  }
+  if (column.type === 'tick') return column.value(row) === true ? 'Yes' : ''
+  return cellText(column, row)
 }
 
 function cellText<R>(column: GridColumn<R>, row: R): string {
@@ -267,6 +279,7 @@ export function Grid<R>(props: GridProps<R>) {
     emptyHint,
     noun,
     hiddenIds,
+    exportName,
   } = props
   const toast = useToast()
   const { prefs, rename, hide, show } = useGridPrefs(prefsKey)
@@ -385,6 +398,34 @@ export function Grid<R>(props: GridProps<R>) {
     setMenu({ anchor, items })
   }
 
+  async function exportTo(kind: 'csv' | 'xlsx') {
+    const headers = visible.map((column) => column.label)
+    const body = list.map((row) => visible.map((column) => exportCell(column, row)))
+    const name = exportName ?? 'table'
+    try {
+      if (kind === 'csv') {
+        downloadFile(toCsv(headers, body), exportFileName(name, 'csv'), 'text/csv;charset=utf-8')
+      } else {
+        // The library is only fetched when somebody asks for a workbook.
+        const XLSX = await import('xlsx')
+        downloadFile(toXlsx(XLSX, name, headers, body).slice().buffer, exportFileName(name, 'xlsx'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      }
+      toast(`${list.length} ${list.length === 1 ? noun : noun === 'entry' ? 'entries' : `${noun}s`} saved.`)
+    } catch {
+      toast('Could not save the file.')
+    }
+  }
+
+  function openExportMenu(anchor: DOMRect) {
+    setMenu({
+      anchor,
+      items: [
+        { label: 'Excel file (.xlsx)', hint: 'Values only, the columns you see.', onSelect: () => void exportTo('xlsx') },
+        { label: 'CSV file (.csv)', hint: 'Opens in any spreadsheet.', onSelect: () => void exportTo('csv') },
+      ],
+    })
+  }
+
   function togglePickAll(checked: boolean) {
     setPicked(checked ? new Set(selectable.map(rowId)) : new Set())
   }
@@ -429,7 +470,19 @@ export function Grid<R>(props: GridProps<R>) {
           </button>
           {toolbarLeft}
         </div>
-        <div className="flex flex-wrap items-center gap-2">{toolbarRight}</div>
+        <div className="flex flex-wrap items-center gap-2">
+          {toolbarRight}
+          {exportName && (
+            <button
+              type="button"
+              aria-haspopup="menu"
+              onClick={(event) => openExportMenu(event.currentTarget.getBoundingClientRect())}
+              className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft"
+            >
+              Export
+            </button>
+          )}
+        </div>
       </div>
 
       {pickedRows.length > 0 && (

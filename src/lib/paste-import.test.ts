@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countKeys, looksLikeHeader, markDuplicates, matchHeaders, parseDelimited, prepareRows, rowValues, type ImportTarget } from './paste-import'
+import { countKeys, looksLikeHeader, markDuplicates, matchHeaders, parseDelimited, prepareRows, rowValues, runnerOf, type ImportTarget } from './paste-import'
 
 const TARGETS: ImportTarget[] = [
   { id: 'date', label: 'Date', synonyms: ['day'] },
@@ -136,5 +136,31 @@ describe('markDuplicates', () => {
     const existing = countKeys(['a'])
     markDuplicates([ok('a')], existing)
     expect(existing.get('a')).toBe(1)
+  })
+})
+
+describe('runnerOf', () => {
+  it('checks rows, marks the ones already there, and hands rows back to its own commit', async () => {
+    const committed: string[][] = []
+    const runner = runnerOf<string>({
+      noun: 'things',
+      singular: 'thing',
+      title: 'Things',
+      targets: [{ id: 'name', label: 'Name' }],
+      existing: countKeys(['a']),
+      check: (list) => list.map((values) => ({ check: { status: 'ok' as const, row: values.name }, key: values.name })),
+      commit: async (rows) => {
+        committed.push(rows)
+        return { batchId: 'b1', created: rows.length }
+      },
+      undo: async () => undefined,
+    })
+    const results = runner.evaluate([{ name: 'a' }, { name: 'b' }], { createCategories: false })
+    expect(results.map((r) => r.status)).toEqual(['duplicate', 'ok'])
+    const ready = results.flatMap((r) => (r.status === 'ok' ? [r.row] : []))
+    expect(await runner.commit(ready, { createCategories: false })).toEqual({ batchId: 'b1', created: 1 })
+    expect(committed).toEqual([['b']])
+    expect(runner.totals).toBeNull()
+    expect(runner.offersNewCategories).toBe(false)
   })
 })

@@ -56,7 +56,7 @@ export function parseDelimited(input: string): string[][] {
   return rows.map((cells) => cells.map((value) => value.trim())).filter((cells) => cells.some((value) => value !== ''))
 }
 
-function normalizeHeader(text: string): string {
+export function normalizeHeader(text: string): string {
   return text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
 }
 
@@ -114,7 +114,8 @@ export function rowValues(cells: string[], mapping: (string | null)[]): Record<s
   return values
 }
 
-export type RowCheck<T> = { status: 'ok'; row: T } | { status: 'error'; message: string } | { status: 'duplicate' }
+// 'skipped' = left out on purpose (a total line, a row the sheet works out itself); not a problem.
+export type RowCheck<T> = { status: 'ok'; row: T } | { status: 'error'; message: string } | { status: 'duplicate'; row: T } | { status: 'skipped'; reason: string }
 
 // Rows that are already in the table are skipped, counted like a shelf: if the
 // table holds one copy of a row and the paste has two identical ones, the first
@@ -129,7 +130,7 @@ export function markDuplicates<T>(
     const count = left.get(key) ?? 0
     if (count > 0) {
       left.set(key, count - 1)
-      return { status: 'duplicate' }
+      return { status: 'duplicate', row: check.row }
     }
     return check
   })
@@ -170,4 +171,49 @@ export interface ImportAdapter<Row> {
   // Saves all the rows or none; `batchId` is what Undo removes.
   commit: (rows: Row[], options: ImportOptions) => Promise<CommitResult>
   undo: (batchId: string) => Promise<unknown>
+}
+
+export interface MoneyTotals {
+  moneyIn: number
+  moneyOut: number
+}
+
+// An adapter with its row type forgotten, so a screen can hold the adapters of
+// several tables at once. The rows it hands back to commit() are always the
+// ones its own evaluate() produced.
+export interface ImportRunner {
+  noun: string
+  singular: string
+  title: string
+  targets: ImportTarget[]
+  offersNewCategories: boolean
+  // Checks rows (values by target id) and marks the ones already in the table.
+  evaluate: (list: Record<string, string>[], options: ImportOptions) => RowCheck<unknown>[]
+  // The money in the raw values of rows that are left out on purpose (not checked, only counted).
+  valuesTotals: ((list: Record<string, string>[]) => MoneyTotals) | null
+  summarize: (rows: unknown[]) => string | null
+  // Money in / out of these rows, when the table has money to count.
+  totals: ((rows: unknown[]) => MoneyTotals) | null
+  commit: (rows: unknown[], options: ImportOptions) => Promise<CommitResult>
+  undo: (batchId: string) => Promise<unknown>
+}
+
+export function runnerOf<Row>(
+  adapter: ImportAdapter<Row>,
+  totals?: (rows: Row[]) => MoneyTotals,
+  valuesTotals?: (list: Record<string, string>[]) => MoneyTotals,
+): ImportRunner {
+  return {
+    noun: adapter.noun,
+    singular: adapter.singular,
+    title: adapter.title,
+    targets: adapter.targets,
+    offersNewCategories: adapter.offersNewCategories === true,
+    evaluate: (list, options) => markDuplicates(adapter.check(list, options), adapter.existing),
+    valuesTotals: valuesTotals ?? null,
+    summarize: (rows) => adapter.summarize?.(rows as Row[]) ?? null,
+    totals: totals ? (rows) => totals(rows as Row[]) : null,
+    commit: (rows, options) => adapter.commit(rows as Row[], options),
+    undo: (batchId) => adapter.undo(batchId),
+  }
 }

@@ -15,6 +15,7 @@ import { PromptDialog } from '../components/PromptDialog'
 import { Select } from '../components/Select'
 import { ScanInvoiceModal } from '../components/account/ScanInvoiceModal'
 import { TransactionForm } from '../components/account/TransactionForm'
+import { ImportWizardHost } from '../components/import/ImportWizardHost'
 import { OrdersTab } from '../components/orders/OrdersTab'
 import { CashBookTab } from '../components/workspace/CashBookTab'
 import { WorkspaceTabs, type WorkspaceTab } from '../components/workspace/WorkspaceTabs'
@@ -48,6 +49,8 @@ export function WorkspacePage() {
   const [scanFile, setScanFile] = useState<File | undefined>(undefined)
   const [showScan, setShowScan] = useState(false)
   const [renaming, setRenaming] = useState<BuiltInTable | null>(null)
+  // The table whose Import button was clicked (the import screen is open), or null.
+  const [importing, setImporting] = useState<string | null>(null)
 
   if (!businessId) return null
   const currency = business?.currency ?? 'BDT'
@@ -150,6 +153,8 @@ export function WorkspacePage() {
               setShowForm(true)
             }}
             onOpenOrder={openOrder}
+            onImport={() => setImporting('cashbook')}
+            tableName={nameOf(active)}
           />
         ) : (
           <p className="rounded-ledger border border-paper-line bg-white px-5 py-8 text-sm text-ink-soft">
@@ -177,6 +182,10 @@ export function WorkspacePage() {
           }}
         />
       </div>
+
+      {importing && account && (
+        <ImportWizardHost businessId={businessId} accountId={account.id} initialTableKey={importing} onClose={() => setImporting(null)} />
+      )}
 
       {renaming && (
         <PromptDialog

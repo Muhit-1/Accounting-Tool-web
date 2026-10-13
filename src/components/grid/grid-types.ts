@@ -123,6 +123,8 @@ export interface GridProps<R> {
   onPasteText?: (text: string) => void
   toolbarLeft?: ReactNode
   toolbarRight?: ReactNode
+  // The table's name; adds an Export button (.xlsx / .csv of the rows and columns in view).
+  exportName?: string
   // Shown when the table has no rows at all.
   emptyTitle: string
   emptyHint: string

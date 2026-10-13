@@ -76,6 +76,8 @@ export function CashBookTab({
   currency,
   onEditEntry,
   onOpenOrder,
+  onImport,
+  tableName,
 }: {
   businessId: string
   accountId: string
@@ -83,6 +85,10 @@ export function CashBookTab({
   // Phones: a tap on a card opens the entry form.
   onEditEntry: (transaction: Transaction) => void
   onOpenOrder: (orderId: string) => void
+  // Opens the import screen on this table.
+  onImport: () => void
+  // The name this viewer sees on the tab ("Cash book", or their own).
+  tableName: string
 }) {
   const { user } = useAuth()
   const toast = useToast()
@@ -449,14 +455,24 @@ export function CashBookTab({
               noun="entry"
               emptyTitle="No entries yet"
               emptyHint="Fill the empty row below and press Enter."
+              exportName={tableName}
               toolbarRight={
-                <button
-                  type="button"
-                  onClick={() => setPaste('')}
-                  className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft"
-                >
-                  Paste from Excel
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setPaste('')}
+                    className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft"
+                  >
+                    Paste from Excel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onImport}
+                    className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft"
+                  >
+                    Import
+                  </button>
+                </>
               }
               toolbarLeft={
                 <>

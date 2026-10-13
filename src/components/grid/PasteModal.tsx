@@ -47,7 +47,8 @@ export function PasteModal<Row>({
 
   const ready = analysis ? analysis.results.flatMap((result) => (result.status === 'ok' ? [result.row] : [])) : []
   const duplicates = analysis ? analysis.results.filter((result) => result.status === 'duplicate').length : 0
-  const bad = analysis ? analysis.results.length - ready.length - duplicates : 0
+  const skippedOnPurpose = analysis ? analysis.results.filter((result) => result.status === 'skipped').length : 0
+  const bad = analysis ? analysis.results.length - ready.length - duplicates - skippedOnPurpose : 0
   const summary = ready.length > 0 ? (adapter.summarize?.(ready) ?? null) : null
   // Columns shown in the preview: the first few that were matched.
   const shownColumns = analysis ? analysis.prepared.mapping.flatMap((id, index) => (id ? [index] : [])).slice(0, 4) : []
@@ -156,7 +157,7 @@ export function PasteModal<Row>({
                 {analysis.results.slice(0, PREVIEW_ROWS).map((result, rowIndex) => (
                   <tr key={rowIndex} className="border-t border-paper-edge">
                     <td className="px-3 py-1.5">
-                      {result.status === 'ok' ? <span className="text-green">✓</span> : result.status === 'duplicate' ? <span className="text-brass">＝</span> : <span className="text-rust">✕</span>}
+                      {result.status === 'ok' ? <span className="text-green">✓</span> : result.status === 'duplicate' || result.status === 'skipped' ? <span className="text-brass">＝</span> : <span className="text-rust">✕</span>}
                     </td>
                     {shownColumns.map((index) => (
                       <td key={index} className="max-w-[200px] truncate px-3 py-1.5">
@@ -164,9 +165,9 @@ export function PasteModal<Row>({
                       </td>
                     ))}
                     <td
-                      className={`px-3 py-1.5 text-[12.5px] ${result.status === 'ok' ? 'text-green' : result.status === 'duplicate' ? 'text-brass' : 'text-rust'}`}
+                      className={`px-3 py-1.5 text-[12.5px] ${result.status === 'ok' ? 'text-green' : result.status === 'duplicate' || result.status === 'skipped' ? 'text-brass' : 'text-rust'}`}
                     >
-                      {result.status === 'ok' ? 'Ready' : result.status === 'duplicate' ? 'Already there — skipped' : result.message}
+                      {result.status === 'ok' ? 'Ready' : result.status === 'duplicate' ? 'Already there — skipped' : result.status === 'skipped' ? result.reason : result.message}
                     </td>
                   </tr>
                 ))}
