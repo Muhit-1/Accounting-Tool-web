@@ -62,7 +62,12 @@ lib/            api-client.ts (typed fetch wrapper, JWT header injection),
                 typed TanStack Query hooks that wrap api-client
 types/          TypeScript types mirroring accounting-api's response shapes
 components/     Shared UI primitives (Button, TextField, Seal, ProtectedRoute)
-                and per-feature panels under dashboard/, account/
+                and per-feature panels under dashboard/, account/, orders/, costs/,
+                import/, settings/, workspace/ (tabs, Posts-to-Cash-book dialog)
+components/grid/ The schema-driven sheet used by Cash book, Orders, Costs and Invoices
+                (inline edit, add-row, footers, tick-rows bar, paste from Excel)
+lib/*-grid.ts   Pure rules of each grid (what an edited cell turns into); *-import.ts,
+                import-plan.ts, workbook.ts: paste and .xlsx/.csv import (tested, no UI)
 routes/         One file per page
 ```
 
@@ -73,13 +78,15 @@ Auth state lives in `AuthProvider` (wraps the whole app in `main.tsx`). The JWT 
 | Route | Page |
 |---|---|
 | `/` , `/businesses/:businessId` | Dashboard — combined or single-venture KPIs, recent entries, open invoices, shared access |
-| `/businesses/:businessId/accounts`, `/accounts/:accountId` | Accounts — a venture can hold multiple accounts; view/add/edit/delete entries, upload an invoice to prefill one |
-| `/businesses/:businessId/invoices`, `/invoices/new`, `/invoices/:id`, `/invoices/:id/edit` | Invoices — create, edit, revisit, and download past invoices as PDF |
+| `/businesses/:businessId/workspace` (also `/accounts/:accountId`) | Workspace — the **Cash book** as a sheet, with Orders and Costs as tabs underneath (`?tab=orders`, `?tab=costs`): edit in the cell, add-row, paste from Excel, Import / Export, Undo, locked Balance, gold locked rows posted by other tables. **Posts to Cash book: On/Off** on Orders, Costs and Invoices. Phones get cards |
+| `/businesses/:businessId/invoices`, `/invoices/new`, `/invoices/:id`, `/invoices/:id/edit` | Invoices — a sheet (number and amount locked, status inline, a draft's date and client editable); the form and detail pages create, edit, revisit and download invoices as PDF |
+| `/businesses/:businessId/partner-payments` | Partner payments — who paid which cost group, shares, still due (sidebar item shows only when there are costs and partners) |
+| `/businesses/:businessId/statement`, `/monthly` | Statement (grouped by category group) and Monthly view |
 | `/businesses/:businessId/reports`, `/reports` | Reports — pick a date range (presets or custom) for one venture (optionally one account) or combined across every venture; view on-screen or export CSV/PDF |
 | `/businesses/:businessId/sharing`, `/shared-with-me` | Sharing — grant/revoke time-limited access to a venture |
 | `/privacy`, `/terms` | Privacy Policy and Terms of Service — **public** (outside the auth guard, needed for Google's OAuth review). Text comes from the API (`GET /legal/:slug`), rendered by `routes/LegalPage.tsx`; `LegalFooter` links them (plus the external legal notice) on the login screen |
 | `/login`, `/auth/callback` | Sign in / sign up — one page with a single "Continue with Google" button that navigates to `${VITE_API_URL}/auth/google`. The API sends the browser back to `/auth/callback#token=<jwt>`; `AuthCallbackPage` reads the token from the URL fragment, erases it from the address bar, stores it and goes to the dashboard. Failures arrive as `/login?error=<code>` (`access_denied`, `drive_permission_required`, `invalid_state`, `google_failed`). `/register` redirects to `/login`. |
-| `/businesses/:businessId/settings` | Settings — venture name, currency (BDT/EUR/USD/CNY), logo, and bank/payment details used on invoices |
+| `/businesses/:businessId/settings` | Settings in three tabs — General (name, currency, country, order prefix, logo, bank details), Partners, Data (import, export, delete) |
 
 ## Status
 
