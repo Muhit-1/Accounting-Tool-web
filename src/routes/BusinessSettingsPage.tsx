@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { useBusiness, useDeleteBusiness, useUpdateBusiness } from '../lib/businesses'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { useBusiness, useUpdateBusiness } from '../lib/businesses'
 import { ApiError } from '../lib/api-client'
 import { COUNTRY_OPTIONS, CURRENCY_OPTIONS } from '../lib/currencies'
 import type { Business } from '../types/api'
@@ -9,7 +9,8 @@ import { Textarea } from '../components/Textarea'
 import { Select } from '../components/Select'
 import { Button } from '../components/Button'
 import { Panel } from '../components/Panel'
-import { ConfirmDialog } from '../components/ConfirmDialog'
+import { DataPanel } from '../components/settings/DataPanel'
+import { PartnersPanel } from '../components/settings/PartnersPanel'
 
 const MAX_LOGO_BYTES = 500 * 1024
 
@@ -22,9 +23,21 @@ function readFileAsDataUrl(file: File): Promise<string> {
   })
 }
 
+const TABS = [
+  { id: 'general', label: 'General' },
+  { id: 'partners', label: 'Partners' },
+  { id: 'data', label: 'Data' },
+] as const
+type TabId = (typeof TABS)[number]['id']
+
+// Three tabs and nothing else: General, Partners, Data. Categories live in the
+// Cash book; table names and what a table posts live on the tables.
 export function BusinessSettingsPage() {
   const { businessId } = useParams<{ businessId: string }>()
   const { data: business, isLoading } = useBusiness(businessId)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requested = searchParams.get('tab')
+  const tab: TabId = TABS.some((candidate) => candidate.id === requested) ? (requested as TabId) : 'general'
 
   if (!businessId) return null
 
@@ -34,24 +47,38 @@ export function BusinessSettingsPage() {
         ← Back to dashboard
       </Link>
 
-      <div className="mb-6">
+      <div className="mb-5">
         <p className="mb-1.5 text-xs tracking-wider text-ink-soft uppercase">{business?.name ?? '…'}</p>
-        <h1 className="font-display text-[28px] font-bold tracking-tight">Business settings</h1>
+        <h1 className="font-display text-[28px] font-bold tracking-tight">Settings</h1>
       </div>
 
-      {isLoading || !business ? (
-        <p className="text-sm text-ink-soft">Loading…</p>
-      ) : (
-        <BusinessSettingsForm businessId={businessId} business={business} />
-      )}
+      <div role="tablist" aria-label="Settings" className="mb-6 flex gap-1 border-b border-paper-line">
+        {TABS.map((candidate) => (
+          <button
+            key={candidate.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === candidate.id}
+            onClick={() => setSearchParams(candidate.id === 'general' ? {} : { tab: candidate.id }, { replace: true })}
+            className={`-mb-px border-b-2 px-4 py-2.5 text-[14px] font-semibold transition-colors ${
+              tab === candidate.id ? 'border-stamp text-stamp' : 'border-transparent text-ink-soft hover:text-ink'
+            }`}
+          >
+            {candidate.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'partners' && <PartnersPanel businessId={businessId} />}
+      {tab === 'data' && <DataPanel businessId={businessId} />}
+      {tab === 'general' &&
+        (isLoading || !business ? <p className="text-sm text-ink-soft">Loading…</p> : <BusinessSettingsForm businessId={businessId} business={business} />)}
     </>
   )
 }
 
 function BusinessSettingsForm({ businessId, business }: { businessId: string; business: Business }) {
-  const navigate = useNavigate()
   const updateBusiness = useUpdateBusiness(businessId)
-  const deleteBusiness = useDeleteBusiness()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [name, setName] = useState(business.name)
@@ -72,7 +99,6 @@ function BusinessSettingsForm({ businessId, business }: { businessId: string; bu
   const [logoError, setLogoError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
-  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   async function handleLogoChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -115,11 +141,6 @@ function BusinessSettingsForm({ businessId, business }: { businessId: string; bu
     } catch (err) {
       setSaveError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.')
     }
-  }
-
-  async function handleDelete() {
-    await deleteBusiness.mutateAsync(businessId)
-    navigate('/')
   }
 
   return (
@@ -234,31 +255,6 @@ function BusinessSettingsForm({ businessId, business }: { businessId: string; bu
           {saveError && <span className="text-sm text-rust">{saveError}</span>}
         </div>
       </form>
-
-      <Panel title="Danger zone">
-        <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
-          <div>
-            <div className="font-medium">Delete this venture</div>
-            <div className="text-[13px] text-ink-soft">
-              Removes every account, transaction, client, and invoice for this venture. This cannot be undone.
-            </div>
-          </div>
-          <Button variant="danger" onClick={() => setConfirmingDelete(true)}>
-            Delete venture
-          </Button>
-        </div>
-      </Panel>
-
-      {confirmingDelete && (
-        <ConfirmDialog
-          title="Delete this venture?"
-          body="Every account, transaction, client, and invoice for this venture will be permanently removed."
-          confirmLabel="Delete venture"
-          isPending={deleteBusiness.isPending}
-          onConfirm={handleDelete}
-          onCancel={() => setConfirmingDelete(false)}
-        />
-      )}
     </div>
   )
 }

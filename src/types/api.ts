@@ -77,6 +77,8 @@ export interface Transaction {
   proofUrl: string | null
   // Set for an entry posted by a delivered order; it can only change through the order.
   orderId: string | null
+  // Set for an entry posted by a cost paid from Business money; it can only change through the cost.
+  costItemId: string | null
   // null = a fixed amount (every entry made before amount types existed).
   amountType: AmountType | null
   // The named boxes of a calculated amount, in order; null for fixed amounts.
@@ -299,4 +301,54 @@ export interface OrderSummary {
 export interface OrderList {
   summary: OrderSummary
   orders: Order[]
+}
+
+// /businesses/:id/partners
+export interface Partner {
+  id: string
+  businessId: string
+  name: string
+  userId: string | null
+  createdAt: string
+  // How many costs name this partner in "Paid by".
+  costCount: number
+}
+
+// /businesses/:id/costs
+export type CostPaidFrom = 'NONE' | 'BUSINESS' | 'PARTNER'
+
+export interface CostItem {
+  id: string
+  number: number
+  groupName: string
+  item: string
+  monthlyRate: number
+  months: number
+  oneTime: number
+  // Always worked out by the server: monthlyRate x months + oneTime.
+  total: number
+  paidFrom: CostPaidFrom
+  partnerId: string | null
+  partnerName: string | null
+  // Worked out, never stored.
+  status: 'PAID' | 'DUE'
+  paidOn: string | null
+  startMonth: string | null
+  notes: string | null
+  // The Cash book entry this cost owns while it is paid from Business money.
+  transactionId: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CostSummary {
+  count: number
+  total: number
+  paid: number
+  due: number
+}
+
+export interface CostList {
+  summary: CostSummary
+  costs: CostItem[]
 }

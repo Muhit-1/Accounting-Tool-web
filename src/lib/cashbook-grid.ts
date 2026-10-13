@@ -28,8 +28,10 @@ export function calculationChip(tx: Pick<Transaction, 'amountType' | 'amountInpu
 }
 
 // Where an entry came from when another table posted it (gold, locked row).
-export function postedBy(tx: Pick<Transaction, 'orderId'>): { kind: 'order'; label: string } | null {
-  return tx.orderId ? { kind: 'order', label: 'Orders' } : null
+export function postedBy(tx: Pick<Transaction, 'orderId' | 'costItemId'>): { kind: 'order' | 'cost'; label: string } | null {
+  if (tx.orderId) return { kind: 'order', label: 'Orders' }
+  if (tx.costItemId) return { kind: 'cost', label: 'Costs' }
+  return null
 }
 
 export interface CategoryChoice {

@@ -16,6 +16,7 @@ import { Select } from '../components/Select'
 import { ScanInvoiceModal } from '../components/account/ScanInvoiceModal'
 import { TransactionForm } from '../components/account/TransactionForm'
 import { ImportWizardHost } from '../components/import/ImportWizardHost'
+import { CostsTab } from '../components/costs/CostsTab'
 import { OrdersTab } from '../components/orders/OrdersTab'
 import { CashBookTab } from '../components/workspace/CashBookTab'
 import { WorkspaceTabs, type WorkspaceTab } from '../components/workspace/WorkspaceTabs'
@@ -30,6 +31,7 @@ interface BuiltInTable {
 const BUILT_IN_TABLES: BuiltInTable[] = [
   { key: 'cashbook', name: 'Cash book' },
   { key: 'orders', name: 'Orders' },
+  { key: 'costs', name: 'Costs' },
 ]
 
 export function WorkspacePage() {
@@ -69,8 +71,10 @@ export function WorkspacePage() {
     setSearchParams(key === 'cashbook' ? {} : { tab: key }, { replace: true })
   }
 
-  function openOrder(orderId: string) {
-    setSearchParams({ tab: 'orders', open: orderId })
+  // A gold Cash book row leads back to the table that posted it.
+  function openPosted(transaction: Transaction) {
+    if (transaction.orderId) setSearchParams({ tab: 'orders', open: transaction.orderId })
+    else if (transaction.costItemId) setSearchParams({ tab: 'costs' })
   }
 
   function openCreate() {
@@ -152,7 +156,7 @@ export function WorkspacePage() {
               setScanFile(undefined)
               setShowForm(true)
             }}
-            onOpenOrder={openOrder}
+            onOpenPosted={openPosted}
             onImport={() => setImporting('cashbook')}
             tableName={nameOf(active)}
           />
@@ -173,6 +177,10 @@ export function WorkspacePage() {
         ) : (
           <p className="text-sm text-ink-soft">Loading…</p>
         ))}
+
+      {active.key === 'costs' && (
+        <CostsTab businessId={businessId} currency={currency} tableName={nameOf(active)} onImport={() => setImporting('costs')} />
+      )}
 
       <div className="mt-3">
         <WorkspaceTabs

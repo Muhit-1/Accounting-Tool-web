@@ -75,7 +75,7 @@ export function CashBookTab({
   accountId,
   currency,
   onEditEntry,
-  onOpenOrder,
+  onOpenPosted,
   onImport,
   tableName,
 }: {
@@ -84,7 +84,8 @@ export function CashBookTab({
   currency: string
   // Phones: a tap on a card opens the entry form.
   onEditEntry: (transaction: Transaction) => void
-  onOpenOrder: (orderId: string) => void
+  // A gold row's chip: go to the table that posted it (its order, its cost).
+  onOpenPosted: (transaction: Transaction) => void
   // Opens the import screen on this table.
   onImport: () => void
   // The name this viewer sees on the tab ("Cash book", or their own).
@@ -427,7 +428,7 @@ export function CashBookTab({
               rowId={rowId}
               rowLock={(tx) => {
                 const source = postedBy(tx)
-                return source && tx.orderId ? { label: source.label, onOpen: () => onOpenOrder(tx.orderId as string) } : null
+                return source ? { label: source.label, onOpen: () => onOpenPosted(tx) } : null
               }}
               lockChipColumn="desc"
               onCommit={handleCommit}
@@ -492,7 +493,7 @@ export function CashBookTab({
             />
           </div>
           <div className="md:hidden">
-            <EntryCards transactions={transactions} currency={currency} onEdit={onEditEntry} onOpenOrder={onOpenOrder} />
+            <EntryCards transactions={transactions} currency={currency} onEdit={onEditEntry} onOpenPosted={onOpenPosted} />
           </div>
         </>
       )}

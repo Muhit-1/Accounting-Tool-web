@@ -33,6 +33,7 @@ function tx(extra: Partial<Transaction> = {}): Transaction {
     receiptFileName: null,
     proofUrl: null,
     orderId: null,
+    costItemId: null,
     amountType: null,
     amountInputs: null,
     amount: 5000,
@@ -72,6 +73,7 @@ describe('calculated rows', () => {
 describe('postedBy', () => {
   it('names the table that posted an entry', () => {
     expect(postedBy(tx({ orderId: 'o1' }))).toEqual({ kind: 'order', label: 'Orders' })
+    expect(postedBy(tx({ costItemId: 'c1' }))).toEqual({ kind: 'cost', label: 'Costs' })
     expect(postedBy(tx())).toBeNull()
   })
 })

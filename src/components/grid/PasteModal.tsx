@@ -118,7 +118,7 @@ export function PasteModal<Row>({
             onChange={(event) => setCreateCategories(event.target.checked)}
             className="h-4 w-4 accent-stamp"
           />
-          Create categories that don’t exist yet
+          Create {adapter.newItemsNoun ?? 'categories'} that don’t exist yet
         </label>
       )}
 

@@ -163,6 +163,8 @@ export interface ImportAdapter<Row> {
   targets: ImportTarget[]
   // Shows the "Create categories that don't exist yet" tick box.
   offersNewCategories?: boolean
+  // What the tick box makes: "categories" (the default) or "partners".
+  newItemsNoun?: string
   // Checks every row (given as values by target id); `key` is what makes a row "the same" as an existing one.
   check: (list: Record<string, string>[], options: ImportOptions) => { check: RowCheck<Row>; key: string | null }[]
   existing: Map<string, number>
@@ -187,6 +189,7 @@ export interface ImportRunner {
   title: string
   targets: ImportTarget[]
   offersNewCategories: boolean
+  newItemsNoun: string
   // Checks rows (values by target id) and marks the ones already in the table.
   evaluate: (list: Record<string, string>[], options: ImportOptions) => RowCheck<unknown>[]
   // The money in the raw values of rows that are left out on purpose (not checked, only counted).
@@ -209,6 +212,7 @@ export function runnerOf<Row>(
     title: adapter.title,
     targets: adapter.targets,
     offersNewCategories: adapter.offersNewCategories === true,
+    newItemsNoun: adapter.newItemsNoun ?? 'categories',
     evaluate: (list, options) => markDuplicates(adapter.check(list, options), adapter.existing),
     valuesTotals: valuesTotals ?? null,
     summarize: (rows) => adapter.summarize?.(rows as Row[]) ?? null,

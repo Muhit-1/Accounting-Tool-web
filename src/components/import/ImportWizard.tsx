@@ -102,7 +102,8 @@ export function ImportWizard({
   )
   const after = useMemo(() => cashbookAfter(checks, cashbookNow), [checks, cashbookNow])
   const readyTotal = checks.reduce((total, check) => total + check.counts.ready, 0)
-  const offersNewCategories = checks.some((check) => runners[check.tableKey]?.offersNewCategories)
+  const newItemNouns = [...new Set(checks.flatMap((check) => (runners[check.tableKey]?.offersNewCategories ? [runners[check.tableKey].newItemsNoun] : [])))]
+  const offersNewCategories = newItemNouns.length > 0
   const oneTable = tables.length === 1
 
   async function chooseFile(event: ChangeEvent<HTMLInputElement>) {
@@ -393,7 +394,7 @@ export function ImportWizard({
           {offersNewCategories && (
             <label className="flex items-center gap-2 text-[13.5px]">
               <input type="checkbox" checked={createCategories} onChange={(event) => setCreateCategories(event.target.checked)} className="h-4 w-4 accent-stamp" />
-              Create categories that don’t exist yet
+              Create {newItemNouns.join(' and ')} that don’t exist yet
             </label>
           )}
         </>
