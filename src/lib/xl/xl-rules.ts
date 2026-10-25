@@ -27,7 +27,6 @@ function cellText(c: XCell | undefined): string {
   return String(c.v)
 }
 
-const lower = (s: string) => s.trim().toLowerCase()
 
 interface Found {
   tableName: string

@@ -245,3 +245,31 @@ export function useDeleteRule(businessId: string, tableId: string) {
 export function previewRule(businessId: string, tableId: string, config: RuleConfig) {
   return api.post<RulePreview>(`${base(businessId)}/${tableId}/rules/preview`, { config })
 }
+
+export interface ImportReport {
+  dryRun: boolean
+  importBatchId: string
+  tables: { id: string; name: string; renamedFrom?: string; rows: number; columns: number }[]
+  formulas: { checked: number; matched: number; differ: number; samples: { table: string; column: string; row: number; expected: unknown; got: unknown }[] }
+  links: { linked: number; unlinked: number; samples: { table: string; column: string; row: number; value: string }[] }
+  dropped: { count: number; samples: { table: string; column: string; row: number; message: string }[] }
+  rules: { table: string; posting: number; of: number; total: number }[]
+  posted: number
+}
+
+// A sheet turned into tables. `dryRun` builds everything on the server and rolls it back, for the review screen.
+export function importSheet(businessId: string, plan: unknown, dryRun: boolean) {
+  return api.post<ImportReport>(`/businesses/${businessId}/import`, { ...(plan as object), dryRun })
+}
+
+export function useUndoImport(businessId: string) {
+  const refresh = useRefresh(businessId)
+  return useMutation({
+    mutationFn: (batchId: string) => api.delete<{ deleted: number }>(`/businesses/${businessId}/import/${batchId}`),
+    onSuccess: refresh.data,
+  })
+}
+
+export function useRefreshAfterImport(businessId: string) {
+  return useRefresh(businessId).data
+}

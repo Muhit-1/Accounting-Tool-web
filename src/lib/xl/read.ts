@@ -1,5 +1,6 @@
 import type * as Xlsx from 'xlsx'
-import { excelSerialToIso, MAX_SHEET_ROWS, MAX_SHEETS } from '../workbook'
+import { parseDateInput } from '../grid-parse'
+import { excelSerialToIso, MAX_SHEET_ROWS, MAX_SHEETS, readDelimitedFile } from '../workbook'
 
 // Reads a workbook with its formulas, as TEXT: nothing is calculated here. A cell keeps the value the file
 // saved (the "cached" value) and, when it has one, the formula that made it.
@@ -90,4 +91,26 @@ export function readXl(XLSX: typeof Xlsx, bytes: Uint8Array): XReadResult {
     sheets.push({ name, hidden: Boolean(hiddenFlags[index]?.Hidden), rows, width })
   }
   return { ok: true, sheets, formulaCount }
+}
+
+// A CSV / TSV file is one sheet of plain values: numbers and dates are told apart by how they look.
+export function readCsv(text: string, fileName: string): XReadResult {
+  const result = readDelimitedFile(text, fileName)
+  if (!result.ok) return result
+  const sheets = result.sheets.map((grid): XSheet => {
+    let width = 0
+    const rows = grid.rows.map((row) => {
+      const cells = row.cells.map((raw): XCell | undefined => {
+        const t = raw.trim()
+        if (t === '') return undefined
+        if (/^-?\d{1,3}(,\d{3})*(\.\d+)?$|^-?\d+(\.\d+)?$/.test(t)) return { v: Number(t.replace(/,/g, '')) }
+        const iso = parseDateInput(t)
+        return iso ? { v: iso, isDate: true } : { v: t }
+      })
+      width = Math.max(width, cells.length)
+      return cells
+    })
+    return { name: grid.name, hidden: false, rows, width }
+  })
+  return { ok: true, sheets, formulaCount: 0 }
 }

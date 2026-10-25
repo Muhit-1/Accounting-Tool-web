@@ -19,6 +19,7 @@ import { Select } from '../components/Select'
 import { ScanInvoiceModal } from '../components/account/ScanInvoiceModal'
 import { TransactionForm } from '../components/account/TransactionForm'
 import { ImportWizardHost } from '../components/import/ImportWizardHost'
+import { SheetImportDialog } from '../components/import/SheetImportDialog'
 import { CostsTab } from '../components/costs/CostsTab'
 import { OrdersTab } from '../components/orders/OrdersTab'
 import { TableRulesDialog } from '../components/tables/TableRulesDialog'
@@ -66,6 +67,7 @@ export function WorkspacePage() {
   const [renaming, setRenaming] = useState<{ key: string; name: string } | null>(null)
   // The table whose Import button was clicked (the import screen is open), or null.
   const [importing, setImporting] = useState<string | null>(null)
+  const [uploadingSheet, setUploadingSheet] = useState(false)
   // The table whose "Posts to Cash book" dialog is open, or null.
   const [postingTable, setPostingTable] = useState<PostingTable | null>(null)
   const [newMenu, setNewMenu] = useState<DOMRect | null>(null)
@@ -190,7 +192,7 @@ export function WorkspacePage() {
     'separator',
     ...(templates ?? []).map((t) => ({ label: t.name, hint: t.description, onSelect: () => void addTemplate(t.key) })),
     'separator',
-    { label: 'Upload a sheet…', hint: 'Excel or CSV.', onSelect: () => setImporting('cashbook') },
+    { label: 'Upload a sheet…', hint: 'Excel or CSV. Tables, formulas and links are rebuilt.', onSelect: () => setUploadingSheet(true) },
     ...hiddenLegacy.map((t) => ({ label: `Show ${legacyNameOf(t.key)}`, hint: 'Your rows are still there.', onSelect: () => { tablePrefs.show(t.key); selectTab(t.key) } })),
   ]
 
@@ -270,6 +272,17 @@ export function WorkspacePage() {
       )}
 
       {newMenu && <FloatingMenu anchor={newMenu} items={newMenuItems} onClose={() => setNewMenu(null)} />}
+
+      {uploadingSheet && account && (
+        <SheetImportDialog
+          businessId={businessId}
+          accountId={account.id}
+          onClose={() => setUploadingSheet(false)}
+          onCreated={(firstTableId) => {
+            if (firstTableId) selectTab(firstTableId)
+          }}
+        />
+      )}
 
       {importing && account && <ImportWizardHost businessId={businessId} accountId={account.id} initialTableKey={importing} onClose={() => setImporting(null)} />}
 
