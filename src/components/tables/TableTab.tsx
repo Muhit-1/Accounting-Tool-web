@@ -26,6 +26,7 @@ import { Grid } from '../grid/Grid'
 import type { FootRow, GridColumn } from '../grid/grid-types'
 import { PromptDialog } from '../PromptDialog'
 import { PostsButton } from '../workspace/PostsButton'
+import { TableHistoryDialog } from '../trust/TableHistoryDialog'
 import { ColumnDialog } from './ColumnDialog'
 import { filterSentence } from '../../lib/table-filters'
 import { FilterDialog } from './FilterDialog'
@@ -68,6 +69,11 @@ function rowName(table: EngineTable, row: EngineRow): string {
 export function TableTab({ businessId, table, tables, onRules }: { businessId: string; table: EngineTable; tables: EngineTable[]; onRules: () => void }) {
   const { user } = useAuth()
   const toast = useToast()
+  // Someone who was only given this table to look at gets the sheet without any way to change it.
+  const canEdit = table.canEdit
+  // Changing columns, rules and function rows is for whoever may change the business itself.
+  const canDesign = table.canDesign
+  const [history, setHistory] = useState(false)
   const [viewId, setViewId] = useState<string>(table.views[0]?.id ?? '')
   const [filters, setFilters] = useState<ViewFilter[]>([])
   const view = table.views.find((v) => v.id === viewId) ?? table.views[0]
@@ -123,6 +129,7 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
     async (row: EngineRow, columnId: string, text: string): Promise<string | null> => {
       const field = table.fields.find((f) => f.id === columnId)
       if (!field) return null
+      if (!canEdit) return 'You can only look at this table.'
       const plan = planCellEdit(field, text)
       if (plan.kind === 'error') return plan.message
       try {
@@ -132,7 +139,7 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
         return messageOf(err)
       }
     },
-    [table.fields, updateAsync],
+    [table.fields, updateAsync, canEdit],
   )
 
   const changeDraft = useCallback((columnId: string, text: string) => {
@@ -182,7 +189,7 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
           label: f.name,
           type: kind,
           width: columnWidth(f),
-          locked: isDerived(f),
+          locked: isDerived(f) || !canEdit,
           value: (row) => {
             if (f.type === 'LINK') return row.cells[f.id]?.v ?? ''
             const worked = row.cells[f.id]
@@ -191,7 +198,9 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
             return typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' ? v : null
           },
           text: (row) => cellText(f, row),
-          menu: [
+          menu: !canDesign
+            ? []
+            : [
             ...(f.type === 'FORMULA' || f.type === 'CHOICE' || f.type === 'LINK' || f.type === 'LOOKUP' || f.type === 'ROLLUP' || f.type === 'AUTO'
               ? [{ label: f.type === 'FORMULA' ? 'Edit formula…' : 'Edit column…', onSelect: () => setColumnDialog({ field: f }) }]
               : []),
@@ -212,7 +221,7 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
       }),
     // removeColumn closes over mutation hooks that are stable
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [table.fields, linkOptions],
+    [table.fields, linkOptions, canEdit, canDesign],
   )
 
   const footRows = useMemo<FootRow[]>(
@@ -224,11 +233,11 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
           const spec = fr.cells[f.id]
           const r = result?.id === fr.id ? result.cells[f.id] : undefined
           const text = !spec ? '' : r?.e ? r.e : r === undefined ? '…' : typeof r.v === 'number' ? formatMoneyCell(r.v) : String(r.v ?? '')
-          cells[f.id] = { text, error: Boolean(r?.e), onClick: () => setFnDialog({ row: fr, field: f }) }
+          cells[f.id] = { text, error: Boolean(r?.e), onClick: canDesign ? () => setFnDialog({ row: fr, field: f }) : undefined }
         }
         return { id: fr.id, label: fr.label, cells }
       }),
-    [table.fields, table.fnRows, summary],
+    [table.fields, table.fnRows, summary, canDesign],
   )
 
   async function saveFnRows(next: FnRow[]) {
@@ -288,33 +297,39 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
               rows={rows}
               rowId={rowId}
               onCommit={commit}
-              addRow={{
-                values: draft.values,
-                onChange: changeDraft,
-                onSubmit: () => void submitDraft(),
-                badColumn: draft.bad,
-                focusColumn: table.fields.find((f) => !isDerived(f))?.id ?? '',
-                noun: 'row',
-                isSubmitting: adding,
-              }}
-              onDeleteRows={schedule}
+              addRow={
+                canEdit
+                  ? {
+                      values: draft.values,
+                      onChange: changeDraft,
+                      onSubmit: () => void submitDraft(),
+                      badColumn: draft.bad,
+                      focusColumn: table.fields.find((f) => !isDerived(f))?.id ?? '',
+                      noun: 'row',
+                      isSubmitting: adding,
+                    }
+                  : undefined
+              }
+              onDeleteRows={canEdit ? schedule : undefined}
               hiddenIds={hiddenIds}
               exportName={table.name}
               noun="row"
               emptyTitle="Nothing here yet"
-              emptyHint="Type in the row below and press Enter. You can add columns, formulas and links with the ＋ at the end of the header."
+              emptyHint={canDesign ? 'Type in the row below and press Enter. You can add columns, formulas and links with the ＋ at the end of the header.' : canEdit ? 'Type in the row below and press Enter.' : 'This table has no rows yet.'}
               headerEnd={
-                <button
-                  type="button"
-                  aria-label="Add a column"
-                  title="Add a column"
-                  onClick={() => setColumnDialog({})}
-                  className="h-7 w-7 rounded-ledger border border-paper-line bg-white font-bold text-stamp hover:bg-stamp-soft"
-                >
-                  ＋
-                </button>
+                canDesign ? (
+                  <button
+                    type="button"
+                    aria-label="Add a column"
+                    title="Add a column"
+                    onClick={() => setColumnDialog({})}
+                    className="h-7 w-7 rounded-ledger border border-paper-line bg-white font-bold text-stamp hover:bg-stamp-soft"
+                  >
+                    ＋
+                  </button>
+                ) : undefined
               }
-              onRenameColumn={(column) => setRenaming(table.fields.find((f) => f.id === column.id) ?? null)}
+              onRenameColumn={canDesign ? (column) => setRenaming(table.fields.find((f) => f.id === column.id) ?? null) : undefined}
               footRows={footRows}
               footEnd={
                 <>
@@ -322,19 +337,28 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
                     {data?.total ?? rows.length} {(data?.total ?? rows.length) === 1 ? 'row' : 'rows'}
                     {data && data.total > data.rows.length ? ` (showing ${data.rows.length})` : ''}
                   </span>
-                  <span className="flex items-center gap-3">
-                    {table.fnRows.map((fr) => (
-                      <button key={fr.id} type="button" className="underline decoration-dotted" onClick={() => setFnRenaming(fr)} title="Rename this function row">
-                        {fr.label} ✎
+                  {canDesign && (
+                    <span className="flex items-center gap-3">
+                      {table.fnRows.map((fr) => (
+                        <button key={fr.id} type="button" className="underline decoration-dotted" onClick={() => setFnRenaming(fr)} title="Rename this function row">
+                          {fr.label} ✎
+                        </button>
+                      ))}
+                      <button type="button" className="font-semibold text-stamp hover:underline" onClick={addFnRow}>
+                        ＋ Function row
                       </button>
-                    ))}
-                    <button type="button" className="font-semibold text-stamp hover:underline" onClick={addFnRow}>
-                      ＋ Function row
-                    </button>
-                  </span>
+                    </span>
+                  )}
                 </>
               }
-              toolbarRight={<PostsButton on={table.rules.some((r) => r.enabled)} onClick={onRules} />}
+              toolbarRight={
+                <>
+                  <button type="button" onClick={() => setHistory(true)} className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft">
+                    History
+                  </button>
+                  {canDesign && <PostsButton on={table.rules.some((r) => r.enabled)} onClick={onRules} />}
+                </>
+              }
               toolbarLeft={
                 <>
                   <button
@@ -440,11 +464,11 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
           validate={(value) => (value === '' ? 'Give the view a name.' : null)}
           onSubmit={(value) => {
             void saveView
-              .mutateAsync({ name: value, shared: true, config: { filters: [...viewFilters, ...filters], sort: null, hidden: [], order: [], widths: {} } })
+              .mutateAsync({ name: value, shared: canDesign, config: { filters: [...viewFilters, ...filters], sort: null, hidden: [], order: [], widths: {} } })
               .then((v) => {
                 setViewId(v.id)
                 setFilters([])
-                toast('View saved for everyone who can see this table.')
+                toast(canDesign ? 'View saved for everyone who can see this table.' : 'View saved for you.')
               })
               .catch((err) => toast(messageOf(err)))
           }}
@@ -452,6 +476,7 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
         />
       )}
       {menu && <FloatingMenu anchor={menu.anchor} items={menu.items} onClose={() => setMenu(null)} />}
+      {history && <TableHistoryDialog businessId={businessId} tableId={table.id} tableName={table.name} onClose={() => setHistory(false)} />}
     </div>
   )
 }

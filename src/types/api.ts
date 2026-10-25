@@ -31,6 +31,8 @@ export interface Business {
   orderPrefix: string | null
   // Two-letter country code; null = made before it existed, treated as Bangladesh.
   country: string | null
+  // Books closed before this day (YYYY-MM-DD…); nothing dated earlier can change. Null = open.
+  lockedBefore: string | null
   driveFolderId: string | null
   createdAt: string
   updatedAt: string
@@ -145,6 +147,7 @@ export interface AccessGrant {
   businessId: string
   granteeId: string
   scope: AccessScope
+  tableId: string | null
   tableName: string | null
   permission: AccessPermission
   expiresAt: string

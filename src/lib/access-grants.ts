@@ -10,16 +10,12 @@ export function useAccessGrants(businessId: string | undefined) {
   })
 }
 
-// Only BUSINESS scope is exposed here — the API also accepts TABLE scope,
-// but nothing enforces it per-resource yet (see BusinessService.assertAccess
-// on the backend), so offering it in this form would grant the appearance
-// of a restriction that doesn't actually apply.
-export interface CreateAccessGrantInput {
+// BUSINESS = everything; TABLE = one table (its rows: look at them, or add / change / delete them).
+export type CreateAccessGrantInput = {
   granteeEmail: string
-  scope: 'BUSINESS'
   permission: AccessPermission
   expiresAt: string
-}
+} & ({ scope: 'BUSINESS' } | { scope: 'TABLE'; tableId: string })
 
 export function useCreateAccessGrant(businessId: string) {
   const queryClient = useQueryClient()
@@ -43,6 +39,9 @@ export interface SharedWithMeEntry {
   business: { id: string; name: string; currency: string }
   permission: AccessPermission
   expiresAt: string
+  // null = the whole business; otherwise the one table that was shared
+  tableId: string | null
+  tableName: string | null
 }
 
 export function useSharedWithMe() {

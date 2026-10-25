@@ -4,6 +4,7 @@ import { useBusinesses } from '../lib/businesses'
 import { useAuth } from '../lib/auth-context'
 import { useCosts } from '../lib/costs'
 import { usePartners } from '../lib/partners'
+import { useTables } from '../lib/tables'
 import { Seal } from './Seal'
 import { NewBusinessModal } from './NewBusinessModal'
 import {
@@ -198,6 +199,9 @@ export function AppShell() {
   const { data: costData } = useCosts(businessId)
   const { data: partnerData } = usePartners(businessId)
   const showPartnerPayments = (costData?.summary.count ?? 0) > 0 && (partnerData?.length ?? 0) > 0
+  // Someone who was given only some tables (no Cash book among them) gets a menu of just those.
+  const { data: tableList } = useTables(businessId)
+  const tableOnly = tableList !== undefined && !tableList.some((t) => t.kind === 'LEDGER')
 
   return (
     <div className="md:grid md:h-screen md:grid-cols-[248px_1fr] md:overflow-hidden">
@@ -212,7 +216,14 @@ export function AppShell() {
 
         <BusinessSwitcher businessId={businessId} />
 
-        {businessId && (
+        {businessId && tableOnly && (
+          <nav className="flex flex-col gap-1" aria-label="This business">
+            <NavHeading>Shared with you</NavHeading>
+            <NavLink to={`/businesses/${businessId}/workspace`} label="Shared tables" icon={IconTable} active={location.pathname.startsWith(`/businesses/${businessId}/workspace`)} />
+          </nav>
+        )}
+
+        {businessId && !tableOnly && (
           <nav className="flex flex-col gap-1" aria-label="This business">
             <NavHeading>Overview</NavHeading>
             <NavLink

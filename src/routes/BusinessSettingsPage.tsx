@@ -11,6 +11,9 @@ import { Button } from '../components/Button'
 import { Panel } from '../components/Panel'
 import { DataPanel } from '../components/settings/DataPanel'
 import { PartnersPanel } from '../components/settings/PartnersPanel'
+import { ActivityList } from '../components/trust/ActivityList'
+import { PeriodLockPanel } from '../components/trust/PeriodLockPanel'
+import { TrashPanel } from '../components/trust/TrashPanel'
 
 const MAX_LOGO_BYTES = 500 * 1024
 
@@ -27,10 +30,12 @@ const TABS = [
   { id: 'general', label: 'General' },
   { id: 'partners', label: 'Partners' },
   { id: 'data', label: 'Data' },
+  { id: 'activity', label: 'Activity' },
+  { id: 'trash', label: 'Trash' },
 ] as const
 type TabId = (typeof TABS)[number]['id']
 
-// Three tabs and nothing else: General, Partners, Data. Categories live in the
+// General, Partners, Data (with the lock date), Activity and Trash. Categories live in the
 // Cash book; table names and what a table posts live on the tables.
 export function BusinessSettingsPage() {
   const { businessId } = useParams<{ businessId: string }>()
@@ -70,7 +75,18 @@ export function BusinessSettingsPage() {
       </div>
 
       {tab === 'partners' && <PartnersPanel businessId={businessId} />}
-      {tab === 'data' && <DataPanel businessId={businessId} />}
+      {tab === 'data' && (
+        <div className="flex flex-col gap-6">
+          <PeriodLockPanel businessId={businessId} />
+          <DataPanel businessId={businessId} />
+        </div>
+      )}
+      {tab === 'activity' && (
+        <Panel title="Activity">
+          <ActivityList businessId={businessId} />
+        </Panel>
+      )}
+      {tab === 'trash' && <TrashPanel businessId={businessId} />}
       {tab === 'general' &&
         (isLoading || !business ? <p className="text-sm text-ink-soft">Loading…</p> : <BusinessSettingsForm businessId={businessId} business={business} />)}
     </>

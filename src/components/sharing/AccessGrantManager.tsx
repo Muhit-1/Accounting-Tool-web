@@ -5,9 +5,11 @@ import {
   useRevokeAccessGrant,
 } from '../../lib/access-grants'
 import { ApiError } from '../../lib/api-client'
+import { useTables } from '../../lib/tables'
 import type { AccessGrant, AccessGrantStatus, AccessPermission } from '../../types/api'
 import { daysUntil, formatShortDate } from '../../lib/format'
 import { TextField } from '../TextField'
+import { Select } from '../Select'
 import { Button } from '../Button'
 import { Panel } from '../Panel'
 import { ConfirmDialog } from '../ConfirmDialog'
@@ -32,6 +34,10 @@ export function AccessGrantManager({ businessId }: { businessId: string }) {
   const [showForm, setShowForm] = useState(false)
   const [email, setEmail] = useState('')
   const [permission, setPermission] = useState<AccessPermission>('VIEW')
+  const [scope, setScope] = useState<'BUSINESS' | 'TABLE'>('BUSINESS')
+  const [tableId, setTableId] = useState('')
+  const { data: allTables } = useTables(businessId)
+  const ownTables = (allTables ?? []).filter((t) => t.kind === 'TABLE')
   const [expiresAt, setExpiresAt] = useState(tomorrow())
   const [error, setError] = useState<string | null>(null)
   const [pendingRevokeId, setPendingRevokeId] = useState<string | null>(null)
@@ -39,14 +45,20 @@ export function AccessGrantManager({ businessId }: { businessId: string }) {
   async function handleGrant(event: FormEvent) {
     event.preventDefault()
     setError(null)
+    if (scope === 'TABLE' && !tableId) {
+      setError('Choose the table to share.')
+      return
+    }
     try {
       await createGrant.mutateAsync({
         granteeEmail: email,
-        scope: 'BUSINESS',
+        ...(scope === 'TABLE' ? { scope: 'TABLE' as const, tableId } : { scope: 'BUSINESS' as const }),
         permission,
         expiresAt: new Date(expiresAt).toISOString(),
       })
       setEmail('')
+      setScope('BUSINESS')
+      setTableId('')
       setPermission('VIEW')
       setExpiresAt(tomorrow())
       setShowForm(false)
@@ -84,6 +96,34 @@ export function AccessGrantManager({ businessId }: { businessId: string }) {
             onChange={(event) => setEmail(event.target.value)}
           />
           <p className="text-xs text-ink-soft">Must already be a registered user of this app.</p>
+
+          <div className="flex gap-2" role="group" aria-label="What to share">
+            {(['BUSINESS', 'TABLE'] as const).map((choice) => (
+              <button
+                key={choice}
+                type="button"
+                onClick={() => setScope(choice)}
+                className={`flex-1 rounded-ledger border px-3 py-2 text-sm font-medium transition-colors ${
+                  scope === choice ? 'border-stamp bg-stamp-soft text-stamp' : 'border-paper-line text-ink-soft'
+                }`}
+              >
+                {choice === 'BUSINESS' ? 'Whole business' : 'One table'}
+              </button>
+            ))}
+          </div>
+          {scope === 'TABLE' && (
+            <>
+              <Select label="Table" value={tableId} onChange={(event) => setTableId(event.target.value)} required>
+                <option value="">Choose a table…</option>
+                {ownTables.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </Select>
+              <p className="text-xs text-ink-soft">They see only this table and its rows (not the Cash book, other tables or your bank details). Columns that look up or add up other tables show their results.</p>
+            </>
+          )}
 
           <div className="flex gap-2">
             <button
@@ -130,7 +170,10 @@ export function AccessGrantManager({ businessId }: { businessId: string }) {
         grantList.map((grant) => (
           <div key={grant.id} className="border-b border-paper-edge px-5 py-3.5 last:border-b-0">
             <div className="mb-1 flex items-center justify-between text-[14.5px] font-medium">
-              <span>{grant.grantee.name}</span>
+              <span>
+                {grant.grantee.name}
+                {grant.tableName && <span className="ml-2 rounded-full bg-paper-edge px-2 py-0.5 text-[11.5px] font-medium text-ink-soft">Table: {grant.tableName}</span>}
+              </span>
               <span className={`rounded-full px-2.5 py-0.5 text-[11.5px] font-medium ${STATUS_STYLES[grant.status]}`}>
                 {grant.status}
               </span>

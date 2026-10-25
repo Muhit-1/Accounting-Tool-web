@@ -11,7 +11,7 @@ export function SharedWithMePage() {
       <div className="mb-6">
         <h1 className="font-display text-[28px] font-bold tracking-tight">Shared with you</h1>
         <p className="mt-1 max-w-lg text-sm text-ink-soft">
-          Businesses another owner has given you time-limited access to.
+          Businesses, or single tables of them, another owner has given you time-limited access to.
         </p>
       </div>
 
@@ -25,11 +25,14 @@ export function SharedWithMePage() {
             shared.map((entry) => (
               <Link
                 key={entry.id}
-                to={`/businesses/${entry.business.id}`}
+                to={entry.tableId ? `/businesses/${entry.business.id}/workspace?tab=${entry.tableId}` : `/businesses/${entry.business.id}`}
                 className="flex items-center justify-between border-b border-paper-edge px-5 py-3.5 transition-colors last:border-b-0 hover:bg-black/[0.02]"
               >
                 <div>
-                  <div className="text-[14.5px] font-medium">{entry.business.name}</div>
+                  <div className="text-[14.5px] font-medium">
+                    {entry.business.name}
+                    {entry.tableName && <span className="text-ink-soft"> · table “{entry.tableName}”</span>}
+                  </div>
                   <div className="text-[12.5px] text-ink-soft">
                     {entry.permission === 'EDIT' ? 'Can edit' : 'View only'} · expires in{' '}
                     {Math.max(daysUntil(entry.expiresAt), 0)} days

@@ -28,7 +28,8 @@ export function TableTabs({
   activeKey: string
   onSelect: (key: string) => void
   menuFor: (key: string) => MenuEntry[]
-  onNew: (anchor: DOMRect) => void
+  // Left out for someone who may not make tables: then there is no ＋.
+  onNew?: (anchor: DOMRect) => void
   // Called with the new order of the movable tabs' keys.
   onMove: (keys: string[]) => void
 }) {
@@ -90,7 +91,7 @@ export function TableTabs({
               )}
               {tab.ledger && <span title="The balance is locked">🔒</span>}
             </button>
-            {active && (
+            {active && menuFor(tab.key).length > 0 && (
               <button
                 type="button"
                 aria-label={`${tab.name} options`}
@@ -107,16 +108,18 @@ export function TableTabs({
           </div>
         )
       })}
-      <button
-        type="button"
-        aria-label="New table"
-        title="New table"
-        aria-haspopup="menu"
-        onClick={(event) => onNew(event.currentTarget.getBoundingClientRect())}
-        className="rounded-t-[8px] px-3 py-2 text-[16px] font-semibold text-ink-soft hover:bg-white"
-      >
-        ＋
-      </button>
+      {onNew && (
+        <button
+          type="button"
+          aria-label="New table"
+          title="New table"
+          aria-haspopup="menu"
+          onClick={(event) => onNew(event.currentTarget.getBoundingClientRect())}
+          className="rounded-t-[8px] px-3 py-2 text-[16px] font-semibold text-ink-soft hover:bg-white"
+        >
+          ＋
+        </button>
+      )}
       {menu && <FloatingMenu anchor={menu.anchor} items={menu.items} onClose={() => setMenu(null)} />}
     </div>
   )

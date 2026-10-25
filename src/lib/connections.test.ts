@@ -3,7 +3,7 @@ import { buildMap, edgeEnds, BOX_H, BOX_W } from './connections'
 import type { EngineTable, TableField } from '../types/engine'
 
 const f = (id: string, name: string, type: TableField['type'], config: Record<string, unknown> = {}): TableField => ({ id, name, type, config, position: 0, locked: false })
-const table = (id: string, name: string, kind: EngineTable['kind'], fields: TableField[], rules: EngineTable['rules'] = []): EngineTable => ({ id, name, kind, color: null, position: 0, templateKey: null, rowCount: 3, fnRows: [], fields, views: [], rules })
+const table = (id: string, name: string, kind: EngineTable['kind'], fields: TableField[], rules: EngineTable['rules'] = []): EngineTable => ({ id, name, kind, color: null, position: 0, templateKey: null, rowCount: 3, canEdit: true, canDesign: true, fnRows: [], fields, views: [], rules })
 
 const ledger = table('cb', 'Cash book', 'LEDGER', [])
 const partners = table('p', 'Partners', 'TABLE', [f('pn', 'Name', 'TEXT')])

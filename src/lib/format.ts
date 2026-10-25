@@ -19,6 +19,11 @@ export function formatShortDate(date: string | Date): string {
   return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short' }).format(new Date(date))
 }
 
+// A plain calendar day (a lock date): day, month and year, read as UTC so it never slips a day.
+export function formatDay(date: string | Date): string {
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(date))
+}
+
 export function daysUntil(date: string | Date): number {
   const diffMs = new Date(date).getTime() - Date.now()
   return Math.ceil(diffMs / (1000 * 60 * 60 * 24))

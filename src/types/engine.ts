@@ -53,6 +53,10 @@ export interface EngineTable {
   position: number
   templateKey: string | null
   rowCount: number
+  // false for someone who was given this table to look at only
+  canEdit: boolean
+  // false for someone who may change rows but not the columns, rules or function rows
+  canDesign: boolean
   fnRows: FnRow[]
   fields: TableField[]
   views: TableViewInfo[]

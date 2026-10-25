@@ -86,9 +86,11 @@ export function WorkspacePage() {
   const keyOf = (t: { id: string; kind: string }) => (t.kind === 'LEDGER' ? 'cashbook' : t.id)
   const hiddenLegacy = LEGACY.filter((t) => tablePrefs.prefs.hidden.includes(t.key))
   const legacyNameOf = (key: string) => tablePrefs.prefs.names[key] ?? LEGACY.find((t) => t.key === key)?.name ?? key
+  // Someone who was given only some tables (never the Cash book) sees just those: no ＋, no menus, no older tables.
+  const restricted = engineTables !== undefined && !engineTables.some((t) => t.kind === 'LEDGER')
   const tabs: TabInfo[] = [
-    ...engine.map((t) => ({ key: keyOf(t), name: t.name, color: t.color, ledger: t.kind === 'LEDGER', movable: true, posts: t.rules.some((r) => r.enabled) })),
-    ...LEGACY.filter((t) => !tablePrefs.prefs.hidden.includes(t.key)).map((t) => ({
+    ...engine.map((t) => ({ key: keyOf(t), name: t.name, color: t.color, ledger: t.kind === 'LEDGER', movable: !restricted, posts: t.rules.some((r) => r.enabled) })),
+    ...(restricted ? [] : LEGACY).filter((t) => !tablePrefs.prefs.hidden.includes(t.key)).map((t) => ({
       key: t.key,
       name: legacyNameOf(t.key),
       posts: isPostingTable(t.key) && tablePosts(postingConfig, t.key),
@@ -148,6 +150,7 @@ export function WorkspacePage() {
   }
 
   function menuFor(key: string): MenuEntry[] {
+    if (restricted) return []
     if (isLegacy(key)) {
       const items: MenuEntry[] = [{ label: 'Rename table', onSelect: () => setRenaming({ key, name: legacyNameOf(key) }) }]
       if (isPostingTable(key)) items.push({ label: 'Posts to Cash book…', hint: 'Choose what this table sends.', onSelect: () => setPostingTable(key) })
@@ -225,7 +228,7 @@ export function WorkspacePage() {
       </div>
 
       <div className="mb-4">
-        <TableTabs tabs={tabs} activeKey={active?.key ?? ''} onSelect={selectTab} menuFor={menuFor} onNew={setNewMenu} onMove={moveTabs} />
+        <TableTabs tabs={tabs} activeKey={active?.key ?? ''} onSelect={selectTab} menuFor={menuFor} onNew={restricted ? undefined : setNewMenu} onMove={moveTabs} />
       </div>
 
       {active?.key === 'cashbook' &&
