@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useBusiness, useUpdateBusiness } from '../lib/businesses'
+import { useLegacyStatus } from '../lib/tables'
 import { ApiError } from '../lib/api-client'
 import { COUNTRY_OPTIONS, CURRENCY_OPTIONS } from '../lib/currencies'
 import type { Business } from '../types/api'
@@ -41,8 +42,11 @@ export function BusinessSettingsPage() {
   const { businessId } = useParams<{ businessId: string }>()
   const { data: business, isLoading } = useBusiness(businessId)
   const [searchParams, setSearchParams] = useSearchParams()
+  const { data: legacy } = useLegacyStatus(businessId)
+  // The older Partners list shows only while there are partners in it; new businesses keep partners in an ordinary table.
+  const tabs = TABS.filter((candidate) => candidate.id !== 'partners' || (legacy?.partners ?? 0) > 0)
   const requested = searchParams.get('tab')
-  const tab: TabId = TABS.some((candidate) => candidate.id === requested) ? (requested as TabId) : 'general'
+  const tab: TabId = tabs.some((candidate) => candidate.id === requested) ? (requested as TabId) : 'general'
 
   if (!businessId) return null
 
@@ -58,7 +62,7 @@ export function BusinessSettingsPage() {
       </div>
 
       <div role="tablist" aria-label="Settings" className="mb-6 flex gap-1 border-b border-paper-line">
-        {TABS.map((candidate) => (
+        {tabs.map((candidate) => (
           <button
             key={candidate.id}
             type="button"

@@ -273,3 +273,31 @@ export function useUndoImport(businessId: string) {
 export function useRefreshAfterImport(businessId: string) {
   return useRefresh(businessId).data
 }
+
+// The older Orders, Costs and Partners: how much of each is left to move into ordinary tables.
+export interface LegacyStatus {
+  orders: number
+  costs: number
+  partners: number
+}
+
+export function useLegacyStatus(businessId: string | undefined) {
+  return useQuery({
+    queryKey: ['legacy-status', businessId],
+    queryFn: () => api.get<LegacyStatus>(`/businesses/${businessId}/convert-legacy`),
+    enabled: Boolean(businessId),
+  })
+}
+
+// Moves them: new tables with the same rows, and the same entries in the Cash book.
+export function useConvertLegacy(businessId: string) {
+  const refresh = useRefresh(businessId)
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (kind: 'orders' | 'costs') => api.post<ImportReport>(`/businesses/${businessId}/convert-legacy`, { kind }),
+    onSuccess: () => {
+      refresh.data()
+      for (const key of ['legacy-status', 'orders', 'costs', 'partners', 'partner-payments', 'categories', 'audit']) queryClient.invalidateQueries({ queryKey: [key, businessId] })
+    },
+  })
+}

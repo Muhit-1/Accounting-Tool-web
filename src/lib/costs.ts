@@ -30,6 +30,7 @@ function useAfterCostChange(businessId: string) {
   const queryClient = useQueryClient()
   return () => {
     queryClient.invalidateQueries({ queryKey: ['costs', businessId] })
+    queryClient.invalidateQueries({ queryKey: ['legacy-status', businessId] })
     queryClient.invalidateQueries({ queryKey: ['categories', businessId] })
     queryClient.invalidateQueries({ queryKey: ['partners', businessId] })
     queryClient.invalidateQueries({ queryKey: ['partner-payments', businessId] })

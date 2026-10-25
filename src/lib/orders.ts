@@ -37,6 +37,7 @@ function useAfterOrderChange(businessId: string) {
   const queryClient = useQueryClient()
   return () => {
     queryClient.invalidateQueries({ queryKey: ['orders', businessId] })
+    queryClient.invalidateQueries({ queryKey: ['legacy-status', businessId] })
     queryClient.invalidateQueries({ queryKey: ['categories', businessId] })
     invalidateTransactionQueries(queryClient, businessId)
   }

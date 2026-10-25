@@ -8,11 +8,12 @@ import { useCategories } from '../lib/categories'
 import { tablePrefsKey } from '../lib/grid-prefs'
 import { DEFAULT_POSTING_CONFIG, tablePosts, usePostingConfig, type PostingTable } from '../lib/posting-config'
 import type { InvoiceScanResult } from '../lib/invoice-scan'
-import { useApplyTemplate, useCreateTable, useDeleteTable, useReorderTables, useRestoreTable, useTables, useTemplates, useUpdateTable } from '../lib/tables'
+import { useApplyTemplate, useConvertLegacy, useCreateTable, useDeleteTable, useLegacyStatus, useReorderTables, useRestoreTable, useTables, useTemplates, useUpdateTable } from '../lib/tables'
 import { useToast } from '../lib/toast-context'
 import { useTablePrefs } from '../lib/use-grid-prefs'
 import type { Transaction } from '../types/api'
 import { Button } from '../components/Button'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { FloatingMenu, type MenuEntry } from '../components/FloatingMenu'
 import { PromptDialog } from '../components/PromptDialog'
 import { Select } from '../components/Select'
@@ -58,6 +59,8 @@ export function WorkspacePage() {
   const restoreTable = useRestoreTable(businessId ?? '')
   const reorderTables = useReorderTables(businessId ?? '')
   const applyTemplate = useApplyTemplate(businessId ?? '')
+  const { data: legacy } = useLegacyStatus(businessId)
+  const convertLegacy = useConvertLegacy(businessId ?? '')
 
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Transaction | undefined>(undefined)
@@ -68,6 +71,8 @@ export function WorkspacePage() {
   // The table whose Import button was clicked (the import screen is open), or null.
   const [importing, setImporting] = useState<string | null>(null)
   const [uploadingSheet, setUploadingSheet] = useState(false)
+  // The older table (Orders or Costs) that is being moved into an ordinary table, or null.
+  const [moving, setMoving] = useState<'orders' | 'costs' | null>(null)
   // The table whose "Posts to Cash book" dialog is open, or null.
   const [postingTable, setPostingTable] = useState<PostingTable | null>(null)
   const [newMenu, setNewMenu] = useState<DOMRect | null>(null)
@@ -84,13 +89,15 @@ export function WorkspacePage() {
   // Every table, in one list: the engine's tables in their order, then the two older ones.
   const engine = engineTables ?? []
   const keyOf = (t: { id: string; kind: string }) => (t.kind === 'LEDGER' ? 'cashbook' : t.id)
-  const hiddenLegacy = LEGACY.filter((t) => tablePrefs.prefs.hidden.includes(t.key))
+  // The older Orders and Costs show only while there is something in them; a new business starts with just its own tables.
+  const legacyInUse = LEGACY.filter((t) => (t.key === 'orders' ? (legacy?.orders ?? 0) > 0 : (legacy?.costs ?? 0) + (legacy?.partners ?? 0) > 0))
+  const hiddenLegacy = legacyInUse.filter((t) => tablePrefs.prefs.hidden.includes(t.key))
   const legacyNameOf = (key: string) => tablePrefs.prefs.names[key] ?? LEGACY.find((t) => t.key === key)?.name ?? key
   // Someone who was given only some tables (never the Cash book) sees just those: no ＋, no menus, no older tables.
   const restricted = engineTables !== undefined && !engineTables.some((t) => t.kind === 'LEDGER')
   const tabs: TabInfo[] = [
     ...engine.map((t) => ({ key: keyOf(t), name: t.name, color: t.color, ledger: t.kind === 'LEDGER', movable: !restricted, posts: t.rules.some((r) => r.enabled) })),
-    ...(restricted ? [] : LEGACY).filter((t) => !tablePrefs.prefs.hidden.includes(t.key)).map((t) => ({
+    ...(restricted ? [] : legacyInUse).filter((t) => !tablePrefs.prefs.hidden.includes(t.key)).map((t) => ({
       key: t.key,
       name: legacyNameOf(t.key),
       posts: isPostingTable(t.key) && tablePosts(postingConfig, t.key),
@@ -152,7 +159,10 @@ export function WorkspacePage() {
   function menuFor(key: string): MenuEntry[] {
     if (restricted) return []
     if (isLegacy(key)) {
-      const items: MenuEntry[] = [{ label: 'Rename table', onSelect: () => setRenaming({ key, name: legacyNameOf(key) }) }]
+      const items: MenuEntry[] = [
+        { label: 'Move into a new table…', hint: 'Same rows and Cash book entries, with columns and formulas you can change.', onSelect: () => setMoving(key === 'orders' ? 'orders' : 'costs') },
+        { label: 'Rename table', onSelect: () => setRenaming({ key, name: legacyNameOf(key) }) },
+      ]
       if (isPostingTable(key)) items.push({ label: 'Posts to Cash book…', hint: 'Choose what this table sends.', onSelect: () => setPostingTable(key) })
       items.push({
         label: 'Hide table',
@@ -275,6 +285,34 @@ export function WorkspacePage() {
       )}
 
       {newMenu && <FloatingMenu anchor={newMenu} items={newMenuItems} onClose={() => setNewMenu(null)} />}
+
+      {moving && (
+        <ConfirmDialog
+          title={moving === 'orders' ? 'Move Orders into a new table?' : 'Move Costs and Partners into new tables?'}
+          body={
+            moving === 'orders'
+              ? 'Your orders become rows of an ordinary table with the same numbers, dates and totals, and the same entries in the Cash book. The Cash book total does not change.'
+              : 'Your costs and partners become ordinary tables with the same rows, who paid, and the same entries in the Cash book. The Cash book total does not change.'
+          }
+          confirmLabel="Move"
+          pendingLabel="Moving…"
+          isPending={convertLegacy.isPending}
+          error={convertLegacy.error ? messageOf(convertLegacy.error) : null}
+          onConfirm={() =>
+            convertLegacy.mutate(moving, {
+              onSuccess: (report) => {
+                setMoving(null)
+                selectTab(report.tables[report.tables.length - 1].id)
+                toast('Moved. Your older table is now an ordinary table.')
+              },
+            })
+          }
+          onCancel={() => {
+            convertLegacy.reset()
+            setMoving(null)
+          }}
+        />
+      )}
 
       {uploadingSheet && account && (
         <SheetImportDialog
