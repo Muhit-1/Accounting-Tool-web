@@ -1,7 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useBusiness, useUpdateBusiness } from '../lib/businesses'
-import { useLegacyStatus } from '../lib/tables'
 import { ApiError } from '../lib/api-client'
 import { COUNTRY_OPTIONS, CURRENCY_OPTIONS } from '../lib/currencies'
 import type { Business } from '../types/api'
@@ -11,7 +10,6 @@ import { Select } from '../components/Select'
 import { Button } from '../components/Button'
 import { Panel } from '../components/Panel'
 import { DataPanel } from '../components/settings/DataPanel'
-import { PartnersPanel } from '../components/settings/PartnersPanel'
 import { ActivityList } from '../components/trust/ActivityList'
 import { PeriodLockPanel } from '../components/trust/PeriodLockPanel'
 import { TrashPanel } from '../components/trust/TrashPanel'
@@ -29,22 +27,19 @@ function readFileAsDataUrl(file: File): Promise<string> {
 
 const TABS = [
   { id: 'general', label: 'General' },
-  { id: 'partners', label: 'Partners' },
   { id: 'data', label: 'Data' },
   { id: 'activity', label: 'Activity' },
   { id: 'trash', label: 'Trash' },
 ] as const
 type TabId = (typeof TABS)[number]['id']
 
-// General, Partners, Data (with the lock date), Activity and Trash. Categories live in the
+// General, Data (with the lock date), Activity and Trash. Categories live in the
 // Cash book; table names and what a table posts live on the tables.
 export function BusinessSettingsPage() {
   const { businessId } = useParams<{ businessId: string }>()
   const { data: business, isLoading } = useBusiness(businessId)
   const [searchParams, setSearchParams] = useSearchParams()
-  const { data: legacy } = useLegacyStatus(businessId)
-  // The older Partners list shows only while there are partners in it; new businesses keep partners in an ordinary table.
-  const tabs = TABS.filter((candidate) => candidate.id !== 'partners' || (legacy?.partners ?? 0) > 0)
+  const tabs = TABS
   const requested = searchParams.get('tab')
   const tab: TabId = tabs.some((candidate) => candidate.id === requested) ? (requested as TabId) : 'general'
 
@@ -78,7 +73,6 @@ export function BusinessSettingsPage() {
         ))}
       </div>
 
-      {tab === 'partners' && <PartnersPanel businessId={businessId} />}
       {tab === 'data' && (
         <div className="flex flex-col gap-6">
           <PeriodLockPanel businessId={businessId} />
@@ -113,7 +107,6 @@ function BusinessSettingsForm({ businessId, business }: { businessId: string; bu
   const [bankSwiftCode, setBankSwiftCode] = useState(business.bankSwiftCode ?? '')
   const [bankBranch, setBankBranch] = useState(business.bankBranch ?? '')
   const [defaultTerms, setDefaultTerms] = useState(business.defaultTerms ?? '')
-  const [orderPrefix, setOrderPrefix] = useState(business.orderPrefix ?? '')
   const [country, setCountry] = useState(business.country ?? '')
 
   const [logoError, setLogoError] = useState<string | null>(null)
@@ -154,7 +147,6 @@ function BusinessSettingsForm({ businessId, business }: { businessId: string; bu
         bankSwiftCode: bankSwiftCode || null,
         bankBranch: bankBranch || null,
         defaultTerms: defaultTerms || null,
-        orderPrefix: orderPrefix.trim() || null,
         country: country || null,
       })
       setSaved(true)
@@ -224,13 +216,6 @@ function BusinessSettingsForm({ businessId, business }: { businessId: string; bu
               onChange={(event) => setContactEmail(event.target.value)}
             />
             <TextField label="Website" value={website} onChange={(event) => setWebsite(event.target.value)} />
-            <TextField
-              label="Order prefix"
-              maxLength={10}
-              placeholder="e.g. SJ → SJ-0001"
-              value={orderPrefix}
-              onChange={(event) => setOrderPrefix(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
-            />
             <Textarea
               label="Default terms & conditions"
               placeholder="Shown on every invoice unless overridden"

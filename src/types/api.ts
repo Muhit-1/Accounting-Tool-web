@@ -1,5 +1,4 @@
 import type { AmountType } from '../lib/calc'
-import type { OrderPostingRule, OrderStatus } from '../lib/order-status'
 
 export interface User {
   id: string
@@ -27,8 +26,6 @@ export interface Business {
   bankSwiftCode: string | null
   bankBranch: string | null
   defaultTerms: string | null
-  // Letters in front of order numbers; null = initials of the name.
-  orderPrefix: string | null
   // Two-letter country code; null = made before it existed, treated as Bangladesh.
   country: string | null
   // Books closed before this day (YYYY-MM-DD…); nothing dated earlier can change. Null = open.
@@ -77,10 +74,6 @@ export interface Transaction {
   receiptFileName: string | null
   // https link to a screenshot/receipt, opened in a new tab.
   proofUrl: string | null
-  // Set for an entry posted by a delivered order; it can only change through the order.
-  orderId: string | null
-  // Set for an entry posted by a cost paid from Business money; it can only change through the cost.
-  costItemId: string | null
   // Set for an entry posted by a table's Posts-to-Cash-book rule; it can only change through that row.
   ruleId?: string | null
   rowId?: string | null
@@ -271,103 +264,8 @@ export interface MonthlyView {
   outsideRange: MonthlyFigures
 }
 
-// /businesses/:id/orders
-export interface Order {
-  id: string
-  accountId: string
-  number: number
-  // "SJ-0003"
-  displayNumber: string
-  orderDate: string
-  customerName: string
-  customerPhone: string | null
-  customerEmail: string | null
-  customerAddress: string | null
-  items: string | null
-  subtotal: number
-  deliveryCharge: number
-  discount: number
-  // Always worked out by the server: subtotal + delivery charge - discount.
-  total: number
-  paymentMethod: string | null
-  status: OrderStatus
-  postingRule: OrderPostingRule
-  deliveryDate: string | null
-  notes: string | null
-  // The fund entry this order owns while it is delivered.
-  transactionId: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-export interface OrderSummary {
-  orders: number
-  inProgress: number
-  delivered: number
-  // Totals of delivered orders that brought money in.
-  deliveredValue: number
-  discountsOnDelivered: number
-}
-
-export interface OrderList {
-  summary: OrderSummary
-  orders: Order[]
-}
-
-// /businesses/:id/partners
-export interface Partner {
-  id: string
-  businessId: string
-  name: string
-  userId: string | null
-  createdAt: string
-  // How many costs name this partner in "Paid by".
-  costCount: number
-}
-
-// /businesses/:id/costs
-export type CostPaidFrom = 'NONE' | 'BUSINESS' | 'PARTNER'
-
-export interface CostItem {
-  id: string
-  number: number
-  groupName: string
-  item: string
-  monthlyRate: number
-  months: number
-  oneTime: number
-  // Always worked out by the server: monthlyRate x months + oneTime.
-  total: number
-  paidFrom: CostPaidFrom
-  partnerId: string | null
-  partnerName: string | null
-  // Worked out, never stored.
-  status: 'PAID' | 'DUE'
-  paidOn: string | null
-  startMonth: string | null
-  notes: string | null
-  // The Cash book entry this cost owns while it is paid from Business money.
-  transactionId: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-export interface CostSummary {
-  count: number
-  total: number
-  paid: number
-  due: number
-}
-
-export interface CostList {
-  summary: CostSummary
-  costs: CostItem[]
-}
-
-// /businesses/:id/posting-config — what the other tables send to the Cash book.
+// /businesses/:id/posting-config — what the Invoices page sends to the Cash book.
 export interface PostingConfig {
-  orders: { on: boolean; when: OrderStatus[] }
-  costs: { on: boolean }
   invoices: { on: boolean; when: InvoiceStatus[] }
 }
 
@@ -378,33 +276,5 @@ export interface PostingChange {
 
 export interface PostingSaveResult {
   config: PostingConfig
-  changes: { orders: PostingChange; costs: PostingChange; invoices: PostingChange }
-}
-
-// /businesses/:id/partner-payments
-export interface PartnerPayer {
-  // A partner id, or "BUSINESS".
-  key: string
-  name: string
-  kind: 'PARTNER' | 'BUSINESS'
-  paid: number
-  // Of everything that was paid, in percent with one decimal.
-  sharePercent: number
-}
-
-export interface PartnerPaymentsGroup {
-  name: string
-  paid: Record<string, number>
-  due: number
-  total: number
-}
-
-export interface PartnerPayments {
-  currency: string
-  payers: PartnerPayer[]
-  groups: PartnerPaymentsGroup[]
-  totals: { paid: Record<string, number>; paidAll: number; due: number; total: number }
-  stillDue: { id: string; number: number; item: string; groupName: string; total: number }[]
-  // Paid minus what the payers add up to: 0 unless a cost names a payer who is not listed.
-  check: number
+  changes: { invoices: PostingChange }
 }

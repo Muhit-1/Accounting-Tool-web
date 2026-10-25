@@ -9,7 +9,7 @@ import { formatDateCell, formatMoneyCell } from '../lib/grid-parse'
 import { gridPrefsKey } from '../lib/grid-prefs'
 import { INVOICE_STATUS_LABEL, statusChoices, useDeleteInvoice, useInvoices, useUpdateInvoice, useUpdateInvoiceStatus } from '../lib/invoices'
 import { planInvoiceEdit, splitDeletable } from '../lib/invoices-grid'
-import { DEFAULT_POSTING_CONFIG, invoicePosts, tablePosts, usePostingConfig } from '../lib/posting-config'
+import { DEFAULT_POSTING_CONFIG, invoicePosts, usePostingConfig } from '../lib/posting-config'
 import { useToast } from '../lib/toast-context'
 import { useDeferredDelete } from '../lib/use-deferred-delete'
 import type { Invoice, InvoiceStatus } from '../types/api'
@@ -235,7 +235,7 @@ export function InvoicesPage() {
 
   if (!businessId) return null
   const currency = business?.currency ?? 'BDT'
-  const on = tablePosts(postingConfig, 'invoices')
+  const on = postingConfig.invoices.on
 
   return (
     <>
@@ -285,7 +285,7 @@ export function InvoicesPage() {
       )}
 
       {showPosting && (
-        <PostingDialog businessId={businessId} table="invoices" tableName="Invoices" config={postingConfig} onClose={() => setShowPosting(false)} />
+        <PostingDialog businessId={businessId} tableName="Invoices" config={postingConfig} onClose={() => setShowPosting(false)} />
       )}
       {showClients && (
         <Modal title="Clients" onClose={() => setShowClients(false)} wide>

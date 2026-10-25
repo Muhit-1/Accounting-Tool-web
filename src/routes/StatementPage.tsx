@@ -19,7 +19,7 @@ export function StatementPage() {
         </Link>
       </div>
       <StatementPanel businessId={businessId} currency={business?.currency ?? 'BDT'} />
-      <p className="mt-4 text-[13px] text-ink-soft">Gold rows in the Cash book (orders, costs, invoices) are included here automatically.</p>
+      <p className="mt-4 text-[13px] text-ink-soft">Gold rows in the Cash book (posted from your tables and invoices) are included here automatically.</p>
     </>
   )
 }

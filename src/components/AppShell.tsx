@@ -2,8 +2,6 @@ import { useState, type ComponentType, type FormEvent, type SVGProps } from 'rea
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useBusinesses } from '../lib/businesses'
 import { useAuth } from '../lib/auth-context'
-import { useCosts } from '../lib/costs'
-import { usePartners } from '../lib/partners'
 import { useTables } from '../lib/tables'
 import { Seal } from './Seal'
 import { NewBusinessModal } from './NewBusinessModal'
@@ -195,10 +193,6 @@ export function AppShell() {
   const { businessId } = useParams<{ businessId?: string }>()
   const location = useLocation()
   const { user, logout } = useAuth()
-  // The report only makes sense once there are costs and someone who can pay them.
-  const { data: costData } = useCosts(businessId)
-  const { data: partnerData } = usePartners(businessId)
-  const showPartnerPayments = (costData?.summary.count ?? 0) > 0 && (partnerData?.length ?? 0) > 0
   // Someone who was given only some tables (no Cash book among them) gets a menu of just those.
   const { data: tableList } = useTables(businessId)
   const tableOnly = tableList !== undefined && !tableList.some((t) => t.kind === 'LEDGER')
@@ -237,7 +231,7 @@ export function AppShell() {
               to={`/businesses/${businessId}/workspace`}
               label="Cash book"
               icon={IconTable}
-              active={['workspace', 'accounts', 'orders'].some((part) => location.pathname.startsWith(`/businesses/${businessId}/${part}`))}
+              active={['workspace', 'accounts'].some((part) => location.pathname.startsWith(`/businesses/${businessId}/${part}`))}
             />
             <NavLink
               to={`/businesses/${businessId}/invoices`}
@@ -264,14 +258,6 @@ export function AppShell() {
               icon={IconChartBar}
               active={location.pathname.startsWith(`/businesses/${businessId}/monthly`)}
             />
-            {showPartnerPayments && (
-              <NavLink
-                to={`/businesses/${businessId}/partner-payments`}
-                label="Partner payments"
-                icon={IconChartBar}
-                active={location.pathname.startsWith(`/businesses/${businessId}/partner-payments`)}
-              />
-            )}
             <NavHeading>Manage</NavHeading>
             <NavLink
               to={`/businesses/${businessId}/sharing`}

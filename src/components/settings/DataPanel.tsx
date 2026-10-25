@@ -2,12 +2,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAccounts } from '../../lib/accounts'
 import { useBusiness, useDeleteBusiness } from '../../lib/businesses'
-import { useCosts } from '../../lib/costs'
 import { downloadFile } from '../../lib/download'
 import { exportFileName, toCsv, toXlsx } from '../../lib/export-table'
 import { exportBookName, saveExport } from '../../lib/export-formulas'
-import { cashbookExport, costsExport, ordersExport, type ExportSheet } from '../../lib/export-rows'
-import { useOrders } from '../../lib/orders'
+import { cashbookExport, type ExportSheet } from '../../lib/export-rows'
 import { useToast } from '../../lib/toast-context'
 import { useTransactions } from '../../lib/transactions'
 import { Button } from '../Button'
@@ -16,8 +14,6 @@ import { ImportWizardHost } from '../import/ImportWizardHost'
 import { Panel } from '../Panel'
 import { Select } from '../Select'
 
-type TableKey = 'cashbook' | 'orders' | 'costs'
-const TABLE_LABEL: Record<TableKey, string> = { cashbook: 'Cash book', orders: 'Orders', costs: 'Costs' }
 
 // Settings → Data: bring a file in, take a table out, and the one thing that
 // cannot be undone. Categories, table names and what a table posts live on the tables.
@@ -28,23 +24,16 @@ export function DataPanel({ businessId }: { businessId: string }) {
   const { data: accounts } = useAccounts(businessId)
   const cashAccount = accounts?.[0]
   const { data: transactions } = useTransactions(businessId, cashAccount?.id)
-  const { data: orderList } = useOrders(businessId)
-  const { data: costList } = useCosts(businessId)
   const deleteBusiness = useDeleteBusiness()
 
   const [importing, setImporting] = useState(false)
-  const [table, setTable] = useState<TableKey>('cashbook')
   const [format, setFormat] = useState<'xlsx' | 'csv'>('xlsx')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
-  function sheetFor(key: TableKey): ExportSheet | null {
-    if (key === 'cashbook') return transactions ? cashbookExport(TABLE_LABEL.cashbook, transactions) : null
-    if (key === 'orders') return orderList ? ordersExport(TABLE_LABEL.orders, orderList.orders) : null
-    return costList ? costsExport(TABLE_LABEL.costs, costList.costs) : null
-  }
+  const sheetFor = (): ExportSheet | null => (transactions ? cashbookExport('Cash book', transactions) : null)
 
   async function handleExport() {
-    const sheet = sheetFor(table)
+    const sheet = sheetFor()
     if (!sheet) {
       toast('Still loading. Try again in a moment.')
       return
@@ -91,15 +80,8 @@ export function DataPanel({ businessId }: { businessId: string }) {
         </div>
       </Panel>
 
-      <Panel title="Export">
+      <Panel title="Export the Cash book">
         <div className="flex flex-wrap items-end gap-4 px-5 py-4">
-          <Select label="Table" value={table} onChange={(event) => setTable(event.target.value as TableKey)}>
-            {(Object.keys(TABLE_LABEL) as TableKey[]).map((key) => (
-              <option key={key} value={key}>
-                {TABLE_LABEL[key]}
-              </option>
-            ))}
-          </Select>
           <Select label="File" value={format} onChange={(event) => setFormat(event.target.value as 'xlsx' | 'csv')}>
             <option value="xlsx">Excel (.xlsx)</option>
             <option value="csv">CSV (.csv)</option>

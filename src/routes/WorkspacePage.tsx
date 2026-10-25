@@ -2,18 +2,13 @@ import { useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAccounts } from '../lib/accounts'
 import { ApiError } from '../lib/api-client'
-import { useAuth } from '../lib/auth-context'
 import { useBusiness } from '../lib/businesses'
 import { useCategories } from '../lib/categories'
-import { tablePrefsKey } from '../lib/grid-prefs'
-import { DEFAULT_POSTING_CONFIG, tablePosts, usePostingConfig, type PostingTable } from '../lib/posting-config'
 import type { InvoiceScanResult } from '../lib/invoice-scan'
-import { useApplyTemplate, useConvertLegacy, useCreateTable, useDeleteTable, useLegacyStatus, useReorderTables, useRestoreTable, useTables, useTemplates, useUpdateTable } from '../lib/tables'
+import { useApplyTemplate, useCreateTable, useDeleteTable, useReorderTables, useRestoreTable, useTables, useTemplates, useUpdateTable } from '../lib/tables'
 import { useToast } from '../lib/toast-context'
-import { useTablePrefs } from '../lib/use-grid-prefs'
 import type { Transaction } from '../types/api'
 import { Button } from '../components/Button'
-import { ConfirmDialog } from '../components/ConfirmDialog'
 import { FloatingMenu, type MenuEntry } from '../components/FloatingMenu'
 import { PromptDialog } from '../components/PromptDialog'
 import { Select } from '../components/Select'
@@ -21,23 +16,12 @@ import { ScanInvoiceModal } from '../components/account/ScanInvoiceModal'
 import { TransactionForm } from '../components/account/TransactionForm'
 import { ImportWizardHost } from '../components/import/ImportWizardHost'
 import { SheetImportDialog } from '../components/import/SheetImportDialog'
-import { CostsTab } from '../components/costs/CostsTab'
-import { OrdersTab } from '../components/orders/OrdersTab'
 import { TableRulesDialog } from '../components/tables/TableRulesDialog'
 import { TableTab } from '../components/tables/TableTab'
 import { CashBookTab } from '../components/workspace/CashBookTab'
-import { PostingDialog } from '../components/workspace/PostingDialog'
-import { PostsButton } from '../components/workspace/PostsButton'
 import { StartCard } from '../components/workspace/StartCard'
 import { TableTabs, type TabInfo } from '../components/workspace/TableTabs'
 
-// Until the Orders and Costs templates replace them, these two older tables sit after the engine's tables.
-const LEGACY = [
-  { key: 'orders', name: 'Orders' },
-  { key: 'costs', name: 'Costs' },
-]
-const isLegacy = (key: string) => LEGACY.some((t) => t.key === key)
-const isPostingTable = (key: string): key is PostingTable => key === 'orders' || key === 'costs' || key === 'invoices'
 const messageOf = (err: unknown) => (err instanceof ApiError ? err.message : 'Something went wrong. Please try again.')
 
 export function WorkspacePage() {
@@ -45,23 +29,17 @@ export function WorkspacePage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const toast = useToast()
-  const { user } = useAuth()
   const { data: business } = useBusiness(businessId)
   const { data: accounts } = useAccounts(businessId)
   const { data: categories } = useCategories(businessId)
-  const { data: postingData } = usePostingConfig(businessId)
   const { data: engineTables } = useTables(businessId)
   const { data: templates } = useTemplates(businessId)
-  const postingConfig = postingData ?? DEFAULT_POSTING_CONFIG
-  const tablePrefs = useTablePrefs(tablePrefsKey(user?.id ?? 'anonymous', businessId ?? ''))
   const createTable = useCreateTable(businessId ?? '')
   const updateTable = useUpdateTable(businessId ?? '')
   const deleteTable = useDeleteTable(businessId ?? '')
   const restoreTable = useRestoreTable(businessId ?? '')
   const reorderTables = useReorderTables(businessId ?? '')
   const applyTemplate = useApplyTemplate(businessId ?? '')
-  const { data: legacy } = useLegacyStatus(businessId)
-  const convertLegacy = useConvertLegacy(businessId ?? '')
 
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Transaction | undefined>(undefined)
@@ -69,13 +47,9 @@ export function WorkspacePage() {
   const [scanFile, setScanFile] = useState<File | undefined>(undefined)
   const [showScan, setShowScan] = useState(false)
   const [renaming, setRenaming] = useState<{ key: string; name: string } | null>(null)
-  // The table whose Import button was clicked (the import screen is open), or null.
+  // The Cash book's Import button was clicked (the import screen is open).
   const [importing, setImporting] = useState<string | null>(null)
   const [uploadingSheet, setUploadingSheet] = useState(false)
-  // The older table (Orders or Costs) that is being moved into an ordinary table, or null.
-  const [moving, setMoving] = useState<'orders' | 'costs' | null>(null)
-  // The table whose "Posts to Cash book" dialog is open, or null.
-  const [postingTable, setPostingTable] = useState<PostingTable | null>(null)
   const [newMenu, setNewMenu] = useState<DOMRect | null>(null)
   // The engine table whose "Posts to Cash book" rules are open.
   const [rulesTableId, setRulesTableId] = useState<string | null>(null)
@@ -87,26 +61,15 @@ export function WorkspacePage() {
   // that made more can reach the others by their own address.
   const account = accounts?.find((candidate) => candidate.id === accountIdParam) ?? accounts?.[0]
 
-  // Every table, in one list: the engine's tables in their order, then the two older ones.
+  // Every table of the business, in one list.
   const engine = engineTables ?? []
   const keyOf = (t: { id: string; kind: string }) => (t.kind === 'LEDGER' ? 'cashbook' : t.id)
-  // The older Orders and Costs show only while there is something in them; a new business starts with just its own tables.
-  const legacyInUse = LEGACY.filter((t) => (t.key === 'orders' ? (legacy?.orders ?? 0) > 0 : (legacy?.costs ?? 0) + (legacy?.partners ?? 0) > 0))
-  const hiddenLegacy = legacyInUse.filter((t) => tablePrefs.prefs.hidden.includes(t.key))
-  const legacyNameOf = (key: string) => tablePrefs.prefs.names[key] ?? LEGACY.find((t) => t.key === key)?.name ?? key
-  // Someone who was given only some tables (never the Cash book) sees just those: no ＋, no menus, no older tables.
+  // Someone who was given only some tables (never the Cash book) sees just those: no ＋, no menus.
   const restricted = engineTables !== undefined && !engineTables.some((t) => t.kind === 'LEDGER')
-  const tabs: TabInfo[] = [
-    ...engine.map((t) => ({ key: keyOf(t), name: t.name, color: t.color, ledger: t.kind === 'LEDGER', movable: !restricted, posts: t.rules.some((r) => r.enabled) })),
-    ...(restricted ? [] : legacyInUse).filter((t) => !tablePrefs.prefs.hidden.includes(t.key)).map((t) => ({
-      key: t.key,
-      name: legacyNameOf(t.key),
-      posts: isPostingTable(t.key) && tablePosts(postingConfig, t.key),
-    })),
-  ]
-  // A business nobody has touched yet: at most one table of its own and nothing in it, no older Orders or Costs.
+  const tabs: TabInfo[] = engine.map((t) => ({ key: keyOf(t), name: t.name, color: t.color, ledger: t.kind === 'LEDGER', movable: !restricted, posts: t.rules.some((r) => r.enabled) }))
+  // A business nobody has touched yet: at most one table of its own and nothing in it.
   const ownTables = engine.filter((t) => t.kind === 'TABLE')
-  const isFresh = !restricted && engineTables !== undefined && ownTables.length <= 1 && ownTables.every((t) => t.rowCount === 0) && legacyInUse.length === 0 && legacy !== undefined
+  const isFresh = !restricted && engineTables !== undefined && ownTables.length <= 1 && ownTables.every((t) => t.rowCount === 0)
   const requested = searchParams.get('tab')
   const active = tabs.find((t) => t.key === requested) ?? tabs[0]
   const activeEngine = active ? engine.find((t) => keyOf(t) === active.key) : undefined
@@ -118,8 +81,6 @@ export function WorkspacePage() {
   // A gold Cash book row leads back to the table that posted it.
   function openPosted(transaction: Transaction) {
     if (transaction.source) setSearchParams({ tab: transaction.source.tableId })
-    else if (transaction.orderId) setSearchParams({ tab: 'orders', open: transaction.orderId })
-    else if (transaction.costItemId) setSearchParams({ tab: 'costs' })
     else if (transaction.invoiceId) navigate(`/businesses/${businessId}/invoices/${transaction.invoiceId}`)
   }
 
@@ -162,23 +123,6 @@ export function WorkspacePage() {
 
   function menuFor(key: string): MenuEntry[] {
     if (restricted) return []
-    if (isLegacy(key)) {
-      const items: MenuEntry[] = [
-        { label: 'Move into a new table…', hint: 'Same rows and Cash book entries, with columns and formulas you can change.', onSelect: () => setMoving(key === 'orders' ? 'orders' : 'costs') },
-        { label: 'Rename table', onSelect: () => setRenaming({ key, name: legacyNameOf(key) }) },
-      ]
-      if (isPostingTable(key)) items.push({ label: 'Posts to Cash book…', hint: 'Choose what this table sends.', onSelect: () => setPostingTable(key) })
-      items.push({
-        label: 'Hide table',
-        hint: 'Your rows are kept. Bring it back with ＋.',
-        onSelect: () => {
-          tablePrefs.hide(key)
-          selectTab('cashbook')
-          toast('Table hidden. Rows kept.', { undo: () => tablePrefs.show(key) })
-        },
-      })
-      return items
-    }
     const t = engine.find((x) => keyOf(x) === key)
     if (!t) return []
     const items: MenuEntry[] = [{ label: 'Rename table', onSelect: () => setRenaming({ key, name: t.name }) }]
@@ -191,8 +135,6 @@ export function WorkspacePage() {
     const ids = keys.map((k) => engine.find((t) => keyOf(t) === k)?.id).filter((id): id is string => Boolean(id))
     void reorderTables.mutateAsync(ids).catch((err) => toast(messageOf(err)))
   }
-
-  const postsButton = (key: PostingTable) => <PostsButton on={tablePosts(postingConfig, key)} onClick={() => setPostingTable(key)} />
 
   async function addTemplate(key: string) {
     try {
@@ -210,7 +152,6 @@ export function WorkspacePage() {
     ...(templates ?? []).map((t) => ({ label: t.name, hint: t.description, onSelect: () => void addTemplate(t.key) })),
     'separator',
     { label: 'Upload a sheet…', hint: 'Excel or CSV. Tables, formulas and links are rebuilt.', onSelect: () => setUploadingSheet(true) },
-    ...hiddenLegacy.map((t) => ({ label: `Show ${legacyNameOf(t.key)}`, hint: 'Your rows are still there.', onSelect: () => { tablePrefs.show(t.key); selectTab(t.key) } })),
   ]
 
   return (
@@ -276,49 +217,12 @@ export function WorkspacePage() {
           </p>
         ))}
       {activeEngine && activeEngine.kind === 'TABLE' && <TableTab key={activeEngine.id} businessId={businessId} table={activeEngine} tables={engine} onRules={() => setRulesTableId(activeEngine.id)} />}
-      {active?.key === 'orders' &&
-        (account ? (
-          <OrdersTab businessId={businessId} accountId={account.id} tableName={active.name} onImport={() => setImporting('orders')} postsButton={postsButton('orders')} />
-        ) : (
-          <p className="text-sm text-ink-soft">Loading…</p>
-        ))}
-      {active?.key === 'costs' && (
-        <CostsTab businessId={businessId} currency={currency} tableName={active.name} onImport={() => setImporting('costs')} postsButton={postsButton('costs')} />
-      )}
 
       {rulesTableId && engine.find((t) => t.id === rulesTableId) && (
         <TableRulesDialog key={rulesTableId} businessId={businessId} table={engine.find((t) => t.id === rulesTableId) as (typeof engine)[number]} onClose={() => setRulesTableId(null)} />
       )}
 
       {newMenu && <FloatingMenu anchor={newMenu} items={newMenuItems} onClose={() => setNewMenu(null)} />}
-
-      {moving && (
-        <ConfirmDialog
-          title={moving === 'orders' ? 'Move Orders into a new table?' : 'Move Costs and Partners into new tables?'}
-          body={
-            moving === 'orders'
-              ? 'Your orders become rows of an ordinary table with the same numbers, dates and totals, and the same entries in the Cash book. The Cash book total does not change.'
-              : 'Your costs and partners become ordinary tables with the same rows, who paid, and the same entries in the Cash book. The Cash book total does not change.'
-          }
-          confirmLabel="Move"
-          pendingLabel="Moving…"
-          isPending={convertLegacy.isPending}
-          error={convertLegacy.error ? messageOf(convertLegacy.error) : null}
-          onConfirm={() =>
-            convertLegacy.mutate(moving, {
-              onSuccess: (report) => {
-                setMoving(null)
-                selectTab(report.tables[report.tables.length - 1].id)
-                toast('Moved. Your older table is now an ordinary table.')
-              },
-            })
-          }
-          onCancel={() => {
-            convertLegacy.reset()
-            setMoving(null)
-          }}
-        />
-      )}
 
       {uploadingSheet && account && (
         <SheetImportDialog
@@ -333,10 +237,6 @@ export function WorkspacePage() {
 
       {importing && account && <ImportWizardHost businessId={businessId} accountId={account.id} initialTableKey={importing} onClose={() => setImporting(null)} />}
 
-      {postingTable && (
-        <PostingDialog businessId={businessId} table={postingTable} tableName={legacyNameOf(postingTable)} config={postingConfig} onClose={() => setPostingTable(null)} />
-      )}
-
       {renaming && (
         <PromptDialog
           title="Rename table"
@@ -349,10 +249,6 @@ export function WorkspacePage() {
             return tabs.some((t) => t.key !== renaming.key && t.name.toLowerCase() === value.toLowerCase()) ? 'You already have a table with this name.' : null
           }}
           onSubmit={(value) => {
-            if (isLegacy(renaming.key)) {
-              tablePrefs.rename(renaming.key, value, LEGACY.find((t) => t.key === renaming.key)?.name ?? value)
-              return
-            }
             const t = engine.find((x) => keyOf(x) === renaming.key)
             if (t) void updateTable.mutateAsync({ id: t.id, name: value }).then(() => toast('Renamed. Formulas that use this table were updated.')).catch((err) => toast(messageOf(err)))
           }}

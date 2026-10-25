@@ -63,14 +63,14 @@ lib/            api-client.ts (typed fetch wrapper, JWT header injection),
                 typed TanStack Query hooks that wrap api-client
 types/          TypeScript types mirroring accounting-api's response shapes
 components/     Shared UI primitives (Button, TextField, Seal, ProtectedRoute)
-                and per-feature panels under dashboard/, account/, orders/, costs/,
+                and per-feature panels under dashboard/, account/,
                 import/, settings/, workspace/ (tabs, Posts-to-Cash-book dialog)
-components/grid/ The schema-driven sheet used by Cash book, Orders, Costs and Invoices
+components/grid/ The schema-driven sheet used by the Cash book, the Invoices page and every table the user makes
                 (inline edit, add-row, footers, tick-rows bar, paste from Excel)
 lib/*-grid.ts   Pure rules of each grid (what an edited cell turns into); *-import.ts,
                 import-plan.ts, workbook.ts: paste and .xlsx/.csv import (tested, no UI)
 lib/tables.ts   Hooks of the table engine: tables, columns, rows, saved views, rules, templates,
-                sheet import, the move of older Orders/Costs, the older-data status
+                sheet import
 lib/table-grid.ts, table-filters.ts, connections.ts   What a typed cell becomes, filter sentences, the map of how tables connect
 lib/xl/         Reading a workbook with its formulas (read.ts), the Excel formula parser and its
                 translation into our formula language (xl-formula, xl-translate), the analyser that
@@ -92,16 +92,15 @@ Auth state lives in `AuthProvider` (wraps the whole app in `main.tsx`). The JWT 
 | Route | Page |
 |---|---|
 | `/` , `/businesses/:businessId` | Dashboard — combined or single-venture KPIs, recent entries, open invoices, shared access |
-| `/businesses/:businessId/workspace` (also `/accounts/:accountId`) | Workspace — **every table of the business as a tab on top** (`?tab=<tableId>`): the **Cash book** (locked Balance, gold locked rows posted by other tables) and the user's own tables. A new business starts with the Cash book and an empty `Sheet1`, plus a getting-started card. **＋** makes a blank table, a ready-made one (Orders, Costs and Partners, Clients, Members, Appointments, Tenants and rent) or **Upload a sheet**. In a table: edit in the cell, add a row at the bottom, add columns (text, number, money, date, choice, tick, auto number, link, lookup, rollup, **formula**), function rows under the table, filters and saved views, **Posts to Cash book** rules, History, Excel with formulas. The older Orders and Costs tabs show only while a business still has data in them, with **Move into a new table**. Someone who was given only one table sees just that table (read-only unless they can edit). Phones get cards |
+| `/businesses/:businessId/workspace` (also `/accounts/:accountId`) | Workspace — **every table of the business as a tab on top** (`?tab=<tableId>`): the **Cash book** (locked Balance, gold locked rows posted by other tables) and the user's own tables. A new business starts with the Cash book and an empty `Sheet1`, plus a getting-started card. **＋** makes a blank table, a ready-made one (Orders, Costs and Partners, Clients, Members, Appointments, Tenants and rent) or **Upload a sheet**. In a table: edit in the cell, add a row at the bottom, add columns (text, number, money, date, choice, tick, auto number, link, lookup, rollup, **formula**), function rows under the table, filters and saved views, **Posts to Cash book** rules, History, Excel with formulas. Someone who was given only one table sees just that table (read-only unless they can edit). Phones get cards |
 | `/businesses/:businessId/connections` | Connections — how the tables link to each other, and which tables post to the Cash book |
 | `/businesses/:businessId/invoices`, `/invoices/new`, `/invoices/:id`, `/invoices/:id/edit` | Invoices — a sheet (number and amount locked, status inline, a draft's date and client editable); the form and detail pages create, edit, revisit and download invoices as PDF |
-| `/businesses/:businessId/partner-payments` | Partner payments — who paid which cost group, shares, still due (sidebar item shows only when there are costs and partners) |
 | `/businesses/:businessId/statement`, `/monthly` | Statement (grouped by category group) and Monthly view |
 | `/businesses/:businessId/reports`, `/reports` | Reports — pick a date range (presets or custom) for one venture (optionally one account) or combined across every venture; view on-screen or export CSV/PDF |
 | `/businesses/:businessId/sharing`, `/shared-with-me` | Sharing — grant/revoke time-limited access to the whole business or to **one table** |
 | `/privacy`, `/terms` | Privacy Policy and Terms of Service — **public** (outside the auth guard, needed for Google's OAuth review). Text comes from the API (`GET /legal/:slug`), rendered by `routes/LegalPage.tsx`; `LegalFooter` links them (plus the external legal notice) on the login screen |
 | `/login`, `/auth/callback` | Sign in / sign up — one page with a single "Continue with Google" button that navigates to `${VITE_API_URL}/auth/google`. The API sends the browser back to `/auth/callback#token=<jwt>`; `AuthCallbackPage` reads the token from the URL fragment, erases it from the address bar, stores it and goes to the dashboard. Failures arrive as `/login?error=<code>` (`access_denied`, `drive_permission_required`, `invalid_state`, `google_failed`). `/register` redirects to `/login`. |
-| `/businesses/:businessId/settings` | Settings in tabs — General (name, currency, country, order prefix, logo, bank details), Partners (only while the older Partners list has people), Data (close the books, import, export, export with formulas, delete), Activity (who did what), Trash (restore tables, columns and rows for 30 days) |
+| `/businesses/:businessId/settings` | Settings in tabs — General (name, currency, country, logo, bank details), Data (close the books, import, export, export with formulas, delete), Activity (who did what), Trash (restore tables, columns and rows for 30 days) |
 
 ## Status
 
@@ -113,4 +112,4 @@ The table engine (V3) is built: your own tables, formula columns and function ro
 
 Not built yet (tracked on the API side — see `accounting-api`'s README): Google Drive file storage, and cross-currency conversion in the combined dashboard/report.
 
-A few older screens (Orders, Costs, Partners, the posting dialog) are still in the code until a business has moved its data with **Move into a new table**; they are to be removed after that is checked on dev.
+The older Orders, Costs and Partners screens are gone: use the Orders and Costs and Partners templates (＋ → templates), or upload your sheet.

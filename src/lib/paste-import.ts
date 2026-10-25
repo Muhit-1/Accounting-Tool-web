@@ -1,5 +1,5 @@
 // Turning pasted (or file) text into rows for any table. Nothing here knows
-// about Cash book or Orders: a table says which columns it takes (targets,
+// about the Cash book: a table says which columns it takes (targets,
 // with the other names people give them) and how to check one row; this file
 // does the reading, the header matching and the duplicate counting.
 
@@ -156,14 +156,14 @@ export interface CommitResult {
 // every table: which columns it takes, how one row is checked, what already
 // exists (for "Already there"), and how rows are saved and taken back.
 export interface ImportAdapter<Row> {
-  // For sentences: "entries" / "entry", "orders" / "order".
+  // For sentences: "entries" / "entry".
   noun: string
   singular: string
   title: string
   targets: ImportTarget[]
   // Shows the "Create categories that don't exist yet" tick box.
   offersNewCategories?: boolean
-  // What the tick box makes: "categories" (the default) or "partners".
+  // What the tick box makes: "categories" (the default).
   newItemsNoun?: string
   // Checks every row (given as values by target id); `key` is what makes a row "the same" as an existing one.
   check: (list: Record<string, string>[], options: ImportOptions) => { check: RowCheck<Row>; key: string | null }[]

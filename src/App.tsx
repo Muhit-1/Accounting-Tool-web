@@ -4,10 +4,8 @@ import { AuthCallbackPage } from './routes/AuthCallbackPage'
 import { DashboardPage } from './routes/DashboardPage'
 import { AccountsPage } from './routes/AccountsPage'
 import { WorkspacePage } from './routes/WorkspacePage'
-import { OrdersRedirect } from './routes/OrdersRedirect'
 import { StatementPage } from './routes/StatementPage'
 import { ConnectionsPage } from './routes/ConnectionsPage'
-import { PartnerPaymentsPage } from './routes/PartnerPaymentsPage'
 import { MonthlyPage } from './routes/MonthlyPage'
 import { InvoicesPage } from './routes/InvoicesPage'
 import { InvoiceFormPage } from './routes/InvoiceFormPage'
@@ -43,10 +41,8 @@ export default function App() {
           <Route path="/businesses/:businessId/accounts" element={<AccountsPage />} />
           <Route path="/businesses/:businessId/accounts/:accountId" element={<WorkspacePage />} />
           <Route path="/businesses/:businessId/workspace" element={<WorkspacePage />} />
-          <Route path="/businesses/:businessId/orders" element={<OrdersRedirect />} />
           <Route path="/businesses/:businessId/statement" element={<StatementPage />} />
           <Route path="/businesses/:businessId/monthly" element={<MonthlyPage />} />
-          <Route path="/businesses/:businessId/partner-payments" element={<PartnerPaymentsPage />} />
           <Route path="/businesses/:businessId/connections" element={<ConnectionsPage />} />
           <Route path="/businesses/:businessId/invoices" element={<InvoicesPage />} />
           <Route path="/businesses/:businessId/invoices/new" element={<InvoiceFormPage />} />
