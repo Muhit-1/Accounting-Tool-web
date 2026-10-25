@@ -56,6 +56,8 @@ export interface EngineTable {
   fnRows: FnRow[]
   fields: TableField[]
   views: TableViewInfo[]
+  // "Posts to Cash book" rules
+  rules: TableRule[]
 }
 
 export interface EngineCell {
@@ -83,3 +85,33 @@ export interface EngineSummary {
 export type FormulaPreview =
   | { ok: true; value: string | number | boolean | null; explain: string; sample: number | null }
   | { ok: false; error: string; explain?: string }
+
+export interface RuleConfig {
+  amountFieldId: string
+  dateFieldId: string | null
+  direction: 'IN' | 'OUT'
+  conditions: ViewFilter[]
+  category: string
+  description: string
+}
+export interface TableRule {
+  id: string
+  enabled: boolean
+  config: RuleConfig
+}
+export interface RulePreview {
+  posting: number
+  of: number
+  total: number
+  blocked: number
+}
+export interface RuleSaveResult {
+  rule: { id: string; tableId: string; enabled: boolean; config: RuleConfig }
+  changes: { posted: number; updated: number; removed: number }
+}
+export interface TemplateInfo {
+  key: string
+  name: string
+  description: string
+  tables: string[]
+}

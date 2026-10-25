@@ -8,7 +8,7 @@ import { useCategories } from '../lib/categories'
 import { tablePrefsKey } from '../lib/grid-prefs'
 import { DEFAULT_POSTING_CONFIG, tablePosts, usePostingConfig, type PostingTable } from '../lib/posting-config'
 import type { InvoiceScanResult } from '../lib/invoice-scan'
-import { useCreateTable, useDeleteTable, useReorderTables, useRestoreTable, useTables, useUpdateTable } from '../lib/tables'
+import { useApplyTemplate, useCreateTable, useDeleteTable, useReorderTables, useRestoreTable, useTables, useTemplates, useUpdateTable } from '../lib/tables'
 import { useToast } from '../lib/toast-context'
 import { useTablePrefs } from '../lib/use-grid-prefs'
 import type { Transaction } from '../types/api'
@@ -21,6 +21,7 @@ import { TransactionForm } from '../components/account/TransactionForm'
 import { ImportWizardHost } from '../components/import/ImportWizardHost'
 import { CostsTab } from '../components/costs/CostsTab'
 import { OrdersTab } from '../components/orders/OrdersTab'
+import { TableRulesDialog } from '../components/tables/TableRulesDialog'
 import { TableTab } from '../components/tables/TableTab'
 import { CashBookTab } from '../components/workspace/CashBookTab'
 import { PostingDialog } from '../components/workspace/PostingDialog'
@@ -47,6 +48,7 @@ export function WorkspacePage() {
   const { data: categories } = useCategories(businessId)
   const { data: postingData } = usePostingConfig(businessId)
   const { data: engineTables } = useTables(businessId)
+  const { data: templates } = useTemplates(businessId)
   const postingConfig = postingData ?? DEFAULT_POSTING_CONFIG
   const tablePrefs = useTablePrefs(tablePrefsKey(user?.id ?? 'anonymous', businessId ?? ''))
   const createTable = useCreateTable(businessId ?? '')
@@ -54,6 +56,7 @@ export function WorkspacePage() {
   const deleteTable = useDeleteTable(businessId ?? '')
   const restoreTable = useRestoreTable(businessId ?? '')
   const reorderTables = useReorderTables(businessId ?? '')
+  const applyTemplate = useApplyTemplate(businessId ?? '')
 
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Transaction | undefined>(undefined)
@@ -66,6 +69,8 @@ export function WorkspacePage() {
   // The table whose "Posts to Cash book" dialog is open, or null.
   const [postingTable, setPostingTable] = useState<PostingTable | null>(null)
   const [newMenu, setNewMenu] = useState<DOMRect | null>(null)
+  // The engine table whose "Posts to Cash book" rules are open.
+  const [rulesTableId, setRulesTableId] = useState<string | null>(null)
 
   if (!businessId) return null
   const currency = business?.currency ?? 'BDT'
@@ -80,7 +85,7 @@ export function WorkspacePage() {
   const hiddenLegacy = LEGACY.filter((t) => tablePrefs.prefs.hidden.includes(t.key))
   const legacyNameOf = (key: string) => tablePrefs.prefs.names[key] ?? LEGACY.find((t) => t.key === key)?.name ?? key
   const tabs: TabInfo[] = [
-    ...engine.map((t) => ({ key: keyOf(t), name: t.name, color: t.color, ledger: t.kind === 'LEDGER', movable: true })),
+    ...engine.map((t) => ({ key: keyOf(t), name: t.name, color: t.color, ledger: t.kind === 'LEDGER', movable: true, posts: t.rules.some((r) => r.enabled) })),
     ...LEGACY.filter((t) => !tablePrefs.prefs.hidden.includes(t.key)).map((t) => ({
       key: t.key,
       name: legacyNameOf(t.key),
@@ -97,7 +102,8 @@ export function WorkspacePage() {
 
   // A gold Cash book row leads back to the table that posted it.
   function openPosted(transaction: Transaction) {
-    if (transaction.orderId) setSearchParams({ tab: 'orders', open: transaction.orderId })
+    if (transaction.source) setSearchParams({ tab: transaction.source.tableId })
+    else if (transaction.orderId) setSearchParams({ tab: 'orders', open: transaction.orderId })
     else if (transaction.costItemId) setSearchParams({ tab: 'costs' })
     else if (transaction.invoiceId) navigate(`/businesses/${businessId}/invoices/${transaction.invoiceId}`)
   }
@@ -157,6 +163,7 @@ export function WorkspacePage() {
     const t = engine.find((x) => keyOf(x) === key)
     if (!t) return []
     const items: MenuEntry[] = [{ label: 'Rename table', onSelect: () => setRenaming({ key, name: t.name }) }]
+    if (t.kind === 'TABLE') items.push({ label: 'Posts to Cash book…', hint: 'Choose what this table sends.', onSelect: () => setRulesTableId(t.id) })
     if (t.kind === 'TABLE') items.push('separator', { label: 'Delete table', hint: 'Rows stay in Trash for 30 days.', onSelect: () => void removeTable(t.id, t.name) })
     return items
   }
@@ -168,8 +175,20 @@ export function WorkspacePage() {
 
   const postsButton = (key: PostingTable) => <PostsButton on={tablePosts(postingConfig, key)} onClick={() => setPostingTable(key)} />
 
+  async function addTemplate(key: string) {
+    try {
+      const made = await applyTemplate.mutateAsync(key)
+      if (made[0]) selectTab(made[0].id)
+      toast(made.length > 1 ? `${made.length} tables added.` : 'Table added.')
+    } catch (err) {
+      toast(messageOf(err))
+    }
+  }
+
   const newMenuItems: MenuEntry[] = [
     { label: 'Blank table', hint: 'An empty sheet with five columns.', onSelect: () => void newBlankTable() },
+    'separator',
+    ...(templates ?? []).map((t) => ({ label: t.name, hint: t.description, onSelect: () => void addTemplate(t.key) })),
     'separator',
     { label: 'Upload a sheet…', hint: 'Excel or CSV.', onSelect: () => setImporting('cashbook') },
     ...hiddenLegacy.map((t) => ({ label: `Show ${legacyNameOf(t.key)}`, hint: 'Your rows are still there.', onSelect: () => { tablePrefs.show(t.key); selectTab(t.key) } })),
@@ -235,7 +254,7 @@ export function WorkspacePage() {
             )}
           </p>
         ))}
-      {activeEngine && activeEngine.kind === 'TABLE' && <TableTab key={activeEngine.id} businessId={businessId} table={activeEngine} tables={engine} />}
+      {activeEngine && activeEngine.kind === 'TABLE' && <TableTab key={activeEngine.id} businessId={businessId} table={activeEngine} tables={engine} onRules={() => setRulesTableId(activeEngine.id)} />}
       {active?.key === 'orders' &&
         (account ? (
           <OrdersTab businessId={businessId} accountId={account.id} tableName={active.name} onImport={() => setImporting('orders')} postsButton={postsButton('orders')} />
@@ -244,6 +263,10 @@ export function WorkspacePage() {
         ))}
       {active?.key === 'costs' && (
         <CostsTab businessId={businessId} currency={currency} tableName={active.name} onImport={() => setImporting('costs')} postsButton={postsButton('costs')} />
+      )}
+
+      {rulesTableId && engine.find((t) => t.id === rulesTableId) && (
+        <TableRulesDialog key={rulesTableId} businessId={businessId} table={engine.find((t) => t.id === rulesTableId) as (typeof engine)[number]} onClose={() => setRulesTableId(null)} />
       )}
 
       {newMenu && <FloatingMenu anchor={newMenu} items={newMenuItems} onClose={() => setNewMenu(null)} />}

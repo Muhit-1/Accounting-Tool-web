@@ -11,6 +11,7 @@ import {
   IconChartBar,
   IconChevronDown,
   IconGrid,
+  IconLink,
   IconPlus,
   IconReceipt,
   IconSearch,
@@ -232,6 +233,12 @@ export function AppShell() {
               label="Invoices"
               icon={IconReceipt}
               active={location.pathname.startsWith(`/businesses/${businessId}/invoices`)}
+            />
+            <NavLink
+              to={`/businesses/${businessId}/connections`}
+              label="Connections"
+              icon={IconLink}
+              active={location.pathname.startsWith(`/businesses/${businessId}/connections`)}
             />
             <NavHeading>Reports</NavHeading>
             <NavLink

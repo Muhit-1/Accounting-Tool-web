@@ -25,6 +25,7 @@ import { FloatingMenu, type MenuEntry } from '../FloatingMenu'
 import { Grid } from '../grid/Grid'
 import type { FootRow, GridColumn } from '../grid/grid-types'
 import { PromptDialog } from '../PromptDialog'
+import { PostsButton } from '../workspace/PostsButton'
 import { ColumnDialog } from './ColumnDialog'
 import { filterSentence } from '../../lib/table-filters'
 import { FilterDialog } from './FilterDialog'
@@ -64,7 +65,7 @@ function rowName(table: EngineTable, row: EngineRow): string {
 
 // One of the user's own tables as a sheet: type in a cell, add a row at the bottom, add columns
 // (also formulas, links and rollups) and function rows under the table.
-export function TableTab({ businessId, table, tables }: { businessId: string; table: EngineTable; tables: EngineTable[] }) {
+export function TableTab({ businessId, table, tables, onRules }: { businessId: string; table: EngineTable; tables: EngineTable[]; onRules: () => void }) {
   const { user } = useAuth()
   const toast = useToast()
   const [viewId, setViewId] = useState<string>(table.views[0]?.id ?? '')
@@ -333,6 +334,7 @@ export function TableTab({ businessId, table, tables }: { businessId: string; ta
                   </span>
                 </>
               }
+              toolbarRight={<PostsButton on={table.rules.some((r) => r.enabled)} onClick={onRules} />}
               toolbarLeft={
                 <>
                   <button

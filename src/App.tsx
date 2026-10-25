@@ -6,6 +6,7 @@ import { AccountsPage } from './routes/AccountsPage'
 import { WorkspacePage } from './routes/WorkspacePage'
 import { OrdersRedirect } from './routes/OrdersRedirect'
 import { StatementPage } from './routes/StatementPage'
+import { ConnectionsPage } from './routes/ConnectionsPage'
 import { PartnerPaymentsPage } from './routes/PartnerPaymentsPage'
 import { MonthlyPage } from './routes/MonthlyPage'
 import { InvoicesPage } from './routes/InvoicesPage'
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/businesses/:businessId/statement" element={<StatementPage />} />
           <Route path="/businesses/:businessId/monthly" element={<MonthlyPage />} />
           <Route path="/businesses/:businessId/partner-payments" element={<PartnerPaymentsPage />} />
+          <Route path="/businesses/:businessId/connections" element={<ConnectionsPage />} />
           <Route path="/businesses/:businessId/invoices" element={<InvoicesPage />} />
           <Route path="/businesses/:businessId/invoices/new" element={<InvoiceFormPage />} />
           <Route path="/businesses/:businessId/invoices/:invoiceId" element={<InvoiceDetailPage />} />

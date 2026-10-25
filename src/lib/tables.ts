@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api-client'
-import type { EngineRow, EngineRows, EngineSummary, EngineTable, FnRow, FormulaPreview, TableField, TableViewInfo, ViewConfig, ViewFilter } from '../types/engine'
+import type { EngineRow, EngineRows, EngineSummary, EngineTable, FnRow, FormulaPreview, RuleConfig, RulePreview, RuleSaveResult, TableField, TableViewInfo, TemplateInfo, ViewConfig, ViewFilter } from '../types/engine'
 
 // The table engine: every table, column, row and saved view of a business.
 
@@ -204,4 +204,44 @@ export function useDeleteView(businessId: string, tableId: string) {
 
 export function previewFormula(businessId: string, tableId: string, input: { formula: string; fieldId?: string; rowId?: string; mode?: 'row' | 'column' }) {
   return api.post<FormulaPreview>(`${base(businessId)}/${tableId}/formula-preview`, input)
+}
+
+export function useTemplates(businessId: string | undefined) {
+  return useQuery({
+    queryKey: ['table-templates', businessId],
+    queryFn: () => api.get<TemplateInfo[]>(`${base(businessId as string)}/templates`),
+    enabled: Boolean(businessId),
+    staleTime: 10 * 60_000,
+  })
+}
+
+export function useApplyTemplate(businessId: string) {
+  const refresh = useRefresh(businessId)
+  return useMutation({
+    mutationFn: (key: string) => api.post<EngineTable[]>(`${base(businessId)}/from-template`, { key }),
+    onSuccess: refresh.data,
+  })
+}
+
+export function useSaveRule(businessId: string, tableId: string) {
+  const refresh = useRefresh(businessId)
+  return useMutation({
+    mutationFn: (input: { id?: string; config?: RuleConfig; enabled?: boolean }) =>
+      input.id
+        ? api.patch<RuleSaveResult>(`${base(businessId)}/${tableId}/rules/${input.id}`, { config: input.config, enabled: input.enabled })
+        : api.post<RuleSaveResult>(`${base(businessId)}/${tableId}/rules`, { config: input.config, enabled: input.enabled }),
+    onSuccess: refresh.data,
+  })
+}
+
+export function useDeleteRule(businessId: string, tableId: string) {
+  const refresh = useRefresh(businessId)
+  return useMutation({
+    mutationFn: (id: string) => api.delete<{ id: string; removed: number }>(`${base(businessId)}/${tableId}/rules/${id}`),
+    onSuccess: refresh.data,
+  })
+}
+
+export function previewRule(businessId: string, tableId: string, config: RuleConfig) {
+  return api.post<RulePreview>(`${base(businessId)}/${tableId}/rules/preview`, { config })
 }

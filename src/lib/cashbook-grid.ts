@@ -28,7 +28,8 @@ export function calculationChip(tx: Pick<Transaction, 'amountType' | 'amountInpu
 }
 
 // Where an entry came from when another table posted it (gold, locked row).
-export function postedBy(tx: Pick<Transaction, 'orderId' | 'costItemId' | 'invoiceId'>): { kind: 'order' | 'cost' | 'invoice'; label: string } | null {
+export function postedBy(tx: Pick<Transaction, 'orderId' | 'costItemId' | 'invoiceId' | 'ruleId' | 'source'>): { kind: 'order' | 'cost' | 'invoice' | 'table'; label: string } | null {
+  if (tx.ruleId) return { kind: 'table', label: tx.source?.tableName ?? 'A table' }
   if (tx.orderId) return { kind: 'order', label: 'Orders' }
   if (tx.costItemId) return { kind: 'cost', label: 'Costs' }
   if (tx.invoiceId) return { kind: 'invoice', label: 'Invoices' }

@@ -79,6 +79,10 @@ export interface Transaction {
   orderId: string | null
   // Set for an entry posted by a cost paid from Business money; it can only change through the cost.
   costItemId: string | null
+  // Set for an entry posted by a table's Posts-to-Cash-book rule; it can only change through that row.
+  ruleId?: string | null
+  rowId?: string | null
+  source?: { tableId: string; tableName: string } | null
   // Set for an entry posted by an invoice; it can only change through the invoice.
   invoiceId: string | null
   // null = a fixed amount (every entry made before amount types existed).
