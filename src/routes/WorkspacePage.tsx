@@ -1,17 +1,19 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAccounts } from '../lib/accounts'
+import { ApiError } from '../lib/api-client'
 import { useAuth } from '../lib/auth-context'
 import { useBusiness } from '../lib/businesses'
 import { useCategories } from '../lib/categories'
 import { tablePrefsKey } from '../lib/grid-prefs'
 import { DEFAULT_POSTING_CONFIG, tablePosts, usePostingConfig, type PostingTable } from '../lib/posting-config'
 import type { InvoiceScanResult } from '../lib/invoice-scan'
+import { useCreateTable, useDeleteTable, useReorderTables, useRestoreTable, useTables, useUpdateTable } from '../lib/tables'
 import { useToast } from '../lib/toast-context'
 import { useTablePrefs } from '../lib/use-grid-prefs'
 import type { Transaction } from '../types/api'
 import { Button } from '../components/Button'
-import type { MenuEntry } from '../components/FloatingMenu'
+import { FloatingMenu, type MenuEntry } from '../components/FloatingMenu'
 import { PromptDialog } from '../components/PromptDialog'
 import { Select } from '../components/Select'
 import { ScanInvoiceModal } from '../components/account/ScanInvoiceModal'
@@ -19,25 +21,20 @@ import { TransactionForm } from '../components/account/TransactionForm'
 import { ImportWizardHost } from '../components/import/ImportWizardHost'
 import { CostsTab } from '../components/costs/CostsTab'
 import { OrdersTab } from '../components/orders/OrdersTab'
+import { TableTab } from '../components/tables/TableTab'
 import { CashBookTab } from '../components/workspace/CashBookTab'
 import { PostingDialog } from '../components/workspace/PostingDialog'
 import { PostsButton } from '../components/workspace/PostsButton'
-import { WorkspaceTabs, type WorkspaceTab } from '../components/workspace/WorkspaceTabs'
+import { TableTabs, type TabInfo } from '../components/workspace/TableTabs'
 
-interface BuiltInTable {
-  key: string
-  name: string
-}
-
-// The tables a business starts with. More arrive with later stages (Costs) and,
-// after that, tables people make themselves.
-const BUILT_IN_TABLES: BuiltInTable[] = [
-  { key: 'cashbook', name: 'Cash book' },
+// Until the Orders and Costs templates replace them, these two older tables sit after the engine's tables.
+const LEGACY = [
   { key: 'orders', name: 'Orders' },
   { key: 'costs', name: 'Costs' },
 ]
-
+const isLegacy = (key: string) => LEGACY.some((t) => t.key === key)
 const isPostingTable = (key: string): key is PostingTable => key === 'orders' || key === 'costs' || key === 'invoices'
+const messageOf = (err: unknown) => (err instanceof ApiError ? err.message : 'Something went wrong. Please try again.')
 
 export function WorkspacePage() {
   const { businessId, accountId: accountIdParam } = useParams<{ businessId: string; accountId?: string }>()
@@ -49,19 +46,26 @@ export function WorkspacePage() {
   const { data: accounts } = useAccounts(businessId)
   const { data: categories } = useCategories(businessId)
   const { data: postingData } = usePostingConfig(businessId)
+  const { data: engineTables } = useTables(businessId)
   const postingConfig = postingData ?? DEFAULT_POSTING_CONFIG
   const tablePrefs = useTablePrefs(tablePrefsKey(user?.id ?? 'anonymous', businessId ?? ''))
+  const createTable = useCreateTable(businessId ?? '')
+  const updateTable = useUpdateTable(businessId ?? '')
+  const deleteTable = useDeleteTable(businessId ?? '')
+  const restoreTable = useRestoreTable(businessId ?? '')
+  const reorderTables = useReorderTables(businessId ?? '')
 
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Transaction | undefined>(undefined)
   const [scanDefaults, setScanDefaults] = useState<InvoiceScanResult | undefined>(undefined)
   const [scanFile, setScanFile] = useState<File | undefined>(undefined)
   const [showScan, setShowScan] = useState(false)
-  const [renaming, setRenaming] = useState<BuiltInTable | null>(null)
+  const [renaming, setRenaming] = useState<{ key: string; name: string } | null>(null)
   // The table whose Import button was clicked (the import screen is open), or null.
   const [importing, setImporting] = useState<string | null>(null)
   // The table whose "Posts to Cash book" dialog is open, or null.
   const [postingTable, setPostingTable] = useState<PostingTable | null>(null)
+  const [newMenu, setNewMenu] = useState<DOMRect | null>(null)
 
   if (!businessId) return null
   const currency = business?.currency ?? 'BDT'
@@ -70,11 +74,22 @@ export function WorkspacePage() {
   // that made more can reach the others by their own address.
   const account = accounts?.find((candidate) => candidate.id === accountIdParam) ?? accounts?.[0]
 
-  const nameOf = (table: BuiltInTable) => tablePrefs.prefs.names[table.key] ?? table.name
-  const visibleTables = BUILT_IN_TABLES.filter((table) => table.key === 'cashbook' || !tablePrefs.prefs.hidden.includes(table.key))
-  const hiddenTables = BUILT_IN_TABLES.filter((table) => table.key !== 'cashbook' && tablePrefs.prefs.hidden.includes(table.key))
+  // Every table, in one list: the engine's tables in their order, then the two older ones.
+  const engine = engineTables ?? []
+  const keyOf = (t: { id: string; kind: string }) => (t.kind === 'LEDGER' ? 'cashbook' : t.id)
+  const hiddenLegacy = LEGACY.filter((t) => tablePrefs.prefs.hidden.includes(t.key))
+  const legacyNameOf = (key: string) => tablePrefs.prefs.names[key] ?? LEGACY.find((t) => t.key === key)?.name ?? key
+  const tabs: TabInfo[] = [
+    ...engine.map((t) => ({ key: keyOf(t), name: t.name, color: t.color, ledger: t.kind === 'LEDGER', movable: true })),
+    ...LEGACY.filter((t) => !tablePrefs.prefs.hidden.includes(t.key)).map((t) => ({
+      key: t.key,
+      name: legacyNameOf(t.key),
+      posts: isPostingTable(t.key) && tablePosts(postingConfig, t.key),
+    })),
+  ]
   const requested = searchParams.get('tab')
-  const active = visibleTables.find((table) => table.key === requested) ?? visibleTables[0]
+  const active = tabs.find((t) => t.key === requested) ?? tabs[0]
+  const activeEngine = active ? engine.find((t) => keyOf(t) === active.key) : undefined
 
   function selectTab(key: string) {
     setSearchParams(key === 'cashbook' ? {} : { tab: key }, { replace: true })
@@ -101,14 +116,33 @@ export function WorkspacePage() {
     setScanFile(undefined)
   }
 
-  function menuFor(key: string): MenuEntry[] {
-    const table = BUILT_IN_TABLES.find((candidate) => candidate.key === key)
-    if (!table) return []
-    const items: MenuEntry[] = [{ label: 'Rename table', onSelect: () => setRenaming(table) }]
-    if (isPostingTable(key)) {
-      items.push({ label: 'Posts to Cash book…', hint: 'Choose what this table sends.', onSelect: () => setPostingTable(key) })
+  async function newBlankTable() {
+    try {
+      const t = await createTable.mutateAsync({})
+      selectTab(t.id)
+    } catch (err) {
+      toast(messageOf(err))
     }
-    if (key !== 'cashbook') {
+  }
+
+  async function removeTable(id: string, name: string) {
+    try {
+      await deleteTable.mutateAsync(id)
+      selectTab('cashbook')
+      toast(`“${name}” deleted. Its rows stay in Trash for 30 days.`, {
+        undo: () => {
+          void restoreTable.mutateAsync(id).then((t) => selectTab(t.id)).catch((err) => toast(messageOf(err)))
+        },
+      })
+    } catch (err) {
+      toast(messageOf(err))
+    }
+  }
+
+  function menuFor(key: string): MenuEntry[] {
+    if (isLegacy(key)) {
+      const items: MenuEntry[] = [{ label: 'Rename table', onSelect: () => setRenaming({ key, name: legacyNameOf(key) }) }]
+      if (isPostingTable(key)) items.push({ label: 'Posts to Cash book…', hint: 'Choose what this table sends.', onSelect: () => setPostingTable(key) })
       items.push({
         label: 'Hide table',
         hint: 'Your rows are kept. Bring it back with ＋.',
@@ -118,33 +152,41 @@ export function WorkspacePage() {
           toast('Table hidden. Rows kept.', { undo: () => tablePrefs.show(key) })
         },
       })
+      return items
     }
+    const t = engine.find((x) => keyOf(x) === key)
+    if (!t) return []
+    const items: MenuEntry[] = [{ label: 'Rename table', onSelect: () => setRenaming({ key, name: t.name }) }]
+    if (t.kind === 'TABLE') items.push('separator', { label: 'Delete table', hint: 'Rows stay in Trash for 30 days.', onSelect: () => void removeTable(t.id, t.name) })
     return items
   }
 
-  const tabs: WorkspaceTab[] = visibleTables.map((table) => ({
-    key: table.key,
-    name: nameOf(table),
-    posts: isPostingTable(table.key) && tablePosts(postingConfig, table.key),
-  }))
+  function moveTabs(keys: string[]) {
+    const ids = keys.map((k) => engine.find((t) => keyOf(t) === k)?.id).filter((id): id is string => Boolean(id))
+    void reorderTables.mutateAsync(ids).catch((err) => toast(messageOf(err)))
+  }
+
   const postsButton = (key: PostingTable) => <PostsButton on={tablePosts(postingConfig, key)} onClick={() => setPostingTable(key)} />
+
+  const newMenuItems: MenuEntry[] = [
+    { label: 'Blank table', hint: 'An empty sheet with five columns.', onSelect: () => void newBlankTable() },
+    'separator',
+    { label: 'Upload a sheet…', hint: 'Excel or CSV.', onSelect: () => setImporting('cashbook') },
+    ...hiddenLegacy.map((t) => ({ label: `Show ${legacyNameOf(t.key)}`, hint: 'Your rows are still there.', onSelect: () => { tablePrefs.show(t.key); selectTab(t.key) } })),
+  ]
 
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-1.5 text-xs tracking-wider text-ink-soft uppercase">{business?.name ?? '…'}</p>
-          <h1 className="font-display text-[28px] font-bold tracking-tight">{nameOf(active)}</h1>
+          <h1 className="font-display text-[28px] font-bold tracking-tight">{active?.name ?? '…'}</h1>
         </div>
-        {active.key === 'cashbook' && account && (
+        {active?.key === 'cashbook' && account && (
           <div className="flex flex-wrap items-end gap-3">
             {accounts && accounts.length > 1 && (
               <div className="w-52">
-                <Select
-                  label="Cash book"
-                  value={account.id}
-                  onChange={(event) => navigate(`/businesses/${businessId}/accounts/${event.target.value}`)}
-                >
+                <Select label="Cash book" value={account.id} onChange={(event) => navigate(`/businesses/${businessId}/accounts/${event.target.value}`)}>
                   {accounts.map((candidate) => (
                     <option key={candidate.id} value={candidate.id}>
                       {candidate.name}
@@ -161,7 +203,11 @@ export function WorkspacePage() {
         )}
       </div>
 
-      {active.key === 'cashbook' &&
+      <div className="mb-4">
+        <TableTabs tabs={tabs} activeKey={active?.key ?? ''} onSelect={selectTab} menuFor={menuFor} onNew={setNewMenu} onMove={moveTabs} />
+      </div>
+
+      {active?.key === 'cashbook' &&
         (account ? (
           <CashBookTab
             key={account.id}
@@ -176,7 +222,7 @@ export function WorkspacePage() {
             }}
             onOpenPosted={openPosted}
             onImport={() => setImporting('cashbook')}
-            tableName={nameOf(active)}
+            tableName={active.name}
           />
         ) : (
           <p className="rounded-ledger border border-paper-line bg-white px-5 py-8 text-sm text-ink-soft">
@@ -189,68 +235,44 @@ export function WorkspacePage() {
             )}
           </p>
         ))}
-      {active.key === 'orders' &&
+      {activeEngine && activeEngine.kind === 'TABLE' && <TableTab key={activeEngine.id} businessId={businessId} table={activeEngine} tables={engine} />}
+      {active?.key === 'orders' &&
         (account ? (
-          <OrdersTab
-            businessId={businessId}
-            accountId={account.id}
-            tableName={nameOf(active)}
-            onImport={() => setImporting('orders')}
-            postsButton={postsButton('orders')}
-          />
+          <OrdersTab businessId={businessId} accountId={account.id} tableName={active.name} onImport={() => setImporting('orders')} postsButton={postsButton('orders')} />
         ) : (
           <p className="text-sm text-ink-soft">Loading…</p>
         ))}
-
-      {active.key === 'costs' && (
-        <CostsTab
-          businessId={businessId}
-          currency={currency}
-          tableName={nameOf(active)}
-          onImport={() => setImporting('costs')}
-          postsButton={postsButton('costs')}
-        />
+      {active?.key === 'costs' && (
+        <CostsTab businessId={businessId} currency={currency} tableName={active.name} onImport={() => setImporting('costs')} postsButton={postsButton('costs')} />
       )}
 
-      <div className="mt-3">
-        <WorkspaceTabs
-          tabs={tabs}
-          activeKey={active.key}
-          hidden={hiddenTables.map((table) => ({ key: table.key, name: nameOf(table) }))}
-          onSelect={selectTab}
-          menuFor={menuFor}
-          onShow={(key) => {
-            tablePrefs.show(key)
-            selectTab(key)
-          }}
-        />
-      </div>
+      {newMenu && <FloatingMenu anchor={newMenu} items={newMenuItems} onClose={() => setNewMenu(null)} />}
 
-      {importing && account && (
-        <ImportWizardHost businessId={businessId} accountId={account.id} initialTableKey={importing} onClose={() => setImporting(null)} />
-      )}
+      {importing && account && <ImportWizardHost businessId={businessId} accountId={account.id} initialTableKey={importing} onClose={() => setImporting(null)} />}
 
       {postingTable && (
-        <PostingDialog
-          businessId={businessId}
-          table={postingTable}
-          tableName={nameOf(BUILT_IN_TABLES.find((table) => table.key === postingTable) ?? active)}
-          config={postingConfig}
-          onClose={() => setPostingTable(null)}
-        />
+        <PostingDialog businessId={businessId} table={postingTable} tableName={legacyNameOf(postingTable)} config={postingConfig} onClose={() => setPostingTable(null)} />
       )}
 
       {renaming && (
         <PromptDialog
           title="Rename table"
           label="Table name"
-          initial={nameOf(renaming)}
-          validate={(value) =>
-            value !== '' && BUILT_IN_TABLES.some((table) => table.key !== renaming.key && nameOf(table).toLowerCase() === value.toLowerCase())
-              ? 'You already have a table with this name.'
-              : null
-          }
-          onSubmit={(value) => tablePrefs.rename(renaming.key, value, renaming.name)}
+          initial={renaming.name}
+          maxLength={60}
+          validate={(value) => {
+            if (value === '') return 'Give the table a name.'
+            if (/[{}[\]']/.test(value)) return 'A table name can’t contain { } [ ] or an apostrophe.'
+            return tabs.some((t) => t.key !== renaming.key && t.name.toLowerCase() === value.toLowerCase()) ? 'You already have a table with this name.' : null
+          }}
+          onSubmit={(value) => {
+            if (isLegacy(renaming.key)) {
+              tablePrefs.rename(renaming.key, value, LEGACY.find((t) => t.key === renaming.key)?.name ?? value)
+              return
+            }
+            const t = engine.find((x) => keyOf(x) === renaming.key)
+            if (t) void updateTable.mutateAsync({ id: t.id, name: value }).then(() => toast('Renamed. Formulas that use this table were updated.')).catch((err) => toast(messageOf(err)))
+          }}
           onClose={() => setRenaming(null)}
         />
       )}

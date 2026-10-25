@@ -134,4 +134,24 @@ export interface GridProps<R> {
   noun: string
   // Row ids hidden for a moment (deleted, waiting for Undo to run out).
   hiddenIds?: ReadonlySet<string>
+  // The empty cell at the end of the header row: "＋ add a column".
+  headerEnd?: ReactNode
+  // When given, "Rename column" asks the caller (a real, shared rename) instead of keeping a name only this viewer sees.
+  onRenameColumn?: (column: GridColumn<R>) => void
+  // Function rows under the grid. When given they replace the default total row.
+  footRows?: FootRow[]
+  // A line at the very bottom, e.g. "12 rows" and a "＋ Function row" button.
+  footEnd?: ReactNode
+}
+
+export interface FootCell {
+  text: string
+  error?: boolean
+  // Click to choose what this cell shows.
+  onClick?: () => void
+}
+export interface FootRow {
+  id: string
+  label: string
+  cells: Record<string, FootCell | undefined>
 }

@@ -288,6 +288,10 @@ export function Grid<R>(props: GridProps<R>) {
     noun,
     hiddenIds,
     exportName,
+    headerEnd,
+    onRenameColumn,
+    footRows,
+    footEnd,
   } = props
   const toast = useToast()
   const { prefs, rename, hide, show } = useGridPrefs(prefsKey)
@@ -382,7 +386,7 @@ export function Grid<R>(props: GridProps<R>) {
     }
     items.push(
       'separator',
-      { label: 'Rename column', onSelect: () => setRenaming({ ...column, label: column.label }) },
+      { label: 'Rename column', onSelect: () => (onRenameColumn ? onRenameColumn(column) : setRenaming({ ...column, label: column.label })) },
       {
         label: 'Hide column',
         hint: column.required ? 'Needed for the totals.' : undefined,
@@ -580,7 +584,7 @@ export function Grid<R>(props: GridProps<R>) {
                 </button>
               </div>
             ))}
-            <div />
+            <div className="flex items-center justify-center">{headerEnd}</div>
           </div>
 
           {lead && (
@@ -723,6 +727,41 @@ export function Grid<R>(props: GridProps<R>) {
             </div>
           )}
 
+          {footRows ? (
+            <div className="sticky bottom-0 z-[2] border-t border-paper-line bg-[#f8fafc] text-[13.5px]">
+              {footRows.map((fr) => (
+                <div key={fr.id} role="row" className="grid grid-cols-[var(--cols)] border-b border-paper-edge font-semibold last:border-b-0">
+                  <div />
+                  {visible.map((column, index) => {
+                    const cell = fr.cells[column.id]
+                    return (
+                      <div key={column.id} className={`relative min-w-0 border-r border-paper-edge/60 ${isRightAligned(column) ? 'text-right' : ''}`}>
+                        {index === 0 ? (
+                          <span className="block px-3 py-2">
+                            <span className="mr-2 text-xs tracking-wider text-ink-soft uppercase">{fr.label}</span>
+                            {cell?.text}
+                          </span>
+                        ) : cell?.onClick ? (
+                          <button
+                            type="button"
+                            onClick={cell.onClick}
+                            title="Choose what this cell shows"
+                            className={`tabular block w-full px-3 py-2 ${isRightAligned(column) ? 'text-right' : 'text-left'} hover:bg-stamp/[0.06] ${cell.error ? 'text-xs font-medium text-rust' : ''}`}
+                          >
+                            {cell.text === '' ? <span className="text-ink-soft/0 hover:text-ink-soft/70">＋ fn</span> : cell.text}
+                          </button>
+                        ) : (
+                          <span className="tabular block px-3 py-2">{cell?.text}</span>
+                        )}
+                      </div>
+                    )
+                  })}
+                  <div />
+                </div>
+              ))}
+              {footEnd && <div className="flex items-center justify-between gap-3 px-3 py-2 text-xs font-normal text-ink-soft">{footEnd}</div>}
+            </div>
+          ) : (
           <div
             role="row"
             className="sticky bottom-0 z-[2] grid grid-cols-[var(--cols)] border-t border-paper-line bg-[#f8fafc] text-[13.5px] font-bold"
@@ -745,6 +784,7 @@ export function Grid<R>(props: GridProps<R>) {
             })}
             <div />
           </div>
+          )}
         </div>
       </div>
 
