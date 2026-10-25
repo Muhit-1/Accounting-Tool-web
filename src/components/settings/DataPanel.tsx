@@ -5,6 +5,7 @@ import { useBusiness, useDeleteBusiness } from '../../lib/businesses'
 import { useCosts } from '../../lib/costs'
 import { downloadFile } from '../../lib/download'
 import { exportFileName, toCsv, toXlsx } from '../../lib/export-table'
+import { exportBookName, saveExport } from '../../lib/export-formulas'
 import { cashbookExport, costsExport, ordersExport, type ExportSheet } from '../../lib/export-rows'
 import { useOrders } from '../../lib/orders'
 import { useToast } from '../../lib/toast-context'
@@ -61,6 +62,19 @@ export function DataPanel({ businessId }: { businessId: string }) {
     }
   }
 
+  const [savingAll, setSavingAll] = useState(false)
+  async function handleExportAll() {
+    setSavingAll(true)
+    try {
+      const sheets = await saveExport(businessId, exportBookName(business?.name ?? 'tables'))
+      toast(sheets === 1 ? '1 table saved.' : `${sheets} tables saved.`)
+    } catch {
+      toast('Could not save the file.')
+    } finally {
+      setSavingAll(false)
+    }
+  }
+
   async function handleDelete() {
     await deleteBusiness.mutateAsync(businessId)
     navigate('/')
@@ -91,6 +105,15 @@ export function DataPanel({ businessId }: { businessId: string }) {
             <option value="csv">CSV (.csv)</option>
           </Select>
           <Button onClick={() => void handleExport()}>Export</Button>
+        </div>
+      </Panel>
+
+      <Panel title="Export with formulas">
+        <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+          <p className="max-w-md text-[13.5px] text-ink-soft">Every table of your own as one Excel file. Formula columns and function rows stay formulas, so the file still adds up in Excel and can be uploaded again.</p>
+          <Button onClick={() => void handleExportAll()} disabled={savingAll}>
+            {savingAll ? 'Saving…' : 'Export all tables'}
+          </Button>
         </div>
       </Panel>
 

@@ -28,6 +28,7 @@ import { PromptDialog } from '../PromptDialog'
 import { PostsButton } from '../workspace/PostsButton'
 import { TableHistoryDialog } from '../trust/TableHistoryDialog'
 import { ColumnDialog } from './ColumnDialog'
+import { exportBookName, saveExport } from '../../lib/export-formulas'
 import { filterSentence } from '../../lib/table-filters'
 import { FilterDialog } from './FilterDialog'
 import { FnDialog } from './FnDialog'
@@ -353,6 +354,14 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
               }
               toolbarRight={
                 <>
+                  <button
+                    type="button"
+                    onClick={() => void saveExport(businessId, exportBookName(table.name), table.id).then(() => toast('Saved with its formulas.')).catch(() => toast('Could not save the file.'))}
+                    title="Save this table as an Excel file whose formulas still calculate"
+                    className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft"
+                  >
+                    Excel with formulas
+                  </button>
                   <button type="button" onClick={() => setHistory(true)} className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft">
                     History
                   </button>
