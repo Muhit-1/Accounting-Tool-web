@@ -28,6 +28,7 @@ import { TableTab } from '../components/tables/TableTab'
 import { CashBookTab } from '../components/workspace/CashBookTab'
 import { PostingDialog } from '../components/workspace/PostingDialog'
 import { PostsButton } from '../components/workspace/PostsButton'
+import { StartCard } from '../components/workspace/StartCard'
 import { TableTabs, type TabInfo } from '../components/workspace/TableTabs'
 
 // Until the Orders and Costs templates replace them, these two older tables sit after the engine's tables.
@@ -103,6 +104,9 @@ export function WorkspacePage() {
       posts: isPostingTable(t.key) && tablePosts(postingConfig, t.key),
     })),
   ]
+  // A business nobody has touched yet: at most one table of its own and nothing in it, no older Orders or Costs.
+  const ownTables = engine.filter((t) => t.kind === 'TABLE')
+  const isFresh = !restricted && engineTables !== undefined && ownTables.length <= 1 && ownTables.every((t) => t.rowCount === 0) && legacyInUse.length === 0 && legacy !== undefined
   const requested = searchParams.get('tab')
   const active = tabs.find((t) => t.key === requested) ?? tabs[0]
   const activeEngine = active ? engine.find((t) => keyOf(t) === active.key) : undefined
@@ -236,6 +240,8 @@ export function WorkspacePage() {
           </div>
         )}
       </div>
+
+      {isFresh && <StartCard businessId={businessId} templates={templates ?? []} onUpload={() => setUploadingSheet(true)} onTemplate={(key) => void addTemplate(key)} />}
 
       <div className="mb-4">
         <TableTabs tabs={tabs} activeKey={active?.key ?? ''} onSelect={selectTab} menuFor={menuFor} onNew={restricted ? undefined : setNewMenu} onMove={moveTabs} />
