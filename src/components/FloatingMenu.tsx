@@ -5,14 +5,26 @@ export interface MenuItem {
   // A second, smaller line.
   hint?: string
   disabled?: boolean
+  // A coloured dot before the label (a table colour).
+  swatch?: string
+  // A check mark after the label (the current choice).
+  checked?: boolean
+  // Shown in red: a delete.
+  danger?: boolean
   onSelect?: () => void
 }
 
-export type MenuEntry = MenuItem | 'separator'
+// A small grey line that names the group of items under it.
+export interface MenuHeading {
+  heading: string
+}
 
-// A small menu opened from a button (column header, tab ▾, Columns). It sits
+export type MenuEntry = MenuItem | MenuHeading | 'separator'
+
+// A small menu opened from a button (column header, tab ⋮, Data). It sits
 // under the anchor, flips above when there is no room, closes on Escape or a
-// click outside, and moves with the arrow keys.
+// click outside, and moves with the arrow keys. It can also open at the mouse (right click):
+// give it a zero-size anchor at the pointer.
 export function FloatingMenu({
   anchor,
   items,
@@ -69,12 +81,18 @@ export function FloatingMenu({
       ref={box}
       role="menu"
       style={{ left: position.left, top: position.top }}
-      className="fixed z-[60] max-w-[calc(100vw-24px)] min-w-[210px] rounded-ledger border border-paper-line bg-white p-1.5 shadow-lg"
+      className="fixed z-[60] max-h-[calc(100vh-16px)] max-w-[calc(100vw-24px)] min-w-[220px] overflow-y-auto rounded-ledger border border-paper-line bg-white p-1.5 shadow-lg"
     >
-      {items.map((item, index) =>
-        item === 'separator' ? (
-          <hr key={`sep-${index}`} className="my-1 border-0 border-t border-paper-edge" />
-        ) : (
+      {items.map((item, index) => {
+        if (item === 'separator') return <hr key={`sep-${index}`} className="my-1 border-0 border-t border-paper-edge" />
+        if ('heading' in item) {
+          return (
+            <div key={`head-${index}`} className="px-2.5 pt-2 pb-1 text-[10.5px] font-bold tracking-wider text-ink-soft uppercase">
+              {item.heading}
+            </div>
+          )
+        }
+        return (
           <button
             key={`${item.label}-${index}`}
             type="button"
@@ -84,13 +102,21 @@ export function FloatingMenu({
               onClose()
               item.onSelect?.()
             }}
-            className="flex w-full flex-col rounded-[6px] px-2.5 py-1.5 text-left text-[13.5px] font-semibold enabled:hover:bg-stamp-soft disabled:cursor-not-allowed disabled:text-ink-soft/70"
+            className={`flex w-full items-center gap-2.5 rounded-[6px] px-2.5 py-1.5 text-left text-[13.5px] font-semibold enabled:hover:bg-stamp-soft disabled:cursor-not-allowed disabled:text-ink-soft/70 ${item.danger ? 'text-rust enabled:hover:bg-rust-soft' : ''}`}
           >
-            {item.label}
-            {item.hint && <span className="text-xs font-normal text-ink-soft">{item.hint}</span>}
+            {item.swatch && <span aria-hidden className="h-3 w-3 flex-none rounded-full" style={{ background: item.swatch }} />}
+            <span className="flex min-w-0 flex-1 flex-col">
+              {item.label}
+              {item.hint && <span className="text-xs font-normal text-ink-soft">{item.hint}</span>}
+            </span>
+            {item.checked && (
+              <span aria-label="current" className="flex-none text-stamp">
+                ✓
+              </span>
+            )}
           </button>
-        ),
-      )}
+        )
+      })}
     </div>
   )
 }

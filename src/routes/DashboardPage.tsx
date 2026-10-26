@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
 import { useBusiness, useBusinesses } from '../lib/businesses'
 import { useBusinessDashboard, useCombinedDashboard } from '../lib/dashboard'
@@ -7,6 +7,7 @@ import { useRecentTransactionsAcross, useTransactions, type TransactionWithBusin
 import { useInvoicesAcross, useInvoices, type InvoiceWithBusiness } from '../lib/invoices'
 import { useAccessGrantsAcross, useAccessGrants, type AccessGrantWithBusiness } from '../lib/access-grants'
 import { useAccounts } from '../lib/accounts'
+import { useTables } from '../lib/tables'
 import { formatMoney, formatPerCurrency } from '../lib/format'
 import { monthlyCashFlow, monthOverMonthDelta } from '../lib/cashflow'
 import { KpiBand, type KpiCell } from '../components/dashboard/KpiBand'
@@ -17,6 +18,7 @@ import { AccountsSummaryPanel } from '../components/dashboard/AccountsSummaryPan
 import { CashFlowChart } from '../components/dashboard/CashFlowChart'
 import { InvoiceStatusDonut, type InvoiceStatusSlice } from '../components/dashboard/InvoiceStatusDonut'
 import { Panel } from '../components/Panel'
+import { WelcomeCards } from '../components/workspace/StartPrompts'
 import type { InvoiceStatus } from '../types/api'
 
 function greeting(): string {
@@ -66,6 +68,7 @@ interface DashboardBody {
   isOwner: boolean
   isLoading: boolean
   accountsPanel?: ReactNode
+  welcome?: ReactNode
   emptyNote?: { title: string; body: string }
 }
 
@@ -82,6 +85,7 @@ function DashboardBody({
   isOwner,
   isLoading,
   accountsPanel,
+  welcome,
   emptyNote,
 }: DashboardBody) {
   return (
@@ -100,6 +104,8 @@ function DashboardBody({
           View reports
         </Link>
       </div>
+
+      {welcome}
 
       <KpiBand cells={kpiCells} />
 
@@ -224,6 +230,8 @@ function SingleBusinessDashboard({ businessId }: { businessId: string }) {
   const { data: rawInvoices, isLoading: isInvLoading } = useInvoices(businessId)
   const { data: rawGrants, isLoading: isGrantLoading } = useAccessGrants(businessId)
   const { data: accounts, isLoading: isAccountsLoading } = useAccounts(businessId)
+  const { data: engineTables } = useTables(businessId)
+  const navigate = useNavigate()
 
   const currency = business?.currency ?? 'BDT'
   const businessName = business?.name ?? ''
@@ -234,6 +242,11 @@ function SingleBusinessDashboard({ businessId }: { businessId: string }) {
     .map((tx) => ({ ...tx, businessId, businessName, currency }))
   const invoices: InvoiceWithBusiness[] = (rawInvoices ?? []).map((inv) => ({ ...inv, businessName, currency }))
   const grants: AccessGrantWithBusiness[] = (rawGrants ?? []).map((g) => ({ ...g, businessName }))
+
+  // A business nobody has touched yet gets the welcome (bring a sheet, use a template, start blank) once, here.
+  const ownTables = (engineTables ?? []).filter((t) => t.kind === 'TABLE')
+  const ledgerRows = (engineTables ?? []).find((t) => t.kind === 'LEDGER')?.rowCount ?? 0
+  const isFresh = isOwner && engineTables !== undefined && ownTables.length <= 1 && ownTables.every((t) => t.rowCount === 0) && ledgerRows === 0
 
   const { count, outstanding } = openInvoicesSummary(invoices)
   const hasActivity = (dashboard?.totalIncome ?? 0) > 0 || (dashboard?.totalExpense ?? 0) > 0
@@ -264,6 +277,14 @@ function SingleBusinessDashboard({ businessId }: { businessId: string }) {
       businessId={businessId}
       isOwner={isOwner}
       isLoading={isDashLoading || isTxLoading || isInvLoading || isGrantLoading}
+      welcome={
+        isFresh ? (
+          <WelcomeCards
+            businessId={businessId}
+            onChoose={(choice) => navigate(`/businesses/${businessId}/workspace${choice === 'blank' ? '' : `?do=${choice}`}`)}
+          />
+        ) : undefined
+      }
       accountsPanel={
         <AccountsSummaryPanel
           businessId={businessId}

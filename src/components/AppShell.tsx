@@ -196,6 +196,8 @@ export function AppShell() {
   // Someone who was given only some tables (no Cash book among them) gets a menu of just those.
   const { data: tableList } = useTables(businessId)
   const tableOnly = tableList !== undefined && !tableList.some((t) => t.kind === 'LEDGER')
+  // The Workspace, the Connections map and the invoice editor use the whole page: no margins, one scroll.
+  const fullBleed = businessId !== undefined && new RegExp(`^/businesses/${businessId}/(workspace|accounts|connections|invoices/new|invoices/[^/]+/edit)(/|$)`).test(location.pathname)
 
   return (
     <div className="md:grid md:h-screen md:grid-cols-[248px_1fr] md:overflow-hidden">
@@ -229,7 +231,7 @@ export function AppShell() {
             <NavHeading>Workspace</NavHeading>
             <NavLink
               to={`/businesses/${businessId}/workspace`}
-              label="Cash book"
+              label="Workspace"
               icon={IconTable}
               active={['workspace', 'accounts'].some((part) => location.pathname.startsWith(`/businesses/${businessId}/${part}`))}
             />
@@ -304,7 +306,7 @@ export function AppShell() {
 
       <div className="min-w-0 md:flex md:flex-col md:overflow-hidden">
         <TopBar />
-        <main className="scrollbar-thin bg-paper px-5 pt-8 pb-14 md:flex-1 md:overflow-y-auto md:px-10">
+        <main className={`scrollbar-thin md:flex-1 ${fullBleed ? 'bg-white md:overflow-auto' : 'bg-paper px-5 pt-8 pb-14 md:overflow-y-auto md:px-10'}`}>
           <Outlet />
         </main>
       </div>

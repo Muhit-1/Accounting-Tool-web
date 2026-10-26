@@ -1,4 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
+import { columnLetter, fillerRowCount } from '../../lib/grid-letters'
 import { formatDateCell, formatMoneyCell, parseDateInput, parseMoneyInput } from '../../lib/grid-parse'
 import { downloadFile } from '../../lib/download'
 import { exportFileName, toCsv, toXlsx, type ExportCell } from '../../lib/export-table'
@@ -6,8 +8,10 @@ import { searchRows, sortRows, sumMoney, type SortDir } from '../../lib/grid-row
 import { useGridPrefs } from '../../lib/use-grid-prefs'
 import { useToast } from '../../lib/toast-context'
 import { FloatingMenu, type MenuEntry } from '../FloatingMenu'
+import { Popover } from '../Popover'
 import { PromptDialog } from '../PromptDialog'
-import { IconLink, IconLock, IconTrash } from '../icons'
+import { useWorkspaceChrome } from '../workspace/workspace-chrome'
+import { IconLink, IconLock, IconSearch, IconTrash } from '../icons'
 import { ChoiceCell, ReadCell, TextCell, TickCell } from './GridCells'
 import { NEW_CHOICE, type GridColumn, type GridProps, type RowLock } from './grid-types'
 
@@ -110,19 +114,22 @@ function BodyRowImpl<R>({
       role="row"
       className={`group/row relative grid grid-cols-[var(--cols)] border-b border-paper-edge ${lock ? 'bg-[var(--color-brass-row)]' : picked ? 'bg-[var(--color-sel)]' : 'bg-white'}`}
     >
-      <div className="flex items-center justify-center border-r border-paper-edge">
+      <div className="relative flex items-center justify-center border-r border-paper-edge bg-[#f8fafc] text-[11.5px] text-ink-soft">
         {lock ? (
           <span className="text-brass" title={`Posted from ${lock.label} — change it there`}>
             <IconLock width={14} height={14} />
           </span>
         ) : (
-          <input
-            type="checkbox"
-            checked={picked}
-            aria-label="Select row"
-            className="h-4 w-4 accent-stamp"
-            onChange={(event) => pick(id, event.target.checked)}
-          />
+          <>
+            <span className={picked ? 'opacity-0' : 'group-focus-within/row:opacity-0 group-hover/row:opacity-0'}>{index + 1}</span>
+            <input
+              type="checkbox"
+              checked={picked}
+              aria-label="Select row"
+              className={`absolute h-4 w-4 accent-stamp focus-visible:opacity-100 group-hover/row:opacity-100 ${picked ? 'opacity-100' : 'opacity-0'}`}
+              onChange={(event) => pick(id, event.target.checked)}
+            />
+          </>
         )}
       </div>
 
@@ -282,7 +289,13 @@ export function Grid<R>(props: GridProps<R>) {
     leadRow,
     onPasteText,
     toolbarLeft,
-    toolbarRight,
+    toolbarEnd,
+    summary,
+    filterPanel,
+    filterCount,
+    viewMenuItems,
+    dataMenuItems,
+    minRows,
     emptyTitle,
     emptyHint,
     noun,
@@ -294,6 +307,8 @@ export function Grid<R>(props: GridProps<R>) {
     footEnd,
   } = props
   const toast = useToast()
+  const chrome = useWorkspaceChrome()
+  const root = useRef<HTMLDivElement>(null)
   const { prefs, rename, hide, show } = useGridPrefs(prefsKey)
 
   const [sort, setSort] = useState<SortState>(null)
@@ -304,6 +319,7 @@ export function Grid<R>(props: GridProps<R>) {
   const [bad, setBad] = useState<BadCell | null>(null)
   const [menu, setMenu] = useState<{ anchor: DOMRect; items: MenuEntry[] } | null>(null)
   const [renaming, setRenaming] = useState<GridColumn<R> | null>(null)
+  const [filterAnchor, setFilterAnchor] = useState<DOMRect | null>(null)
 
   // The viewer's own column names; the columns they hid are left out.
   const labelled = useMemo(
@@ -400,16 +416,6 @@ export function Grid<R>(props: GridProps<R>) {
     setMenu({ anchor, items })
   }
 
-  function openColumnsMenu(anchor: DOMRect) {
-    const items: MenuEntry[] = hiddenColumns.map((column) => ({
-      label: `Show “${column.label}”`,
-      onSelect: () => show(column.id),
-    }))
-    if (hiddenColumns.length > 1) items.push({ label: 'Show all columns', onSelect: () => show('all') })
-    if (items.length === 0) items.push({ label: 'No hidden columns', disabled: true })
-    setMenu({ anchor, items })
-  }
-
   async function exportTo(kind: 'csv' | 'xlsx') {
     const headers = visible.map((column) => column.label)
     const body = list.map((row) => visible.map((column) => exportCell(column, row)))
@@ -428,16 +434,6 @@ export function Grid<R>(props: GridProps<R>) {
     }
   }
 
-  function openExportMenu(anchor: DOMRect) {
-    setMenu({
-      anchor,
-      items: [
-        { label: 'Excel file (.xlsx)', hint: 'Values only, the columns you see.', onSelect: () => void exportTo('xlsx') },
-        { label: 'CSV file (.csv)', hint: 'Opens in any spreadsheet.', onSelect: () => void exportTo('csv') },
-      ],
-    })
-  }
-
   function togglePickAll(checked: boolean) {
     setPicked(checked ? new Set(selectable.map(rowId)) : new Set())
   }
@@ -445,113 +441,150 @@ export function Grid<R>(props: GridProps<R>) {
   const sumColumns = visible.filter((column) => column.sum)
   const draft = addRow
   const draftIndex = shown.length
+  const fillers = minRows ? fillerRowCount(minRows, shown.length, Boolean(draft)) : 0
+  // A sheet with a minimum of rows shows its empty rows instead of a message (unless a search found nothing).
+  const showEmptyMessage = list.length === 0 && (isFiltered || !minRows)
+  const letterOf = (columnId: string) => columnLetter(labelled.findIndex((column) => column.id === columnId))
+  const filterBadge = (filterValue !== '' ? 1 : 0) + (filterCount ?? 0)
+  const hasFilterPanel = Boolean(filter) || Boolean(filterPanel)
 
-  return (
-    <div data-grid-root className="overflow-hidden rounded-ledger border border-paper-line bg-white">
-      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-paper-line px-3.5 py-2.5">
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search"
-            aria-label="Search"
-            className="w-44 rounded-ledger border border-paper-line bg-paper px-2.5 py-1.5 text-[13px]"
-          />
-          {filter && (
-            <select
-              value={filterValue}
-              onChange={(event) => setFilterValue(event.target.value)}
-              aria-label="Filter"
-              className="rounded-ledger border border-paper-line bg-paper px-2.5 py-1.5 text-[13px]"
-            >
-              <option value="">{filter.label}</option>
-              {filter.choices.map((choice) => (
-                <option key={choice.value} value={choice.value}>
-                  {choice.label}
-                </option>
-              ))}
-            </select>
-          )}
+  function focusDraft(columnId: string) {
+    root.current?.querySelector<HTMLElement>(`[data-grid-cell][data-draft][data-col="${CSS.escape(columnId)}"]`)?.focus()
+  }
+
+  const toolButton = 'inline-flex items-center gap-1.5 rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-stamp-soft'
+
+  const viewItems: MenuEntry[] = [
+    ...hiddenColumns.map((column) => ({ label: `Show “${column.label}”`, onSelect: () => show(column.id) }) as MenuEntry),
+    ...(hiddenColumns.length > 1 ? [{ label: 'Show all columns', onSelect: () => show('all') } as MenuEntry] : []),
+    ...(hiddenColumns.length === 0 ? [{ label: 'No hidden columns', hint: 'Hide one from its column menu.', disabled: true } as MenuEntry] : []),
+    ...(viewMenuItems && viewMenuItems.length > 0 ? (['separator', ...viewMenuItems] as MenuEntry[]) : []),
+  ]
+  const exportItems: MenuEntry[] = exportName
+    ? [
+        { label: 'Export to Excel (.xlsx)', hint: 'Values only, the columns you see.', onSelect: () => void exportTo('xlsx') },
+        { label: 'Export to CSV (.csv)', hint: 'Opens in any spreadsheet.', onSelect: () => void exportTo('csv') },
+      ]
+    : []
+  const dataItems: MenuEntry[] = [...(dataMenuItems ?? []), ...(dataMenuItems && dataMenuItems.length > 0 && exportItems.length > 0 ? (['separator'] as MenuEntry[]) : []), ...exportItems]
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2 border-b border-paper-line bg-white px-4 py-2">
+      <label className="relative block">
+        <IconSearch width={15} height={15} className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-ink-soft" />
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search"
+          aria-label="Search"
+          className="w-48 rounded-ledger border border-paper-line bg-white py-1.5 pr-2.5 pl-8 text-[13px] focus:border-stamp focus:outline-none"
+        />
+      </label>
+      {hasFilterPanel && (
+        <button type="button" aria-haspopup="dialog" onClick={(event) => setFilterAnchor(event.currentTarget.getBoundingClientRect())} className={toolButton}>
+          Filter
+          {filterBadge > 0 && <span className="rounded-full bg-stamp px-1.5 text-[11px] leading-[18px] text-white">{filterBadge}</span>}
+          <span className="text-[10px] opacity-50">▾</span>
+        </button>
+      )}
+      <button type="button" aria-haspopup="menu" onClick={(event) => setMenu({ anchor: event.currentTarget.getBoundingClientRect(), items: viewItems })} className={toolButton}>
+        View{hiddenColumns.length > 0 ? ` (${hiddenColumns.length} hidden)` : ''}
+        <span className="text-[10px] opacity-50">▾</span>
+      </button>
+      {toolbarLeft}
+      <div className="flex-1" />
+      {summary}
+      {dataItems.length > 0 && (
+        <button type="button" aria-haspopup="menu" onClick={(event) => setMenu({ anchor: event.currentTarget.getBoundingClientRect(), items: dataItems })} className={toolButton}>
+          Data
+          <span className="text-[10px] opacity-50">▾</span>
+        </button>
+      )}
+      {toolbarEnd}
+    </div>
+  )
+
+  const bulkBar =
+    pickedRows.length > 0 ? (
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 bg-ink px-4 py-2.5 text-[13.5px] text-white">
+        <span>
+          <b>{pickedRows.length}</b> selected
+        </span>
+        {sumColumns.slice(0, 2).map((column) => (
+          <span key={column.id}>
+            {column.label} <b className="tabular">{formatMoneyCell(sumMoney(pickedRows.map((row) => Number(column.value(row)))))}</b>
+          </span>
+        ))}
+        {bulkActions?.map((action) => (
+          <select
+            key={action.id}
+            value=""
+            aria-label={action.label}
+            className="rounded-ledger border-0 bg-white px-2 py-1 text-[13px] text-ink"
+            onChange={async (event) => {
+              const value = event.target.value
+              if (value === '') return
+              await action.run(pickedRows, value)
+              setPicked(new Set())
+            }}
+          >
+            <option value="">{action.label}</option>
+            {action.choices.map((choice) => (
+              <option key={choice.value} value={choice.value}>
+                {choice.label}
+              </option>
+            ))}
+          </select>
+        ))}
+        {onDeleteRows && (
           <button
             type="button"
-            onClick={(event) => openColumnsMenu(event.currentTarget.getBoundingClientRect())}
-            className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft"
+            className="font-semibold text-stamp-soft underline"
+            onClick={() => {
+              onDeleteRows(pickedRows)
+              setPicked(new Set())
+            }}
           >
-            Columns{hiddenColumns.length > 0 ? ` (${hiddenColumns.length} hidden)` : ''}
+            Delete
           </button>
-          {toolbarLeft}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {toolbarRight}
-          {exportName && (
-            <button
-              type="button"
-              aria-haspopup="menu"
-              onClick={(event) => openExportMenu(event.currentTarget.getBoundingClientRect())}
-              className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft"
-            >
-              Export
-            </button>
-          )}
-        </div>
+        )}
+        <button type="button" className="text-stamp-soft underline" onClick={() => setPicked(new Set())}>
+          Clear
+        </button>
       </div>
+    ) : null
 
-      {pickedRows.length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 bg-ink px-4 py-2.5 text-[13.5px] text-white">
-          <span>
-            <b>{pickedRows.length}</b> selected
-          </span>
-          {sumColumns.slice(0, 2).map((column) => (
-            <span key={column.id}>
-              {column.label}{' '}
-              <b className="tabular">{formatMoneyCell(sumMoney(pickedRows.map((row) => Number(column.value(row)))))}</b>
-            </span>
-          ))}
-          {bulkActions?.map((action) => (
-            <select
-              key={action.id}
-              value=""
-              aria-label={action.label}
-              className="rounded-ledger border-0 bg-white px-2 py-1 text-[13px] text-ink"
-              onChange={async (event) => {
-                const value = event.target.value
-                if (value === '') return
-                await action.run(pickedRows, value)
-                setPicked(new Set())
-              }}
-            >
-              <option value="">{action.label}</option>
-              {action.choices.map((choice) => (
-                <option key={choice.value} value={choice.value}>
-                  {choice.label}
-                </option>
-              ))}
-            </select>
-          ))}
-          {onDeleteRows && (
-            <button
-              type="button"
-              className="font-semibold text-stamp-soft underline"
-              onClick={() => {
-                onDeleteRows(pickedRows)
-                setPicked(new Set())
-              }}
-            >
-              Delete
-            </button>
-          )}
-          <button type="button" className="text-stamp-soft underline" onClick={() => setPicked(new Set())}>
-            Clear
-          </button>
-        </div>
-      )}
+  const head = (
+    <>
+      {toolbar}
+      {bulkBar}
+    </>
+  )
 
-      <div className="max-h-[640px] overflow-auto overscroll-contain" role="table" aria-label={`${noun}s`}>
+  return (
+    <div ref={root} data-grid-root className="bg-white">
+      {chrome.toolbarHost ? createPortal(head, chrome.toolbarHost) : head}
+
+      <div role="table" aria-label={`${noun}s`}>
         <div className="min-w-max" style={{ '--cols': gridTemplate } as CSSProperties}>
+          {/* A, B, C … like a spreadsheet. They stay under the tabs and the toolbar while the rows scroll. */}
+          <div
+            role="presentation"
+            aria-hidden
+            className="sticky top-[var(--ws-top,0px)] z-[3] grid h-[22px] grid-cols-[var(--cols)] border-b border-paper-line bg-[#f8fafc] text-[11px] tracking-wider text-ink-soft"
+          >
+            <div className="border-r border-paper-edge" />
+            {visible.map((column) => (
+              <div key={column.id} className="flex items-center justify-center border-r border-paper-edge">
+                {letterOf(column.id)}
+              </div>
+            ))}
+            <div />
+          </div>
           <div
             role="row"
-            className="sticky top-0 z-[3] grid grid-cols-[var(--cols)] border-b border-paper-line bg-[#f8fafc]"
+            className="sticky top-[calc(var(--ws-top,0px)+22px)] z-[3] grid grid-cols-[var(--cols)] border-b-2 border-paper-line bg-[#f8fafc]"
           >
             <div className="flex items-center justify-center border-r border-paper-edge">
               <input
@@ -568,18 +601,18 @@ export function Grid<R>(props: GridProps<R>) {
                   type="button"
                   aria-haspopup="menu"
                   onClick={(event) => openHeaderMenu(column, event.currentTarget.getBoundingClientRect())}
-                  className={`flex w-full items-center gap-1.5 px-3 py-2 text-left text-xs font-semibold tracking-wider text-ink-soft uppercase hover:bg-stamp/[0.06] hover:text-stamp ${isRightAligned(column) ? 'justify-end' : ''}`}
+                  className={`group/head flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-[13px] font-semibold text-ink hover:bg-stamp/[0.06] hover:text-stamp ${isRightAligned(column) ? 'justify-end' : ''}`}
                 >
                   {(column.locked || column.type === 'calc') && (
                     <span className="text-brass" title="Worked out for you">
                       <IconLock width={12} height={12} />
                     </span>
                   )}
-                  <span className="truncate">{column.label}</span>
+                  <span className="truncate">{column.unnamed ? <span className="font-medium text-ink-soft/60">Name</span> : column.label}</span>
                   {sort?.columnId === column.id ? (
                     <span aria-label={sort.dir === 1 ? 'sorted ascending' : 'sorted descending'}>{sort.dir === 1 ? '↑' : '↓'}</span>
                   ) : (
-                    <span className="text-[10px] opacity-45">▾</span>
+                    <span className="text-[10px] opacity-0 group-hover/head:opacity-60 group-focus-visible/head:opacity-60">▾</span>
                   )}
                 </button>
               </div>
@@ -599,7 +632,7 @@ export function Grid<R>(props: GridProps<R>) {
             </div>
           )}
 
-          {list.length === 0 && (
+          {showEmptyMessage && (
             <div className="border-b border-paper-edge px-5 py-8 text-center text-sm text-ink-soft">
               {!isFiltered ? (
                 <>
@@ -643,8 +676,8 @@ export function Grid<R>(props: GridProps<R>) {
           )}
 
           {draft && (
-            <div role="row" className="grid grid-cols-[var(--cols)] border-b border-paper-edge bg-[#f8fafc]">
-              <div />
+            <div role="row" className="grid grid-cols-[var(--cols)] border-b border-paper-edge bg-white">
+              <div className="flex items-center justify-center border-r border-paper-edge bg-[#f8fafc] text-[11.5px] text-ink-soft">{draftIndex + 1}</div>
               {visible.map((column) => {
                 const address = { column: column.id, row: draftIndex, draft: true }
                 const isBad = draft.badColumn === column.id
@@ -727,15 +760,42 @@ export function Grid<R>(props: GridProps<R>) {
             </div>
           )}
 
+          {/* Empty rows, only so that the sheet looks like a sheet. A click goes to the add-row. */}
+          {Array.from({ length: fillers }, (_, i) => (
+            <div key={`filler-${i}`} aria-hidden className="grid h-[38px] grid-cols-[var(--cols)] border-b border-paper-edge bg-white">
+              <div className="flex items-center justify-center border-r border-paper-edge bg-[#f8fafc] text-[11.5px] text-ink-soft/70">
+                {shown.length + (draft ? 2 : 1) + i}
+              </div>
+              {visible.map((column) => (
+                <div
+                  key={column.id}
+                  className="border-r border-paper-edge"
+                  onMouseDown={
+                    draft
+                      ? (event) => {
+                          event.preventDefault()
+                          focusDraft(column.id)
+                        }
+                      : undefined
+                  }
+                />
+              ))}
+              <div />
+            </div>
+          ))}
+
           {footRows ? (
-            <div className="sticky bottom-0 z-[2] border-t border-paper-line bg-[#f8fafc] text-[13.5px]">
+            <div className="sticky bottom-0 z-[2] border-t-2 border-paper-line bg-[#f8fafc] text-[13.5px]">
               {footRows.map((fr) => (
                 <div key={fr.id} role="row" className="grid grid-cols-[var(--cols)] border-b border-paper-edge font-semibold last:border-b-0">
-                  <div />
+                  <div aria-hidden className="flex items-center justify-center text-[16px] text-stamp">
+                    Σ
+                  </div>
                   {visible.map((column, index) => {
                     const cell = fr.cells[column.id]
+                    const right = isRightAligned(column)
                     return (
-                      <div key={column.id} className={`relative min-w-0 border-r border-paper-edge/60 ${isRightAligned(column) ? 'text-right' : ''}`}>
+                      <div key={column.id} className={`relative flex min-w-0 items-center border-r border-paper-edge/60 ${right ? 'justify-end' : ''}`}>
                         {index === 0 ? (
                           <span className="block px-3 py-2">
                             <span className="mr-2 text-xs tracking-wider text-ink-soft uppercase">{fr.label}</span>
@@ -746,9 +806,19 @@ export function Grid<R>(props: GridProps<R>) {
                             type="button"
                             onClick={cell.onClick}
                             title="Choose what this cell shows"
-                            className={`tabular block w-full px-3 py-2 ${isRightAligned(column) ? 'text-right' : 'text-left'} hover:bg-stamp/[0.06] ${cell.error ? 'text-xs font-medium text-rust' : ''}`}
+                            className={`m-1 inline-flex max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-[13px] hover:border-stamp hover:text-stamp ${
+                              cell.text === '' ? 'border-dashed border-paper-line bg-white text-ink-soft' : 'border-paper-line bg-white'
+                            } ${cell.error ? 'text-xs font-medium text-rust' : ''}`}
                           >
-                            {cell.text === '' ? <span className="text-ink-soft/0 hover:text-ink-soft/70">＋ fn</span> : cell.text}
+                            {cell.text === '' ? (
+                              <span className="font-semibold">{right ? 'Add' : 'Σ'}</span>
+                            ) : (
+                              <>
+                                {cell.label && <span className="text-[11.5px] font-semibold text-ink-soft">{cell.label}</span>}
+                                <span className="tabular truncate">{cell.text}</span>
+                              </>
+                            )}
+                            <span className="text-[10px] opacity-50">▾</span>
                           </button>
                         ) : (
                           <span className="tabular block px-3 py-2">{cell?.text}</span>
@@ -759,34 +829,64 @@ export function Grid<R>(props: GridProps<R>) {
                   <div />
                 </div>
               ))}
-              {footEnd && <div className="flex items-center justify-between gap-3 px-3 py-2 text-xs font-normal text-ink-soft">{footEnd}</div>}
+              {footEnd && <div className="sticky left-0 flex w-max max-w-[100vw] items-center gap-5 border-t border-paper-edge px-3 py-1.5 text-[12.5px] font-normal text-ink-soft">{footEnd}</div>}
             </div>
           ) : (
-          <div
-            role="row"
-            className="sticky bottom-0 z-[2] grid grid-cols-[var(--cols)] border-t border-paper-line bg-[#f8fafc] text-[13.5px] font-bold"
-          >
-            <div />
-            {visible.map((column, index) => {
-              let text = ''
-              if (column.footer) text = column.footer(list)
-              else if (column.sum) text = formatMoneyCell(sumMoney(list.map((row) => Number(column.value(row)))))
-              else if (index === 0) text = `Total · ${list.length} ${list.length === 1 ? noun : `${noun === 'entry' ? 'entries' : `${noun}s`}`}`
-              const right = Boolean(column.footer) || Boolean(column.sum)
-              return (
-                <div
-                  key={column.id}
-                  className={`px-3 py-2.5 whitespace-nowrap ${right ? 'tabular text-right' : ''} ${column.tone === 'in' ? 'text-green' : column.tone === 'out' ? 'text-rust' : ''}`}
-                >
-                  {text}
-                </div>
-              )
-            })}
-            <div />
-          </div>
+            <div role="row" className="sticky bottom-0 z-[2] grid grid-cols-[var(--cols)] border-t-2 border-paper-line bg-[#f8fafc] text-[13.5px] font-bold">
+              <div aria-hidden className="flex items-center justify-center text-[16px] text-stamp">
+                Σ
+              </div>
+              {visible.map((column, index) => {
+                let text = ''
+                if (column.footer) text = column.footer(list)
+                else if (column.sum) text = formatMoneyCell(sumMoney(list.map((row) => Number(column.value(row)))))
+                else if (index === 0) text = `${list.length} ${list.length === 1 ? noun : noun === 'entry' ? 'entries' : `${noun}s`}`
+                const right = Boolean(column.footer) || Boolean(column.sum)
+                return (
+                  <div
+                    key={column.id}
+                    className={`px-3 py-2.5 whitespace-nowrap ${right ? 'tabular text-right' : 'font-semibold text-ink-soft'} ${column.tone === 'in' ? 'text-green' : column.tone === 'out' ? 'text-rust' : ''}`}
+                  >
+                    {text}
+                  </div>
+                )
+              })}
+              <div />
+            </div>
           )}
         </div>
       </div>
+
+      {filterAnchor && (
+        <Popover anchor={filterAnchor} title="Filter" onClose={() => setFilterAnchor(null)}>
+          <div className="flex flex-col gap-3 text-[13px]">
+            {filter && (
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-bold tracking-wider text-ink-soft uppercase">{filter.label.replace(/^All /, '')}</span>
+                <select
+                  value={filterValue}
+                  onChange={(event) => setFilterValue(event.target.value)}
+                  aria-label="Filter"
+                  className="w-full rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[13px]"
+                >
+                  <option value="">{filter.label}</option>
+                  {filter.choices.map((choice) => (
+                    <option key={choice.value} value={choice.value}>
+                      {choice.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {filterPanel?.(() => setFilterAnchor(null))}
+            {filterValue !== '' && (
+              <button type="button" className="self-start text-[12.5px] font-semibold text-stamp underline" onClick={() => setFilterValue('')}>
+                Clear this filter
+              </button>
+            )}
+          </div>
+        </Popover>
+      )}
 
       {menu && <FloatingMenu anchor={menu.anchor} items={menu.items} onClose={() => setMenu(null)} />}
 

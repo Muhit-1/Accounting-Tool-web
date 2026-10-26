@@ -19,10 +19,10 @@ describe('buildMap', () => {
   const map = buildMap([ledger, partners, costs, orders])
   it('puts the Cash book in the middle, sources left and link targets right', () => {
     const at = (id: string) => map.nodes.find((n) => n.id === id)!
-    expect(at('cb').x).toBe(345)
-    expect(at('c').x).toBe(30)
-    expect(at('o').x).toBe(30)
-    expect(at('p').x).toBe(660)
+    expect(at('cb').x).toBe(300)
+    expect(at('c').x).toBe(40)
+    expect(at('o').x).toBe(40)
+    expect(at('p').x).toBe(560)
     expect(at('c').y).not.toBe(at('o').y)
   })
   it('draws one arrow per link column and per switched-on rule', () => {
@@ -33,6 +33,10 @@ describe('buildMap', () => {
     expect(plain.edges).toEqual([])
     expect(plain.nodes).toHaveLength(1)
     expect(plain.height).toBeGreaterThan(100)
+  })
+  it('keeps the boxes small', () => {
+    expect(BOX_W).toBeLessThanOrEqual(160)
+    expect(BOX_H).toBeLessThanOrEqual(60)
   })
 })
 

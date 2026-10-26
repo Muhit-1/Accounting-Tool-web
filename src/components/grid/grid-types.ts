@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { MenuEntry } from '../FloatingMenu'
 
 // A table is described by its columns; the grid draws, edits, sorts, filters
 // and totals whatever it is given. Cash book, Orders, Costs and Invoices are
@@ -20,6 +21,8 @@ export interface GridColumn<R> {
   width: string
   // Worked out by the app (a balance, a total): shows a lock and cannot be typed in.
   locked?: boolean
+  // The label is only a default ("Column 3"): the header shows a faint "Name" so the sheet looks blank like a spreadsheet.
+  unnamed?: boolean
   // Needed for the totals or the row's identity: cannot be hidden.
   required?: boolean
   tone?: 'in' | 'out'
@@ -123,10 +126,23 @@ export interface GridProps<R> {
   leadRow?: (rows: R[], sorted: boolean) => Record<string, string> | null
   // Pasting several lines into any cell hands the text to the caller.
   onPasteText?: (text: string) => void
+  // Chips and the like right after the Filter and View buttons (the filters that are on).
   toolbarLeft?: ReactNode
-  toolbarRight?: ReactNode
-  // The table's name; adds an Export button (.xlsx / .csv of the rows and columns in view).
+  // The main actions, at the very end of the toolbar (Add entry, Posts to Cash book).
+  toolbarEnd?: ReactNode
+  // A short line of numbers before the Data menu (money in, money out, balance).
+  summary?: ReactNode
+  // More controls inside the Filter panel, under the built-in filter. `close` shuts the panel.
+  filterPanel?: (close: () => void) => ReactNode
+  // How many filters the panel adds, for the badge on the Filter button.
+  filterCount?: number
+  // Items added to the View menu and to the Data menu.
+  viewMenuItems?: MenuEntry[]
+  dataMenuItems?: MenuEntry[]
+  // The table's name; adds Export to the Data menu (.xlsx / .csv of the rows and columns in view).
   exportName?: string
+  // Draw empty rows under the data until the sheet has at least this many, so it looks like a sheet.
+  minRows?: number
   // Shown when the table has no rows at all.
   emptyTitle: string
   emptyHint: string
@@ -146,6 +162,8 @@ export interface GridProps<R> {
 
 export interface FootCell {
   text: string
+  // What the cell works out ("Sum", "Average"), shown before the number.
+  label?: string
   error?: boolean
   // Click to choose what this cell shows.
   onClick?: () => void

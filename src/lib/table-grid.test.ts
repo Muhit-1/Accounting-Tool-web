@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildDraftValues, cellText, columnWidth, parseNumberInput, planCellEdit } from './table-grid'
+import { buildDraftValues, cellText, columnWidth, FN_LABEL, parseNumberInput, planCellEdit } from './table-grid'
 import type { EngineRow, TableField } from '../types/engine'
 
 const f = (type: TableField['type'], config: Record<string, unknown> = {}, id = 'f1'): TableField => ({ id, name: 'Col', type, config, position: 0, locked: false })
@@ -76,5 +76,12 @@ describe('columnWidth', () => {
   it('gives text the room and tick boxes little', () => {
     expect(columnWidth(f('TEXT'))).toContain('minmax')
     expect(columnWidth(f('TICK'))).toBe('84px')
+  })
+})
+
+describe('FN_LABEL', () => {
+  it('names every kind of summary cell', () => {
+    for (const kind of ['sum', 'avg', 'count', 'min', 'max', 'last', 'formula']) expect(FN_LABEL[kind]).toBeTruthy()
+    expect(FN_LABEL.avg).toBe('Average')
   })
 })

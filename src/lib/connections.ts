@@ -3,8 +3,8 @@ import type { EngineTable } from '../types/engine'
 // The "Connections" picture: your tables as boxes, a blue arrow for every link column and a gold dashed
 // arrow from every table that posts to the Cash book. Pure layout, so it is tested without a browser.
 
-export const BOX_W = 190
-export const BOX_H = 74
+export const BOX_W = 150
+export const BOX_H = 54
 
 export interface MapNode {
   id: string
@@ -57,9 +57,9 @@ export function buildMap(tables: EngineTable[]): ConnectionMap {
     y,
   })
   const nodes: MapNode[] = [
-    ...left.map((t, i) => make(t, 30, 30 + i * 140)),
-    ...right.map((t, i) => make(t, 660, 170 + i * 140)),
-    ...(ledger ? [make(ledger, 345, 30)] : []),
+    ...left.map((t, i) => make(t, 40, 40 + i * 100)),
+    ...right.map((t, i) => make(t, 560, 140 + i * 100)),
+    ...(ledger ? [make(ledger, 300, 40)] : []),
   ]
   const ids = new Set(nodes.map((n) => n.id))
   const edges: MapEdge[] = []
@@ -70,7 +70,7 @@ export function buildMap(tables: EngineTable[]): ConnectionMap {
     if (ledger) for (const r of t.rules) if (r.enabled) edges.push({ id: `p-${r.id}`, from: t.id, to: ledger.id, kind: 'post', label: postLabel(t, r) })
   }
   const rowsN = Math.max(left.length, right.length + 1, 2)
-  return { nodes, edges, width: 880, height: 60 + rowsN * 140 }
+  return { nodes, edges, width: 760, height: 60 + rowsN * 100 }
 }
 
 // Where an arrow leaves one box and enters another: on their borders, not their centres.

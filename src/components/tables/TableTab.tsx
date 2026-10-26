@@ -4,7 +4,7 @@ import { ApiError, api } from '../../lib/api-client'
 import { useAuth } from '../../lib/auth-context'
 import { formatMoneyCell } from '../../lib/grid-parse'
 import { gridPrefsKey } from '../../lib/grid-prefs'
-import { buildDraftValues, cellText, columnWidth, isDerived, planCellEdit } from '../../lib/table-grid'
+import { buildDraftValues, cellText, columnWidth, FN_LABEL, isDerived, planCellEdit } from '../../lib/table-grid'
 import {
   useCreateRow,
   useDeleteField,
@@ -21,7 +21,6 @@ import {
 import { useToast } from '../../lib/toast-context'
 import { useDeferredDelete } from '../../lib/use-deferred-delete'
 import type { EngineRow, EngineRows, EngineTable, FnRow, FnSpec, TableField, ViewFilter } from '../../types/engine'
-import { FloatingMenu, type MenuEntry } from '../FloatingMenu'
 import { Grid } from '../grid/Grid'
 import type { FootRow, GridColumn } from '../grid/grid-types'
 import { PromptDialog } from '../PromptDialog'
@@ -100,7 +99,6 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
   const [fnRenaming, setFnRenaming] = useState<FnRow | null>(null)
   const [filtering, setFiltering] = useState(false)
   const [savingView, setSavingView] = useState(false)
-  const [menu, setMenu] = useState<{ anchor: DOMRect; items: MenuEntry[] } | null>(null)
 
   // The rows of every table this one links to, so a link column can offer them.
   const linkFields = useMemo(() => table.fields.filter((f) => f.type === 'LINK'), [table.fields])
@@ -188,6 +186,7 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
         const column: GridColumn<EngineRow> = {
           id: f.id,
           label: f.name,
+          unnamed: /^Column \d+$/.test(f.name),
           type: kind,
           width: columnWidth(f),
           locked: isDerived(f) || !canEdit,
@@ -234,7 +233,7 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
           const spec = fr.cells[f.id]
           const r = result?.id === fr.id ? result.cells[f.id] : undefined
           const text = !spec ? '' : r?.e ? r.e : r === undefined ? '…' : typeof r.v === 'number' ? formatMoneyCell(r.v) : String(r.v ?? '')
-          cells[f.id] = { text, error: Boolean(r?.e), onClick: canDesign ? () => setFnDialog({ row: fr, field: f }) : undefined }
+          cells[f.id] = { text, label: spec ? FN_LABEL[spec.fn] : undefined, error: Boolean(r?.e), onClick: canDesign ? () => setFnDialog({ row: fr, field: f }) : undefined }
         }
         return { id: fr.id, label: fr.label, cells }
       }),
@@ -257,26 +256,6 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
     const cells: Record<string, FnSpec> = {}
     for (const f of money.slice(0, 6)) cells[f.id] = { fn: 'sum' }
     void saveFnRows([...table.fnRows, { id: `fn${Date.now().toString(36)}`, label, cells }])
-  }
-
-  function openViewMenu(anchor: DOMRect) {
-    const items: MenuEntry[] = table.views.map((v) => ({
-      label: `${v.id === view?.id ? '✓ ' : ''}${v.name}`,
-      onSelect: () => {
-        setViewId(v.id)
-        setFilters([])
-      },
-    }))
-    items.push('separator', { label: 'Save these filters as a view…', disabled: filters.length === 0, onSelect: () => setSavingView(true) })
-    if (view && table.views.length > 1) {
-      items.push({
-        label: `Delete view “${view.name}”`,
-        onSelect: () => {
-          void deleteView.mutateAsync(view.id).then(() => setViewId(table.views.find((v) => v.id !== view.id)?.id ?? ''))
-        },
-      })
-    }
-    setMenu({ anchor, items })
   }
 
   const viewFilters = view?.config.filters ?? []
@@ -315,8 +294,9 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
               hiddenIds={hiddenIds}
               exportName={table.name}
               noun="row"
+              minRows={24}
               emptyTitle="Nothing here yet"
-              emptyHint={canDesign ? 'Type in the row below and press Enter. You can add columns, formulas and links with the ＋ at the end of the header.' : canEdit ? 'Type in the row below and press Enter.' : 'This table has no rows yet.'}
+              emptyHint={canEdit ? 'Type in the row below and press Enter.' : 'This sheet has no rows yet.'}
               headerEnd={
                 canDesign ? (
                   <button
@@ -341,46 +321,93 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
                   {canDesign && (
                     <span className="flex items-center gap-3">
                       {table.fnRows.map((fr) => (
-                        <button key={fr.id} type="button" className="underline decoration-dotted" onClick={() => setFnRenaming(fr)} title="Rename this function row">
+                        <button key={fr.id} type="button" className="underline decoration-dotted" onClick={() => setFnRenaming(fr)} title="Rename or delete this summary row">
                           {fr.label} ✎
                         </button>
                       ))}
-                      <button type="button" className="font-semibold text-stamp hover:underline" onClick={addFnRow}>
-                        ＋ Function row
+                      <button
+                        type="button"
+                        onClick={addFnRow}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-stamp/40 bg-stamp-soft px-2.5 py-1 text-[13px] font-bold text-stamp hover:bg-stamp hover:text-white"
+                      >
+                        ＋ {table.fnRows.length === 0 ? 'Add a summary row (totals, averages, counts)' : 'Add another summary row'}
                       </button>
                     </span>
                   )}
                 </>
               }
-              toolbarRight={
-                <>
+              dataMenuItems={[
+                {
+                  label: 'Excel with formulas',
+                  hint: 'An Excel file whose formulas still calculate.',
+                  onSelect: () => void saveExport(businessId, exportBookName(table.name), table.id).then(() => toast('Saved with its formulas.')).catch(() => toast('Could not save the file.')),
+                },
+                { label: 'History', hint: 'Who changed what in this sheet.', onSelect: () => setHistory(true) },
+              ]}
+              toolbarEnd={canDesign ? <PostsButton on={table.rules.some((r) => r.enabled)} onClick={onRules} /> : undefined}
+              filterCount={viewFilters.length + filters.length}
+              filterPanel={(close) => (
+                <div className="flex flex-col gap-3">
+                  {table.views.length > 1 && (
+                    <div>
+                      <span className="mb-1 block text-[11px] font-bold tracking-wider text-ink-soft uppercase">View</span>
+                      <div className="flex flex-col">
+                        {table.views.map((v) => (
+                          <button
+                            key={v.id}
+                            type="button"
+                            onClick={() => {
+                              setViewId(v.id)
+                              setFilters([])
+                              close()
+                            }}
+                            className="flex items-center justify-between rounded-[6px] px-2 py-1 text-left text-[13px] font-semibold hover:bg-stamp-soft"
+                          >
+                            {v.name}
+                            {v.id === view?.id && <span className="text-stamp">✓</span>}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <button
                     type="button"
-                    onClick={() => void saveExport(businessId, exportBookName(table.name), table.id).then(() => toast('Saved with its formulas.')).catch(() => toast('Could not save the file.'))}
-                    title="Save this table as an Excel file whose formulas still calculate"
-                    className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft"
+                    onClick={() => {
+                      close()
+                      setFiltering(true)
+                    }}
+                    className="self-start rounded-ledger border border-paper-line px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft"
                   >
-                    Excel with formulas
+                    ＋ Add a filter…
                   </button>
-                  <button type="button" onClick={() => setHistory(true)} className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft">
-                    History
-                  </button>
-                  {canDesign && <PostsButton on={table.rules.some((r) => r.enabled)} onClick={onRules} />}
-                </>
-              }
+                  {filters.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        close()
+                        setSavingView(true)
+                      }}
+                      className="self-start text-[12.5px] font-semibold text-stamp underline"
+                    >
+                      Save these filters as a view…
+                    </button>
+                  )}
+                  {view && table.views.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        close()
+                        void deleteView.mutateAsync(view.id).then(() => setViewId(table.views.find((v) => v.id !== view.id)?.id ?? ''))
+                      }}
+                      className="self-start text-[12.5px] font-semibold text-rust underline"
+                    >
+                      Delete view “{view.name}”
+                    </button>
+                  )}
+                </div>
+              )}
               toolbarLeft={
                 <>
-                  <button
-                    type="button"
-                    aria-haspopup="menu"
-                    onClick={(event) => openViewMenu(event.currentTarget.getBoundingClientRect())}
-                    className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft"
-                  >
-                    {view?.name ?? 'All rows'} ▾
-                  </button>
-                  <button type="button" onClick={() => setFiltering(true)} className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft">
-                    ＋ Filter
-                  </button>
                   {[...viewFilters, ...filters].map((f, i) => {
                     const own = i >= viewFilters.length
                     return (
@@ -484,7 +511,6 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
           onClose={() => setSavingView(false)}
         />
       )}
-      {menu && <FloatingMenu anchor={menu.anchor} items={menu.items} onClose={() => setMenu(null)} />}
       {history && <TableHistoryDialog businessId={businessId} tableId={table.id} tableName={table.name} onClose={() => setHistory(false)} />}
     </div>
   )

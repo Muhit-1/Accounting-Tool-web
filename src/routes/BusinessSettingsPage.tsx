@@ -228,7 +228,9 @@ function BusinessSettingsForm({ businessId, business }: { businessId: string; bu
         <div className="mt-5">
           <Panel title="Payment details">
             <div className="flex flex-col gap-4 px-5 py-5">
-              <p className="-mt-1 text-[13px] text-ink-soft">Shown on invoices so clients know where to send payment.</p>
+              <p className="-mt-1 text-[13px] text-ink-soft">
+                Shown on every invoice so clients know where to send payment. You can also change them while writing an invoice: they are the same details.
+              </p>
               <TextField
                 label="Account name"
                 value={bankAccountName}

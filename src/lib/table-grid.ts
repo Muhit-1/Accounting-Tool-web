@@ -146,3 +146,6 @@ export const TYPE_HINT: Record<TableField['type'], string> = {
   ROLLUP: 'Add up linked rows',
   FORMULA: 'Worked out from other columns',
 }
+
+// What a summary-row cell is called in words, shown before its number ("Sum 11,450.00").
+export const FN_LABEL: Record<string, string> = { sum: 'Sum', avg: 'Average', count: 'Count', min: 'Min', max: 'Max', last: 'Last', formula: 'Formula' }

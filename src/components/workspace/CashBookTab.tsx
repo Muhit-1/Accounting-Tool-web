@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { ApiError } from '../../lib/api-client'
 import { useAuth } from '../../lib/auth-context'
 import { describeCalculation } from '../../lib/calc'
@@ -30,10 +30,11 @@ import { useDeferredDelete } from '../../lib/use-deferred-delete'
 import { useCreateTransaction, useDeleteTransaction, useTransactions, useUpdateTransaction } from '../../lib/transactions'
 import type { AmountType } from '../../lib/calc'
 import type { Category, CategoryType, Transaction } from '../../types/api'
+import { FloatingMenu, type MenuEntry } from '../FloatingMenu'
 import { Grid } from '../grid/Grid'
 import { PasteModal } from '../grid/PasteModal'
 import { NEW_CHOICE, type BulkAction, type GridColumn, type GridFilter } from '../grid/grid-types'
-import { StatTile } from '../StatTile'
+import { IconPlus } from '../icons'
 import { AmountPopover, type AmountChoice } from './AmountPopover'
 import { CategoriesDialog } from './CategoriesDialog'
 import { EntryCards } from './EntryCards'
@@ -77,6 +78,9 @@ export function CashBookTab({
   onEditEntry,
   onOpenPosted,
   onImport,
+  onAddEntry,
+  onScanInvoice,
+  accountSwitcher,
   tableName,
 }: {
   businessId: string
@@ -88,6 +92,11 @@ export function CashBookTab({
   onOpenPosted: (transaction: Transaction) => void
   // Opens the import screen on this table.
   onImport: () => void
+  // Opens the form to add an entry, and the one that reads an invoice file.
+  onAddEntry: () => void
+  onScanInvoice: () => void
+  // A choice of cash book, when the business has more than one.
+  accountSwitcher?: ReactNode
   // The name this viewer sees on the tab ("Cash book", or their own).
   tableName: string
 }) {
@@ -106,6 +115,7 @@ export function CashBookTab({
   const [newCategory, setNewCategory] = useState<NewCategoryTarget | null>(null)
   const [showCategories, setShowCategories] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [addMenu, setAddMenu] = useState<DOMRect | null>(null)
   // Text pasted into the grid, waiting in the preview (null = no preview open).
   const [paste, setPaste] = useState<string | null>(null)
   const adapter = useCashbookAdapter(businessId, accountId, categories, transactions)
@@ -403,15 +413,14 @@ export function CashBookTab({
   const fxAnchorRow = fx?.row ?? null
   const fxSide = fx?.columnId === 'inn' ? 'in' : 'out'
 
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatTile label="Money in" value={formatMoneyCell(totalIn)} note={`${transactions.filter((tx) => tx.type === 'INCOME').length} entries`} tone="in" />
-        <StatTile label="Money out" value={formatMoneyCell(totalOut)} note={`${transactions.filter((tx) => tx.type === 'EXPENSE').length} entries`} tone="out" />
-        <StatTile label="Balance" value={formatMoneyCell(closingBalance(transactions))} note="Money in − Money out" />
-        <StatTile label="Rows" value={transactions.length} note={`${posted} posted from other tables`} />
-      </div>
+  const addEntryMenu: MenuEntry[] = [
+    { label: 'Type in the sheet', hint: 'Fill the empty row and press Enter.', onSelect: () => document.querySelector<HTMLElement>('[data-grid-cell][data-draft][data-col="desc"]')?.focus() },
+    { label: 'From an invoice or receipt file…', hint: 'The amount, date and name are read for you.', onSelect: onScanInvoice },
+    { label: 'Several at once (paste)', hint: 'Copy rows from Excel.', onSelect: () => setPaste('') },
+  ]
 
+  return (
+    <>
       {error ? (
         <p className="rounded-ledger border border-paper-line bg-white px-5 py-8 text-sm text-rust" role="alert">
           Could not load the entries.
@@ -457,36 +466,52 @@ export function CashBookTab({
               emptyTitle="No entries yet"
               emptyHint="Fill the empty row below and press Enter."
               exportName={tableName}
-              toolbarRight={
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setPaste('')}
-                    className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft"
-                  >
-                    Paste from Excel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onImport}
-                    className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft"
-                  >
-                    Import
-                  </button>
-                </>
+              minRows={24}
+              summary={
+                <div className="mr-1 flex items-center gap-4 text-[12.5px] text-ink-soft">
+                  <span>
+                    In <b className="tabular font-medium text-green">{formatMoneyCell(totalIn)}</b>
+                  </span>
+                  <span>
+                    Out <b className="tabular font-medium text-rust">{formatMoneyCell(totalOut)}</b>
+                  </span>
+                  <span>
+                    Balance <b className="tabular font-medium text-ink">{formatMoneyCell(closingBalance(transactions))}</b>
+                  </span>
+                </div>
               }
-              toolbarLeft={
+              filterPanel={() => (
+                <p className="flex items-start gap-2 text-[12.5px] text-ink-soft">
+                  <i className="mt-0.5 inline-block h-3.5 w-3.5 flex-none rounded-[3px] border border-brass-line bg-brass-row" />
+                  Gold rows were posted from other sheets or invoices{posted > 0 ? ` (${posted} now)` : ''}. Change them where they came from.
+                </p>
+              )}
+              viewMenuItems={[{ label: 'Categories…', hint: 'Rename, regroup, add or delete.', onSelect: () => setShowCategories(true) }]}
+              dataMenuItems={[
+                { label: 'Paste from Excel', hint: 'Copy rows, paste them here.', onSelect: () => setPaste('') },
+                { label: 'Import a file…', hint: 'Excel or CSV, with a check before anything is added.', onSelect: onImport },
+              ]}
+              toolbarEnd={
                 <>
-                  <button
-                    type="button"
-                    onClick={() => setShowCategories(true)}
-                    className="rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold hover:bg-stamp-soft"
-                  >
-                    Categories
-                  </button>
-                  <span className="inline-flex items-center gap-2 text-[12.5px] text-ink-soft">
-                    <i className="inline-block h-3.5 w-3.5 rounded-[3px] border border-brass-line bg-brass-row" />
-                    Posted from other tables
+                  {accountSwitcher}
+                  <span className="inline-flex">
+                    <button
+                      type="button"
+                      onClick={onAddEntry}
+                      className="inline-flex items-center gap-1.5 rounded-l-ledger bg-stamp px-3 py-1.5 text-[13px] font-semibold text-white hover:bg-stamp/90"
+                    >
+                      <IconPlus width={15} height={15} />
+                      Add entry
+                    </button>
+                    <button
+                      type="button"
+                      aria-haspopup="menu"
+                      aria-label="More ways to add"
+                      onClick={(event) => setAddMenu(event.currentTarget.getBoundingClientRect())}
+                      className="rounded-r-ledger border-l border-white/35 bg-stamp px-2 text-[11px] text-white hover:bg-stamp/90"
+                    >
+                      ▾
+                    </button>
                   </span>
                 </>
               }
@@ -529,7 +554,9 @@ export function CashBookTab({
 
       {paste !== null && <PasteModal adapter={adapter} initialText={paste} onClose={() => setPaste(null)} />}
 
+      {addMenu && <FloatingMenu anchor={addMenu} items={addEntryMenu} onClose={() => setAddMenu(null)} />}
+
       {showCategories && <CategoriesDialog businessId={businessId} categories={categories} onClose={() => setShowCategories(false)} />}
-    </div>
+    </>
   )
 }
