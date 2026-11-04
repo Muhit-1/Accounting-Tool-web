@@ -214,3 +214,109 @@ export function IconTable(props: SVGProps<SVGSVGElement>) {
     </Icon>
   )
 }
+
+export function IconHome(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="m4 11 8-7 8 7v9h-5v-6H9v6H4z" />
+    </Icon>
+  )
+}
+
+export function IconMenu(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </Icon>
+  )
+}
+
+export function IconClose(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="m6 6 12 12M18 6 6 18" />
+    </Icon>
+  )
+}
+
+export function IconClock(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </Icon>
+  )
+}
+
+export function IconUsers(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <circle cx="9" cy="9" r="3" />
+      <path d="M3 20a6 6 0 0 1 12 0" />
+      <circle cx="17" cy="10" r="2.4" />
+      <path d="M16 15.2A5 5 0 0 1 21 20" />
+    </Icon>
+  )
+}
+
+export function IconCloudCheck(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17 8.5a4.3 4.3 0 0 1 .5 8.5z" />
+      <path d="m9.5 13 2 2 3.5-4" />
+    </Icon>
+  )
+}
+
+export function IconCopy(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <rect x="8" y="8" width="11" height="12" rx="2" />
+      <path d="M5 15V6a2 2 0 0 1 2-2h8" />
+    </Icon>
+  )
+}
+
+export function IconStar(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.5 2.9 1-6.1L3.1 9.5l6.1-.9z" />
+    </Icon>
+  )
+}
+
+export function IconGraph(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <circle cx="6" cy="6" r="2.5" />
+      <circle cx="18" cy="9" r="2.5" />
+      <circle cx="9" cy="18" r="2.5" />
+      <path d="m8 7.5 8 1M7.5 8.5l1 7.5M16.5 11l-6 5.5" />
+    </Icon>
+  )
+}
+
+export function IconUpload(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M12 16V5M7 10l5-5 5 5M5 20h14" />
+    </Icon>
+  )
+}
+
+export function IconDoc(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M7 3h7l5 5v13H7z" />
+      <path d="M14 3v5h5M10 13h6M10 17h6" />
+    </Icon>
+  )
+}
+
+export function IconCheck(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="m5 12 5 5 9-10" />
+    </Icon>
+  )
+}

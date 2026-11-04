@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api-client'
-import type { EngineRow, EngineRows, EngineSummary, EngineTable, FnRow, FormulaPreview, RuleConfig, RulePreview, RuleSaveResult, TableField, TableViewInfo, TemplateInfo, ViewConfig, ViewFilter } from '../types/engine'
+import type { EngineRow, EngineRows, EngineSummary, EngineTable, FnRow, FormulaPreview, RuleConfig, RulePreview, RuleSaveResult, TableField, TableViewInfo, TemplateInfo, TypeChangePreview, ViewConfig, ViewFilter } from '../types/engine'
 
 // The table engine: every table, column, row and saved view of a business.
 
@@ -56,6 +56,7 @@ function useRefresh(businessId: string) {
     data: () => {
       queryClient.invalidateQueries({ queryKey: ['table-rows', businessId] })
       queryClient.invalidateQueries({ queryKey: ['table-summary', businessId] })
+      queryClient.invalidateQueries({ queryKey: ['rule-preview', businessId] })
       queryClient.invalidateQueries({ queryKey: ['tables', businessId] })
       // posted rows change the Cash book
       queryClient.invalidateQueries({ queryKey: ['transactions', businessId] })
@@ -121,9 +122,14 @@ export function useCreateField(businessId: string, tableId: string) {
 export function useUpdateField(businessId: string, tableId: string) {
   const refresh = useRefresh(businessId)
   return useMutation({
-    mutationFn: ({ id, ...input }: { id: string; name?: string; config?: Record<string, unknown> }) => api.patch<TableField>(`${base(businessId)}/${tableId}/fields/${id}`, input),
+    mutationFn: ({ id, ...input }: { id: string; name?: string; config?: Record<string, unknown>; type?: string; allowLoss?: boolean }) => api.patch<TableField>(`${base(businessId)}/${tableId}/fields/${id}`, input),
     onSuccess: refresh.data,
   })
+}
+
+// "What would happen if this column became a Number?": nothing is changed, the answer says what converts and what is lost.
+export function previewTypeChange(businessId: string, tableId: string, fieldId: string, input: { type: string; config?: Record<string, unknown> }) {
+  return api.patch<TypeChangePreview>(`${base(businessId)}/${tableId}/fields/${fieldId}`, { ...input, dryRun: true })
 }
 
 export function useDeleteField(businessId: string, tableId: string) {
@@ -146,6 +152,44 @@ export function useCreateRow(businessId: string, tableId: string) {
   const refresh = useRefresh(businessId)
   return useMutation({
     mutationFn: (values: Record<string, unknown>) => api.post<EngineRow>(`${base(businessId)}/${tableId}/rows`, { values }),
+    onSuccess: refresh.data,
+  })
+}
+
+// Insert a row above or below an existing one.
+export function useInsertRow(businessId: string, tableId: string) {
+  const refresh = useRefresh(businessId)
+  return useMutation({
+    mutationFn: ({ values, beforeRowId, afterRowId }: { values?: Record<string, unknown>; beforeRowId?: string; afterRowId?: string }) =>
+      api.post<EngineRow>(`${base(businessId)}/${tableId}/rows`, { values: values ?? {}, beforeRowId, afterRowId }),
+    onSuccess: refresh.data,
+  })
+}
+
+// Fill down / paste over a selection: many rows changed together, all or nothing.
+export function useBulkUpdateRows(businessId: string, tableId: string) {
+  const refresh = useRefresh(businessId)
+  return useMutation({
+    mutationFn: (rows: { id: string; values: Record<string, unknown>; version?: number }[]) => api.patch<{ updated: number }>(`${base(businessId)}/${tableId}/rows/bulk`, { rows }),
+    onSuccess: refresh.data,
+  })
+}
+
+// The selected rows go to the Trash together.
+export function useBulkDeleteRows(businessId: string, tableId: string) {
+  const refresh = useRefresh(businessId)
+  return useMutation({
+    mutationFn: (ids: string[]) => api.post<{ deleted: number }>(`${base(businessId)}/${tableId}/rows/delete`, { ids }),
+    onSuccess: refresh.data,
+  })
+}
+
+// A copy of a table inside its business (with or without its rows).
+export function useDuplicateTable(businessId: string) {
+  const refresh = useRefresh(businessId)
+  return useMutation({
+    mutationFn: ({ tableId, withRows }: { tableId: string; withRows?: boolean }) =>
+      api.post<EngineTable & { skippedColumns: string[] }>(`${base(businessId)}/${tableId}/duplicate`, { withRows: withRows === true }),
     onSuccess: refresh.data,
   })
 }

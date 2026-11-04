@@ -1,14 +1,18 @@
 import { useCallback, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useQueries } from '@tanstack/react-query'
 import { ApiError, api } from '../../lib/api-client'
 import { useAuth } from '../../lib/auth-context'
+import { readFormat } from '../../lib/field-format'
 import { formatMoneyCell } from '../../lib/grid-parse'
 import { gridPrefsKey } from '../../lib/grid-prefs'
 import { buildDraftValues, cellText, columnWidth, FN_LABEL, isDerived, planCellEdit } from '../../lib/table-grid'
 import {
+  useBulkDeleteRows,
+  useBulkUpdateRows,
   useCreateRow,
   useDeleteField,
-  useDeleteRow,
+  useInsertRow,
   useDeleteView,
   useRestoreField,
   useSaveView,
@@ -21,12 +25,16 @@ import {
 import { useToast } from '../../lib/toast-context'
 import { useDeferredDelete } from '../../lib/use-deferred-delete'
 import type { EngineRow, EngineRows, EngineTable, FnRow, FnSpec, TableField, ViewFilter } from '../../types/engine'
+import type { MenuEntry } from '../FloatingMenu'
 import { Grid } from '../grid/Grid'
-import type { FootRow, GridColumn } from '../grid/grid-types'
+import type { ActiveCell, BulkAction, FootRow, GridColumn } from '../grid/grid-types'
+import { FormulaBar } from './FormulaBar'
+import { MoneyStrip } from './MoneyStrip'
+import { useWorkspaceChrome } from '../workspace/workspace-chrome'
 import { PromptDialog } from '../PromptDialog'
 import { PostsButton } from '../workspace/PostsButton'
 import { TableHistoryDialog } from '../trust/TableHistoryDialog'
-import { ColumnDialog } from './ColumnDialog'
+import { ColumnPanel } from './ColumnPanel'
 import { exportBookName, saveExport } from '../../lib/export-formulas'
 import { filterSentence } from '../../lib/table-filters'
 import { FilterDialog } from './FilterDialog'
@@ -57,6 +65,9 @@ function gridType(field: TableField): GridColumn<EngineRow>['type'] {
   }
 }
 
+// The small sign before a column's name: what kind of column it is.
+const GLYPH: Partial<Record<TableField['type'], string>> = { TEXT: 'Aa', NUMBER: '123', MONEY: '0.0', DATE: '▦', CHOICE: '▾', TICK: '✓', AUTO: '#', LINK: '↗', LOOKUP: '⌕', ROLLUP: 'Σ', FORMULA: 'ƒ' }
+
 // The name a row goes by when another table links to it: its first text column.
 function rowName(table: EngineTable, row: EngineRow): string {
   const f = table.fields.find((x) => x.type === 'TEXT') ?? table.fields[0]
@@ -66,8 +77,10 @@ function rowName(table: EngineTable, row: EngineRow): string {
 
 // One of the user's own tables as a sheet: type in a cell, add a row at the bottom, add columns
 // (also formulas, links and rollups) and function rows under the table.
-export function TableTab({ businessId, table, tables, onRules }: { businessId: string; table: EngineTable; tables: EngineTable[]; onRules: () => void }) {
+export function TableTab({ businessId, table, tables, currency, onRules }: { businessId: string; table: EngineTable; tables: EngineTable[]; currency: string; onRules: () => void }) {
   const { user } = useAuth()
+  const chrome = useWorkspaceChrome()
+  const [active, setActive] = useState<ActiveCell<EngineRow> | null>(null)
   const toast = useToast()
   // Someone who was only given this table to look at gets the sheet without any way to change it.
   const canEdit = table.canEdit
@@ -83,7 +96,9 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
 
   const createRow = useCreateRow(businessId, table.id)
   const updateRow = useUpdateRow(businessId, table.id)
-  const deleteRow = useDeleteRow(businessId, table.id)
+  const bulkDelete = useBulkDeleteRows(businessId, table.id)
+  const bulkUpdate = useBulkUpdateRows(businessId, table.id)
+  const insertRow = useInsertRow(businessId, table.id)
   const updateField = useUpdateField(businessId, table.id)
   const deleteField = useDeleteField(businessId, table.id)
   const restoreField = useRestoreField(businessId, table.id)
@@ -93,7 +108,7 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
 
   const [draft, setDraft] = useState<{ values: Record<string, string>; bad: string | null }>({ values: {}, bad: null })
   const [adding, setAdding] = useState(false)
-  const [columnDialog, setColumnDialog] = useState<{ field?: TableField } | null>(null)
+  const [columnDialog, setColumnDialog] = useState<{ field?: TableField; type?: TableField['type'] } | null>(null)
   const [renaming, setRenaming] = useState<TableField | null>(null)
   const [fnDialog, setFnDialog] = useState<{ row: FnRow; field: TableField } | null>(null)
   const [fnRenaming, setFnRenaming] = useState<FnRow | null>(null)
@@ -120,7 +135,9 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
     return out
   }, [linkFields, targetIds, targetQueries, tables])
 
-  const deleteRows = useCallback((list: EngineRow[]) => Promise.all(list.map((r) => deleteRow.mutateAsync(r.id))), [deleteRow])
+  // The ticked rows go to the Trash together (one request, all or nothing).
+  const bulkDeleteAsync = bulkDelete.mutateAsync
+  const deleteRows = useCallback((list: EngineRow[]) => bulkDeleteAsync(list.map((r) => r.id)), [bulkDeleteAsync])
   const { hiddenIds, schedule } = useDeferredDelete(rowId, deleteRows, describeDeleted)
 
   const updateAsync = updateRow.mutateAsync
@@ -198,12 +215,13 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
             return typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' ? v : null
           },
           text: (row) => cellText(f, row),
+          glyph: GLYPH[f.type],
+          align: readFormat(f).align === 'left' || readFormat(f).align === 'right' ? (readFormat(f).align as 'left' | 'right') : undefined,
+          tint: f.type === 'FORMULA' ? ('formula' as const) : f.type === 'LOOKUP' || f.type === 'ROLLUP' ? ('lookup' as const) : undefined,
           menu: !canDesign
             ? []
             : [
-            ...(f.type === 'FORMULA' || f.type === 'CHOICE' || f.type === 'LINK' || f.type === 'LOOKUP' || f.type === 'ROLLUP' || f.type === 'AUTO'
-              ? [{ label: f.type === 'FORMULA' ? 'Edit formula…' : 'Edit column…', onSelect: () => setColumnDialog({ field: f }) }]
-              : []),
+            { label: f.type === 'FORMULA' ? 'Edit the column formula…' : 'Edit column…', hint: 'Type, format and settings.', onSelect: () => setColumnDialog({ field: f }) },
             { label: 'Delete column', hint: 'Formulas that use it will show an error.', onSelect: () => void removeColumn(f) },
           ],
         }
@@ -222,6 +240,47 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
     // removeColumn closes over mutation hooks that are stable
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [table.fields, linkOptions, canEdit, canDesign],
+  )
+
+  // A right click on a row: put a new row next to it, copy it, or delete it.
+  function rowMenu(row: EngineRow): MenuEntry[] {
+    const fail = (err: unknown) => toast(messageOf(err))
+    return [
+      { label: 'Insert row above', onSelect: () => void insertRow.mutateAsync({ beforeRowId: row.id }).catch(fail) },
+      { label: 'Insert row below', onSelect: () => void insertRow.mutateAsync({ afterRowId: row.id }).catch(fail) },
+      {
+        label: 'Duplicate row',
+        hint: 'A copy right below, with the same values.',
+        onSelect: () => {
+          const values: Record<string, unknown> = {}
+          for (const f of table.fields) if (!isDerived(f) && row.values[f.id] !== undefined && row.values[f.id] !== null) values[f.id] = row.values[f.id]
+          void insertRow.mutateAsync({ values, afterRowId: row.id }).catch(fail)
+        },
+      },
+      'separator',
+      { label: 'Delete row', danger: true, onSelect: () => schedule([row]) },
+    ]
+  }
+
+  // With rows ticked, a choice column can be set for all of them at once ("Status → Delivered").
+  const bulkActions = useMemo<BulkAction<EngineRow>[]>(
+    () =>
+      table.fields
+        .filter((f) => f.type === 'CHOICE' && !f.locked)
+        .map((f) => ({
+          id: f.id,
+          label: `Set ${f.name}…`,
+          choices: ((f.config.options as string[] | undefined) ?? []).map((o) => ({ value: o, label: o })),
+          run: async (rows: EngineRow[], value: string) => {
+            try {
+              await bulkUpdate.mutateAsync(rows.map((r) => ({ id: r.id, values: { [f.id]: value }, version: r.version })))
+              toast(`${rows.length} ${rows.length === 1 ? 'row' : 'rows'} set to “${value}”.`)
+            } catch (err) {
+              toast(messageOf(err))
+            }
+          },
+        })),
+    [table.fields, bulkUpdate, toast],
   )
 
   const footRows = useMemo<FootRow[]>(
@@ -270,8 +329,17 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
         <p className="rounded-ledger border border-paper-line bg-white px-5 py-8 text-sm text-ink-soft">Loading…</p>
       ) : (
         <>
+          {chrome.barHost &&
+            createPortal(
+              <>
+                <FormulaBar table={table} tables={tables} active={active} canDesign={canDesign} onEditField={(f) => setColumnDialog({ field: f })} />
+                <MoneyStrip businessId={businessId} table={table} currency={currency} onOpenRule={onRules} />
+              </>,
+              chrome.barHost,
+            )}
           <div className="hidden md:block">
             <Grid<EngineRow>
+              onActiveCell={setActive}
               prefsKey={gridPrefsKey(user?.id ?? 'anonymous', businessId, `table-${table.id}`)}
               columns={columns}
               rows={rows}
@@ -291,6 +359,8 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
                   : undefined
               }
               onDeleteRows={canEdit ? schedule : undefined}
+              bulkActions={canEdit ? bulkActions : undefined}
+              rowMenu={canEdit ? rowMenu : undefined}
               hiddenIds={hiddenIds}
               exportName={table.name}
               noun="row"
@@ -408,6 +478,32 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
               )}
               toolbarLeft={
                 <>
+                  {canDesign && (
+                    <>
+                      <span className="mx-0.5 h-5 w-px bg-paper-line" aria-hidden />
+                      {(
+                        [
+                          ['＋ Column', undefined, 'Add a column typed by you'],
+                          ['ƒ Formula column', 'FORMULA', 'One formula for the whole column'],
+                          ['↗ Link a table', 'LINK', 'Connect rows to another table'],
+                        ] as const
+                      ).map(([label, kind, hint]) => (
+                        <button
+                          key={label}
+                          type="button"
+                          title={hint}
+                          onClick={() => setColumnDialog({ type: kind })}
+                          className="inline-flex items-center gap-1 rounded-ledger px-2.5 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-stamp-soft"
+                        >
+                          {label}
+                        </button>
+                      ))}
+                      <button type="button" title="A row under the table that adds up a column" onClick={addFnRow} className="inline-flex items-center gap-1 rounded-ledger px-2.5 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-stamp-soft">
+                        Σ Totals row
+                      </button>
+                      <span className="mx-0.5 h-5 w-px bg-paper-line" aria-hidden />
+                    </>
+                  )}
                   {[...viewFilters, ...filters].map((f, i) => {
                     const own = i >= viewFilters.length
                     return (
@@ -425,23 +521,31 @@ export function TableTab({ businessId, table, tables, onRules }: { businessId: s
               }
             />
           </div>
-          <ul className="flex flex-col gap-2 md:hidden">
-            {rows.length === 0 && <li className="rounded-ledger border border-paper-line bg-white px-5 py-8 text-sm text-ink-soft">No rows yet. Rows are added on a larger screen.</li>}
-            {rows.map((row) => (
-              <li key={row.id} className="rounded-ledger border border-paper-line bg-white px-4 py-3 text-[13.5px]">
-                {table.fields.slice(0, 4).map((f) => (
-                  <div key={f.id} className="flex justify-between gap-3">
-                    <span className="text-ink-soft">{f.name}</span>
-                    <span className="min-w-0 truncate text-right">{cellText(f, row)}</span>
+          <ul className="flex flex-col gap-2.5 md:hidden">
+            {rows.length === 0 && <li className="rounded-[14px] border border-paper-line bg-white px-5 py-8 text-sm text-ink-soft">No rows yet. Add rows on a larger screen or in the app.</li>}
+            {rows.map((row) => {
+              const title = table.fields.find((f) => f.type === 'TEXT') ?? table.fields[0]
+              const others = table.fields.filter((f) => f.id !== title?.id && cellText(f, row) !== '').slice(0, 5)
+              return (
+                <li key={row.id} className="rounded-[14px] border border-paper-line bg-white px-4 py-3 text-[13.5px] shadow-sm">
+                  <div className="mb-1.5 flex items-baseline justify-between gap-3">
+                    <span className="truncate text-[15.5px] font-semibold">{title ? cellText(title, row) || `Row ${row.number}` : `Row ${row.number}`}</span>
+                    <span className="tabular flex-none text-[12px] text-ink-soft">#{row.number}</span>
                   </div>
-                ))}
-              </li>
-            ))}
+                  {others.map((f) => (
+                    <div key={f.id} className="flex justify-between gap-3 py-0.5">
+                      <span className="text-ink-soft">{f.name}</span>
+                      <span className={`min-w-0 truncate text-right ${f.type === 'MONEY' || f.type === 'FORMULA' || f.type === 'ROLLUP' ? 'tabular font-semibold' : ''}`}>{cellText(f, row)}</span>
+                    </div>
+                  ))}
+                </li>
+              )
+            })}
           </ul>
         </>
       )}
 
-      {columnDialog && <ColumnDialog businessId={businessId} table={table} tables={tables} field={columnDialog.field} onClose={() => setColumnDialog(null)} />}
+      {columnDialog && <ColumnPanel key={columnDialog.field?.id ?? columnDialog.type ?? 'new'} businessId={businessId} table={table} tables={tables} field={columnDialog.field} initialType={columnDialog.type} onClose={() => setColumnDialog(null)} />}
       {renaming && (
         <PromptDialog
           title="Rename column"

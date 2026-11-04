@@ -1,0 +1,88 @@
+import type { ComponentType, SVGProps } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { useTables } from '../../lib/tables'
+import { SetupChecklist } from './SetupChecklist'
+import { IconChartBar, IconDoc, IconGraph, IconLock, IconPlus, IconSettings, IconTable, IconUsers } from '../icons'
+
+type Icon = ComponentType<SVGProps<SVGSVGElement>>
+
+function Item({ to, label, icon: IconComponent, active, dot, onNavigate, children }: { to: string; label: string; icon?: Icon; active: boolean; dot?: string | null; onNavigate?: () => void; children?: React.ReactNode }) {
+  return (
+    <Link
+      to={to}
+      onClick={onNavigate}
+      aria-current={active ? 'page' : undefined}
+      className={`flex items-center gap-2.5 rounded-ledger px-2.5 py-[7px] text-[13px] transition-colors ${
+        active ? 'bg-stamp-soft font-semibold text-stamp' : 'font-medium text-ink hover:bg-paper'
+      }`}
+    >
+      {IconComponent && <IconComponent width={17} height={17} className={active ? '' : 'text-ink-soft'} />}
+      {dot !== undefined && <span className="mx-[3px] h-2.5 w-2.5 flex-none rounded-full" style={{ background: dot ?? 'var(--color-stamp)' }} aria-hidden />}
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {children}
+    </Link>
+  )
+}
+
+function Heading({ children }: { children: string }) {
+  return <div className="mt-4 mb-1 px-2.5 text-[11px] font-semibold tracking-[0.06em] text-ink-soft uppercase first:mt-1">{children}</div>
+}
+
+// The left outline of a business: what a spreadsheet has no place for (money, reports, connections, sharing),
+// plus a short list of the business's tables. The tables themselves are tabs at the bottom of the sheet.
+export function Outline({ businessId, tableOnly, canManage, onNavigate }: { businessId: string; tableOnly: boolean; canManage: boolean; onNavigate?: () => void }) {
+  const location = useLocation()
+  const { data: tables } = useTables(businessId)
+  const base = `/businesses/${businessId}`
+  const path = location.pathname
+  const tab = new URLSearchParams(location.search).get('tab')
+  const inWorkspace = path.startsWith(`${base}/workspace`) || path.startsWith(`${base}/accounts`)
+  const own = (tables ?? []).filter((t) => t.kind === 'TABLE')
+
+  const tableItems = own.map((t) => (
+    <Item key={t.id} to={`${base}/workspace?tab=${t.id}`} label={t.name} dot={t.color} active={inWorkspace && tab === t.id} onNavigate={onNavigate}>
+      {t.rules.some((r) => r.enabled) && <IconGraph width={13} height={13} className="flex-none text-brass" aria-label="Posts to the Cash book" />}
+    </Item>
+  ))
+
+  if (tableOnly) {
+    return (
+      <nav aria-label="This business" className="flex flex-col gap-px p-2.5">
+        <Heading>Shared with you</Heading>
+        {tableItems.length > 0 ? tableItems : <Item to={`${base}/workspace`} label="Shared tables" icon={IconTable} active={inWorkspace} onNavigate={onNavigate} />}
+      </nav>
+    )
+  }
+
+  return (
+    <nav aria-label="This business" className="flex flex-col gap-px p-2.5 pb-6">
+      <Heading>Money</Heading>
+      <Item to={`${base}/workspace`} label="Cash book" icon={IconLock} active={inWorkspace && !tab} onNavigate={onNavigate} />
+      <Item to={`${base}/invoices`} label="Invoices" icon={IconDoc} active={path.startsWith(`${base}/invoices`)} onNavigate={onNavigate} />
+
+      <Heading>Your tables</Heading>
+      {tableItems}
+      {canManage && (
+        <Link
+          to={`${base}/workspace?do=templates`}
+          onClick={onNavigate}
+          className="flex items-center gap-2.5 rounded-ledger px-2.5 py-[7px] text-[13px] font-medium text-stamp hover:bg-stamp-soft"
+        >
+          <IconPlus width={17} height={17} />
+          New table
+        </Link>
+      )}
+
+      <Heading>Reports</Heading>
+      <Item to={base} label="Overview" icon={IconChartBar} active={path === base} onNavigate={onNavigate} />
+      <Item to={`${base}/statement`} label="Fund statement" icon={IconChartBar} active={path.startsWith(`${base}/statement`) || path.startsWith(`${base}/reports`)} onNavigate={onNavigate} />
+      <Item to={`${base}/monthly`} label="Monthly view" icon={IconChartBar} active={path.startsWith(`${base}/monthly`)} onNavigate={onNavigate} />
+
+      <Heading>This business</Heading>
+      <Item to={`${base}/connections`} label="Connections" icon={IconGraph} active={path.startsWith(`${base}/connections`)} onNavigate={onNavigate} />
+      {canManage && <Item to={`${base}/sharing`} label="Sharing" icon={IconUsers} active={path.startsWith(`${base}/sharing`)} onNavigate={onNavigate} />}
+      {canManage && <Item to={`${base}/settings`} label="Settings" icon={IconSettings} active={path.startsWith(`${base}/settings`)} onNavigate={onNavigate} />}
+      {canManage && <SetupChecklist businessId={businessId} />}
+    </nav>
+  )
+}

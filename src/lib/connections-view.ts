@@ -1,4 +1,12 @@
-import { BOX_H, BOX_W, type MapNode } from './connections'
+// A card of the map: where it is and how big it is (a card without a size counts as a small box).
+export interface MapBox {
+  x: number
+  y: number
+  w?: number
+  h?: number
+}
+const DEFAULT_W = 150
+const DEFAULT_H = 54
 
 // The Connections map is a canvas you can look at the way you look at a map: drag a box to move it, drag the
 // background to pan, scroll or press + / − to zoom. The rules for that are plain arithmetic, kept here so they are
@@ -24,12 +32,12 @@ export function zoomAt(view: MapView, factor: number, cx: number, cy: number): M
 }
 
 /** The view that shows every box, centred, with some room around them. */
-export function fitView(nodes: { x: number; y: number }[], width: number, height: number, pad = 48): MapView {
+export function fitView(nodes: MapBox[], width: number, height: number, pad = 48): MapView {
   if (nodes.length === 0 || width <= 0 || height <= 0) return { x: 0, y: 0, z: 1 }
   const minX = Math.min(...nodes.map((n) => n.x)) - pad
-  const maxX = Math.max(...nodes.map((n) => n.x + BOX_W)) + pad
+  const maxX = Math.max(...nodes.map((n) => n.x + (n.w ?? DEFAULT_W))) + pad
   const minY = Math.min(...nodes.map((n) => n.y)) - pad
-  const maxY = Math.max(...nodes.map((n) => n.y + BOX_H)) + pad
+  const maxY = Math.max(...nodes.map((n) => n.y + (n.h ?? DEFAULT_H))) + pad
   const z = clampZoom(Math.min(1.4, width / (maxX - minX), height / (maxY - minY)))
   return { z, x: (width - (maxX - minX) * z) / 2 - minX * z, y: (height - (maxY - minY) * z) / 2 - minY * z }
 }
@@ -54,6 +62,6 @@ export function parseLayout(raw: string | null): SavedLayout {
 }
 
 /** The map's own layout, with the boxes the person moved put where they left them. */
-export function withLayout(nodes: MapNode[], saved: SavedLayout): MapNode[] {
+export function withLayout<T extends { id: string; x: number; y: number }>(nodes: T[], saved: SavedLayout): T[] {
   return nodes.map((n) => (saved[n.id] ? { ...n, x: saved[n.id].x, y: saved[n.id].y } : n))
 }

@@ -16,7 +16,7 @@ import { ChoiceCell, ReadCell, TextCell, TickCell } from './GridCells'
 import { NEW_CHOICE, type GridColumn, type GridProps, type RowLock } from './grid-types'
 
 const ROW_LIMIT_STEP = 300
-const isRightAligned = (column: { type: string }) => column.type === 'money' || column.type === 'number' || column.type === 'calc'
+const isRightAligned = (column: { type: string; align?: 'left' | 'right' }) => (column.align ? column.align === 'right' : column.type === 'money' || column.type === 'number' || column.type === 'calc')
 
 function normalizer(type: string): ((typed: string) => string) | undefined {
   if (type === 'money') {
@@ -57,6 +57,8 @@ interface RowHandlers<R> {
   remove?: (row: R) => void
   fxOpen?: GridProps<R>['fx']
   paste?: (text: string) => void
+  // A right click on a row; returns true when a menu opened (so the browser's own menu stays away).
+  contextMenu?: (row: R, index: number, x: number, y: number) => boolean
 }
 
 function FxButton({ active, onClick }: { active: boolean; onClick: (anchor: DOMRect) => void }) {
@@ -108,10 +110,17 @@ function BodyRowImpl<R>({
   bad: BadCell | null
   handlers: RowHandlers<R>
 }) {
-  const { commit, pick, remove, fxOpen, paste } = handlers
+  const { commit, pick, remove, fxOpen, paste, contextMenu } = handlers
   return (
     <div
       role="row"
+      onContextMenu={
+        contextMenu
+          ? (event) => {
+              if (contextMenu(row, index, event.clientX, event.clientY)) event.preventDefault()
+            }
+          : undefined
+      }
       className={`group/row relative grid grid-cols-[var(--cols)] border-b border-paper-edge ${lock ? 'bg-[var(--color-brass-row)]' : picked ? 'bg-[var(--color-sel)]' : 'bg-white'}`}
     >
       <div className="relative flex items-center justify-center border-r border-paper-edge bg-[#f8fafc] text-[11.5px] text-ink-soft">
@@ -157,7 +166,7 @@ function BodyRowImpl<R>({
           )
         } else if (column.locked || column.type === 'calc') {
           content = (
-            <ReadCell align={isRightAligned(column) ? 'right' : undefined}>
+            <ReadCell align={isRightAligned(column) ? 'right' : undefined} address={address}>
               {column.onActivate ? (
                 <button type="button" onClick={() => column.onActivate?.(row)} className="font-semibold text-stamp underline-offset-2 hover:underline">
                   {text}
@@ -245,7 +254,11 @@ function BodyRowImpl<R>({
           )
         }
         return (
-          <div key={column.id} role="cell" className="relative flex min-w-0 items-center border-r border-paper-edge">
+          <div
+            key={column.id}
+            role="cell"
+            className={`relative flex min-w-0 items-center border-r border-paper-edge ${column.tint === 'formula' && !lock ? 'bg-[#f6f9fe]' : column.tint === 'lookup' && !lock ? 'bg-[#fbf6e6]' : ''}`}
+          >
             {content}
           </div>
         )
@@ -305,6 +318,8 @@ export function Grid<R>(props: GridProps<R>) {
     onRenameColumn,
     footRows,
     footEnd,
+    onActiveCell,
+    rowMenu,
   } = props
   const toast = useToast()
   const chrome = useWorkspaceChrome()
@@ -329,10 +344,11 @@ export function Grid<R>(props: GridProps<R>) {
   const visible = useMemo(() => labelled.filter((column) => !prefs.hidden.includes(column.id)), [labelled, prefs.hidden])
 
   // Latest callbacks, so the memoised rows do not redraw on every keystroke elsewhere.
-  const latest = useRef({ onCommit, onDeleteRows, fx, onPasteText, rowId })
+  const latest = useRef({ onCommit, onDeleteRows, fx, onPasteText, rowId, rowMenu })
   useEffect(() => {
-    latest.current = { onCommit, onDeleteRows, fx, onPasteText, rowId }
+    latest.current = { onCommit, onDeleteRows, fx, onPasteText, rowId, rowMenu }
   })
+  const hasRowMenu = rowMenu !== undefined
   const hasFx = fx !== undefined
   const hasPaste = onPasteText !== undefined
 
@@ -363,8 +379,16 @@ export function Grid<R>(props: GridProps<R>) {
           }
         : undefined,
       paste: hasPaste ? (text) => latest.current.onPasteText?.(text) : undefined,
+      contextMenu: hasRowMenu
+        ? (row, index, x, y) => {
+            const items = latest.current.rowMenu?.(row, index) ?? []
+            if (items.length === 0) return false
+            setMenu({ anchor: new DOMRect(x, y, 0, 0), items })
+            return true
+          }
+        : undefined,
     }),
-    [hasFx, hasPaste, toast],
+    [hasFx, hasPaste, hasRowMenu, toast, setMenu],
   )
 
   const list = useMemo(() => {
@@ -563,7 +587,23 @@ export function Grid<R>(props: GridProps<R>) {
   )
 
   return (
-    <div ref={root} data-grid-root className="bg-white">
+    <div
+      ref={root}
+      data-grid-root
+      className="bg-white"
+      onFocusCapture={
+        onActiveCell
+          ? (event) => {
+              const cell = (event.target as HTMLElement).closest<HTMLElement>('[data-grid-cell]')
+              if (!cell) return
+              const columnId = cell.dataset.col ?? ''
+              const rowIndex = Number(cell.dataset.row ?? -1)
+              const draftRow = cell.dataset.draft !== undefined
+              onActiveCell({ columnId, rowIndex, row: draftRow ? null : (shown[rowIndex] ?? null) })
+            }
+          : undefined
+      }
+    >
       {chrome.toolbarHost ? createPortal(head, chrome.toolbarHost) : head}
 
       <div role="table" aria-label={`${noun}s`}>
@@ -596,17 +636,27 @@ export function Grid<R>(props: GridProps<R>) {
               />
             </div>
             {visible.map((column) => (
-              <div key={column.id} role="columnheader" className="flex min-w-0 border-r border-paper-edge">
+              <div
+                key={column.id}
+                role="columnheader"
+                className={`flex min-w-0 border-r border-paper-edge ${column.tint === 'formula' ? 'border-b-2 border-b-stamp/60 bg-[#eef4fd]' : column.tint === 'lookup' ? 'border-b-2 border-b-brass/50 bg-[#f8f1dc]' : ''}`}
+              >
                 <button
                   type="button"
                   aria-haspopup="menu"
                   onClick={(event) => openHeaderMenu(column, event.currentTarget.getBoundingClientRect())}
                   className={`group/head flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-[13px] font-semibold text-ink hover:bg-stamp/[0.06] hover:text-stamp ${isRightAligned(column) ? 'justify-end' : ''}`}
                 >
-                  {(column.locked || column.type === 'calc') && (
-                    <span className="text-brass" title="Worked out for you">
-                      <IconLock width={12} height={12} />
+                  {column.glyph ? (
+                    <span className={`w-5 flex-none text-center text-[11.5px] font-semibold ${column.tint === 'formula' ? 'font-serif text-[14px] text-stamp italic' : column.tint === 'lookup' ? 'text-brass' : 'text-ink-soft'}`} aria-hidden>
+                      {column.glyph}
                     </span>
+                  ) : (
+                    (column.locked || column.type === 'calc') && (
+                      <span className="text-brass" title="Worked out for you">
+                        <IconLock width={12} height={12} />
+                      </span>
+                    )
                   )}
                   <span className="truncate">{column.unnamed ? <span className="font-medium text-ink-soft/60">Name</span> : column.label}</span>
                   {sort?.columnId === column.id ? (

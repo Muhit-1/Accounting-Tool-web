@@ -53,7 +53,7 @@ export function TableTabs({
   }
 
   return (
-    <div role="tablist" aria-label="Sheets" className="flex items-end gap-0.5 overflow-x-auto border-b border-paper-line bg-paper px-3 pt-1.5">
+    <div role="tablist" aria-label="Sheets" className="flex items-start gap-0.5 overflow-x-auto border-t border-paper-line bg-paper px-3 pb-1">
       {tabs.map((tab) => {
         const active = tab.key === activeKey
         const hasMenu = menuFor(tab.key).length > 0
@@ -88,8 +88,8 @@ export function TableTabs({
               setMenu({ anchor: new DOMRect(event.clientX, event.clientY, 0, 0), items })
             }}
             style={{ ['--tab' as string]: tab.color ?? 'var(--color-stamp)' }}
-            className={`group/tab flex items-center gap-1 rounded-t-[8px] border border-b-0 py-1.5 pr-1 pl-3 text-[13.5px] whitespace-nowrap ${
-              active ? '-mb-px border-paper-line border-t-[3px] border-t-[var(--tab)] bg-white font-bold text-ink' : 'border-transparent font-semibold text-ink-soft hover:bg-white'
+            className={`group/tab flex items-center gap-1 rounded-b-[8px] border border-t-0 py-1.5 pr-1 pl-3 text-[13.5px] whitespace-nowrap ${
+              active ? '-mt-px border-paper-line border-b-[3px] border-b-[var(--tab)] bg-white font-semibold text-ink' : 'border-transparent font-medium text-ink-soft hover:bg-white'
             } ${over === tab.key ? 'outline-2 outline-dashed outline-stamp' : ''}`}
           >
             <button

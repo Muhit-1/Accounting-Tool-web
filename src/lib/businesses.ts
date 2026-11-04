@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api-client'
-import type { Business, CreateBusinessInput } from '../types/api'
+import type { Business, BusinessSummary, BusinessTemplate, CreateBusinessInput } from '../types/api'
 
 export type UpdateBusinessInput = Partial<
   Pick<
@@ -64,5 +64,43 @@ export function useDeleteBusiness() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['businesses'] })
     },
+  })
+}
+
+// Everything the Home screen and the business switcher need, in one request: yours and the ones shared with you.
+export function useBusinessSummaries() {
+  return useQuery({
+    queryKey: ['businesses', 'summaries'],
+    queryFn: () => api.get<BusinessSummary[]>('/businesses/summaries'),
+  })
+}
+
+// Remembers what the person opened last (the Home list is ordered by it). Failing is harmless.
+export function markOpened(businessId: string, tableId?: string) {
+  return api.post(`/businesses/${businessId}/opened`, tableId ? { tableId } : {}).catch(() => undefined)
+}
+
+export function useBusinessTemplates() {
+  return useQuery({
+    queryKey: ['business-templates'],
+    queryFn: () => api.get<BusinessTemplate[]>('/business-templates'),
+    staleTime: 10 * 60_000,
+  })
+}
+
+export function useCreateFromBusinessTemplate() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ key, ...input }: { key: string; name: string; currency?: string; country?: string | null }) =>
+      api.post<Business>(`/business-templates/${key}/businesses`, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['businesses'] }),
+  })
+}
+
+export function useCopyBusiness(businessId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { name?: string; withRows?: boolean }) => api.post<Business>(`/businesses/${businessId}/copy`, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['businesses'] }),
   })
 }

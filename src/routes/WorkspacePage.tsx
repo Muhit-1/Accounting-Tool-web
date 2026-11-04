@@ -5,7 +5,7 @@ import { ApiError } from '../lib/api-client'
 import { useBusiness } from '../lib/businesses'
 import { useCategories } from '../lib/categories'
 import type { InvoiceScanResult } from '../lib/invoice-scan'
-import { useApplyTemplate, useCreateTable, useDeleteTable, useReorderTables, useRestoreTable, useTables, useTemplates, useUpdateTable } from '../lib/tables'
+import { useApplyTemplate, useCreateTable, useDeleteTable, useDuplicateTable, useReorderTables, useRestoreTable, useTables, useTemplates, useUpdateTable } from '../lib/tables'
 import { useToast } from '../lib/toast-context'
 import type { Transaction } from '../types/api'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -53,6 +53,7 @@ export function WorkspacePage() {
   const restoreTable = useRestoreTable(businessId ?? '')
   const reorderTables = useReorderTables(businessId ?? '')
   const applyTemplate = useApplyTemplate(businessId ?? '')
+  const duplicateTable = useDuplicateTable(businessId ?? '')
 
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Transaction | undefined>(undefined)
@@ -70,15 +71,24 @@ export function WorkspacePage() {
 
   // The pinned top (tabs, toolbar) and how tall it is, so the column letters stick right under it.
   const [toolbarHost, setToolbarHost] = useState<HTMLDivElement | null>(null)
+  const [barHost, setBarHost] = useState<HTMLDivElement | null>(null)
   const head = useRef<HTMLDivElement>(null)
   const [headHeight, setHeadHeight] = useState(0)
+  // The sheet can be wider than the window. The pinned top and the tabs stay as wide as the window, so they stay in
+  // view while the sheet scrolls sideways under them.
+  const [viewWidth, setViewWidth] = useState(0)
   useEffect(() => {
     const element = head.current
     if (!element) return
-    const measure = () => setHeadHeight(element.offsetHeight)
+    const page = element.closest('main')
+    const measure = () => {
+      setHeadHeight(element.offsetHeight)
+      if (page) setViewWidth(page.clientWidth)
+    }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(element)
+    if (page) observer.observe(page)
     return () => observer.disconnect()
   }, [])
 
@@ -178,6 +188,10 @@ export function WorkspacePage() {
       items.push('separator', { label: 'The Cash book cannot be deleted', disabled: true })
       return items
     }
+    items.push(
+      { label: 'Make a copy', hint: 'The columns, formulas and totals, without the rows.', onSelect: () => void copyTable(t.id, t.name, false) },
+      { label: 'Make a copy with its rows', onSelect: () => void copyTable(t.id, t.name, true) },
+    )
     items.push({ label: 'Posts to Cash book…', hint: t.rules.some((r) => r.enabled) ? 'On' : 'Off', onSelect: () => setRulesTableId(t.id) })
     items.push(
       { heading: 'Color' },
@@ -195,6 +209,16 @@ export function WorkspacePage() {
   function moveTabs(keys: string[]) {
     const ids = keys.map((k) => engine.find((t) => keyOf(t) === k)?.id).filter((id): id is string => Boolean(id))
     void reorderTables.mutateAsync(ids).catch((err) => toast(messageOf(err)))
+  }
+
+  async function copyTable(id: string, name: string, withRows: boolean) {
+    try {
+      const made = await duplicateTable.mutateAsync({ tableId: id, withRows })
+      selectTab(made.id)
+      toast(`“${name}” copied.${made.skippedColumns.length > 0 ? ` Left out: ${made.skippedColumns.join(', ')} (they add up another table).` : ''}`)
+    } catch (err) {
+      toast(messageOf(err))
+    }
   }
 
   async function addTemplate(key: string) {
@@ -230,26 +254,16 @@ export function WorkspacePage() {
     ) : null
 
   return (
-    <WorkspaceChromeContext.Provider value={{ toolbarHost }}>
-      <div style={{ ['--ws-top' as string]: `${headHeight}px` }} className="min-h-full bg-white">
-        <div ref={head} className="sticky top-0 left-0 z-20 bg-white">
-          <TableTabs
-            tabs={tabs}
-            activeKey={active?.key ?? ''}
-            onSelect={selectTab}
-            menuFor={menuFor}
-            onNew={restricted ? undefined : setNewMenu}
-            onMove={moveTabs}
-            onRename={(key) => {
-              const t = engine.find((x) => keyOf(x) === key)
-              if (t && !restricted) setRenaming({ key, name: t.name })
-            }}
-          />
-          <div ref={setToolbarHost} />
+    <WorkspaceChromeContext.Provider value={{ toolbarHost, barHost }}>
+      <div style={{ ['--ws-top' as string]: `${headHeight}px` }} className="flex min-h-full w-max min-w-full flex-col bg-white">
+        <div ref={head} style={viewWidth ? { width: viewWidth } : undefined} className="sticky top-0 left-0 z-20 bg-white">
+          {/* The sheet's toolbar is for a larger screen; a phone gets the cards and the + button. */}
+          <div ref={setToolbarHost} className="hidden md:block" />
+          <div ref={setBarHost} />
           {isFresh && active?.key === 'cashbook' && <StartStrip businessId={businessId} onUpload={() => setUploadingSheet(true)} onTemplates={setNewMenu} />}
         </div>
 
-        <div className="px-4 py-4 md:p-0">
+        <div className="min-h-0 flex-1 px-4 py-4 md:p-0">
           {active?.key === 'cashbook' &&
             (account ? (
               <CashBookTab
@@ -281,9 +295,38 @@ export function WorkspacePage() {
                 )}
               </p>
             ))}
-          {activeEngine && activeEngine.kind === 'TABLE' && <TableTab key={activeEngine.id} businessId={businessId} table={activeEngine} tables={engine} onRules={() => setRulesTableId(activeEngine.id)} />}
+          {activeEngine && activeEngine.kind === 'TABLE' && <TableTab key={activeEngine.id} businessId={businessId} table={activeEngine} tables={engine} currency={currency} onRules={() => setRulesTableId(activeEngine.id)} />}
+        </div>
+
+        {/* The sheets are tabs at the bottom, as in a spreadsheet. */}
+        <div style={viewWidth ? { width: viewWidth } : undefined} className="sticky bottom-0 left-0 z-20 bg-paper">
+          <TableTabs
+            tabs={tabs}
+            activeKey={active?.key ?? ''}
+            onSelect={selectTab}
+            menuFor={menuFor}
+            onNew={restricted ? undefined : setNewMenu}
+            onMove={moveTabs}
+            onRename={(key) => {
+              const t = engine.find((x) => keyOf(x) === key)
+              if (t && !restricted) setRenaming({ key, name: t.name })
+            }}
+          />
         </div>
       </div>
+
+      {active?.key === 'cashbook' && account && !restricted && (
+        <button
+          type="button"
+          onClick={openCreate}
+          aria-label="Add an entry"
+          className="fixed right-4 bottom-[88px] z-30 flex h-14 w-14 items-center justify-center rounded-[18px] bg-stamp text-white shadow-[0_6px_16px_rgba(28,109,208,0.4)] md:hidden"
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
+      )}
 
       {rulesTableId && engine.find((t) => t.id === rulesTableId) && (
         <TableRulesDialog key={rulesTableId} businessId={businessId} table={engine.find((t) => t.id === rulesTableId) as (typeof engine)[number]} onClose={() => setRulesTableId(null)} />

@@ -38,6 +38,7 @@ export interface Business {
 export interface CreateBusinessInput {
   name: string
   currency?: string
+  country?: string | null
 }
 
 export type CategoryType = 'INCOME' | 'EXPENSE'
@@ -277,4 +278,42 @@ export interface PostingChange {
 export interface PostingSaveResult {
   config: PostingConfig
   changes: { invoices: PostingChange }
+}
+
+// ---- Sheets-style redesign (API: business summaries, templates, search)
+
+export type BusinessRole = 'OWNER' | 'EDIT' | 'VIEW' | 'TABLE'
+
+// One card of the Home screen: a business you own or one shared with you.
+export interface BusinessSummary {
+  id: string
+  name: string
+  currency: string
+  country: string | null
+  role: BusinessRole
+  canEdit: boolean
+  // Who owns it, for a shared business (null for your own).
+  ownerName: string | null
+  // The whole-business balance; null for someone who was given one table (they never see the Cash book).
+  balance: number | null
+  tables: { id: string; name: string; color: string | null; kind: 'LEDGER' | 'TABLE' }[]
+  lastOpenedAt: string | null
+  lastTableId: string | null
+  createdAt: string
+  sharedUntil: string | null
+}
+
+export interface BusinessTemplate {
+  key: string
+  name: string
+  description: string
+  tables: string[]
+}
+
+export interface SearchResult {
+  q: string
+  tables: { id: string; name: string; color: string | null; kind: 'LEDGER' | 'TABLE' }[]
+  rows: { tableId: string; tableName: string; tableColor: string | null; rowId: string; number: number; title: string; field: string; value: string }[]
+  entries: { id: string; accountId: string; date: string; memo: string | null; counterparty: string | null; amount: number; direction: 'IN' | 'OUT' }[]
+  invoices: { id: string; number: string; client: string; total: number; status: string }[]
 }

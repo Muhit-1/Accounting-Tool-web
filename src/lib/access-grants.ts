@@ -26,6 +26,16 @@ export function useCreateAccessGrant(businessId: string) {
   })
 }
 
+// Change view / edit or the end date of a sharing without removing and adding the person again.
+export function useUpdateAccessGrant(businessId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...input }: { id: string; permission?: AccessPermission; expiresAt?: string }) =>
+      api.patch<AccessGrant>(`/businesses/${businessId}/access-grants/${id}`, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['access-grants', businessId] }),
+  })
+}
+
 export function useRevokeAccessGrant(businessId: string) {
   const queryClient = useQueryClient()
   return useMutation({

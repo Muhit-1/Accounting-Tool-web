@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { BOX_H, BOX_W, type MapNode } from './connections'
+const BOX_W = 150
+const BOX_H = 54
+type MapNode = { id: string; x: number; y: number; name: string; color: string; ledger: boolean; rows: number; columns: number }
 import { clampZoom, fitView, parseLayout, withLayout, zoomAt, Z_MAX, Z_MIN } from './connections-view'
 
 const node = (id: string, x: number, y: number): MapNode => ({ id, name: id, color: '#000', ledger: false, rows: 0, columns: 0, x, y })

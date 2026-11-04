@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './routes/LoginPage'
 import { AuthCallbackPage } from './routes/AuthCallbackPage'
 import { DashboardPage } from './routes/DashboardPage'
+import { HomePage } from './routes/HomePage'
 import { AccountsPage } from './routes/AccountsPage'
 import { WorkspacePage } from './routes/WorkspacePage'
 import { StatementPage } from './routes/StatementPage'
@@ -32,7 +33,9 @@ export default function App() {
       <Route path="/terms" element={<LegalPage slug="terms" />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/" element={<HomePage />} />
+          {/* The old combined overview stays reachable until the new Home has been checked on production. */}
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/shared-with-me" element={<SharedWithMePage />} />
           <Route path="/admin" element={<AdminPage />} />

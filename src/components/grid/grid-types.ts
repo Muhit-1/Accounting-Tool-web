@@ -56,6 +56,12 @@ export interface GridColumn<R> {
   draftNote?: string
   // The footer cell: a fixed text or worked out from the rows in view.
   footer?: (rows: R[]) => string
+  // Set by the column's format: overrides the usual alignment of its type (numbers right, the rest left).
+  align?: 'left' | 'right'
+  // A small sign before the name that tells the kind of column ("Aa", "123", "ƒ", "↗").
+  glyph?: string
+  // A worked-out column is drawn differently: formula = pale blue with a blue line, lookup = pale gold with a gold line.
+  tint?: 'formula' | 'lookup'
 }
 
 // What onCommit receives for the "＋ New …" entry of a choice list.
@@ -158,6 +164,16 @@ export interface GridProps<R> {
   footRows?: FootRow[]
   // A line at the very bottom, e.g. "12 rows" and a "＋ Function row" button.
   footEnd?: ReactNode
+  // Called when the cursor moves to another cell (the formula bar shows what is in it). `row` is null in the add-row.
+  onActiveCell?: (cell: ActiveCell<R> | null) => void
+  // A right click on a row: the menu entries to show (insert above / below, delete …). Nothing = no menu.
+  rowMenu?: (row: R, index: number) => MenuEntry[]
+}
+
+export interface ActiveCell<R> {
+  columnId: string
+  row: R | null
+  rowIndex: number
 }
 
 export interface FootCell {

@@ -14,6 +14,27 @@ export interface TableField {
   locked: boolean
 }
 
+// How a column is shown (config.format): decimals, date style, alignment, thousands commas.
+export interface FieldFormat {
+  decimals?: number
+  dateFormat?: 'iso' | 'dmy' | 'mdy' | 'long'
+  align?: 'left' | 'center' | 'right'
+  thousands?: boolean
+}
+
+// What changing the type of a column would do (a preview: nothing is changed).
+export interface TypeChangePreview {
+  dryRun: true
+  from: FieldType
+  to: FieldType
+  total: number
+  empty: number
+  converts: number
+  lost: number
+  samples: { rowNumber: number; value: string; reason: string }[]
+  options?: string[]
+}
+
 export type FnKind = 'sum' | 'avg' | 'count' | 'min' | 'max' | 'last' | 'formula'
 export interface FnSpec {
   fn: FnKind

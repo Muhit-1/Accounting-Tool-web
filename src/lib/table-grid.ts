@@ -1,5 +1,6 @@
 // What a person may type into a cell of one of their own tables, and what the add-row turns into.
 // Pure, so the rules are tested without a browser. The server checks everything again.
+import { formatDateWith, formatNumber, readFormat } from './field-format'
 import { formatDateCell, formatMoneyCell, parseDateInput } from './grid-parse'
 import type { EngineRow, TableField } from '../types/engine'
 
@@ -69,7 +70,8 @@ export function buildDraftValues(fields: TableField[], draft: Record<string, str
   return { ok: true, values }
 }
 
-// How a cell reads when nobody is typing in it.
+// How a cell reads when nobody is typing in it. The column's format (decimals, date style, commas) wins over the
+// default of its type.
 export function cellText(field: TableField, row: EngineRow): string {
   const worked = row.cells[field.id]
   if (worked) {
@@ -78,21 +80,27 @@ export function cellText(field: TableField, row: EngineRow): string {
   }
   const v = row.values[field.id]
   if (v === null || v === undefined) return ''
-  if (field.type === 'MONEY' && typeof v === 'number') return formatMoneyCell(v)
-  if (field.type === 'DATE' && typeof v === 'string') return formatDateCell(v)
+  const format = readFormat(field)
+  if ((field.type === 'MONEY' || field.type === 'NUMBER') && typeof v === 'number') {
+    if (field.type === 'MONEY') return Object.keys(format).length === 0 ? formatMoneyCell(v) : formatNumber(v, format, 2)
+    return format.decimals !== undefined || format.thousands === true ? formatNumber(v, { thousands: false, ...format }, 0) : String(v)
+  }
+  if (field.type === 'DATE' && typeof v === 'string') return format.dateFormat ? formatDateWith(v, format.dateFormat) : formatDateCell(v)
   if (field.type === 'TICK') return v === true ? 'Yes' : ''
   return String(v)
 }
 
 function formatWorked(field: TableField, v: string | number | boolean | null): string {
   if (v === null || v === undefined) return ''
+  const format = readFormat(field)
   if (typeof v === 'number') {
-    // results read as money (two decimals) unless the column counts things
-    const plain = (field.type === 'ROLLUP' && field.config.how === 'count') || field.config.format === 'number'
+    // results read as money (two decimals) unless the column counts things or its format says otherwise
+    if (format.decimals !== undefined || format.thousands !== undefined) return formatNumber(v, format, 2)
+    const plain = field.type === 'ROLLUP' && field.config.how === 'count'
     return plain ? String(v) : formatMoneyCell(v)
   }
   if (typeof v === 'boolean') return v ? 'Yes' : 'No'
-  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return formatDateCell(v)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return format.dateFormat ? formatDateWith(v, format.dateFormat) : formatDateCell(v)
   return v
 }
 

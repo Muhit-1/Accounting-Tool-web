@@ -7,7 +7,7 @@ import { NEW_CHOICE } from './grid-types'
 // A wrong value turns the cell red, says why, and the old value stays.
 
 const CELL =
-  'block w-full min-w-0 bg-transparent px-3 py-2.5 text-[13.5px] text-ink hover:bg-stamp/[0.06] focus:bg-white focus:outline-2 focus:-outline-offset-2 focus:outline-stamp disabled:cursor-not-allowed disabled:bg-transparent disabled:opacity-100 placeholder:text-ink-soft/50'
+  'block w-full min-w-0 bg-transparent px-3 py-[7px] text-[13.5px] text-ink hover:bg-stamp/[0.06] focus:bg-white focus:outline-2 focus:-outline-offset-2 focus:outline-stamp disabled:cursor-not-allowed disabled:bg-transparent disabled:opacity-100 placeholder:text-ink-soft/50'
 const INVALID = ' !bg-[var(--color-err)] outline-2 -outline-offset-2 outline-rust'
 
 export interface CellAddress {
@@ -283,18 +283,24 @@ export function TickCell({
   )
 }
 
-// A worked-out value: shown, never typed.
+// A worked-out value: shown, never typed. With an address the cell can be clicked or tabbed to, so the formula bar
+// can say how it is worked out (and the arrow keys pass through it).
 export function ReadCell({
   children,
   align,
   muted,
+  address,
 }: {
   children: ReactNode
   align?: 'right'
   muted?: boolean
+  address?: CellAddress
 }) {
   return (
-    <div className={`block w-full min-w-0 px-3 py-2.5 text-[13.5px] ${align === 'right' ? 'tabular text-right' : ''} ${muted ? 'text-ink-soft italic' : 'text-ink'}`}>
+    <div
+      {...(address ? { 'data-grid-cell': true, 'data-col': address.column, 'data-row': address.row, 'data-draft': address.draft || undefined, 'data-readonly': true, tabIndex: 0 } : {})}
+      className={`block w-full min-w-0 px-3 py-[7px] text-[13.5px] focus:outline-2 focus:-outline-offset-2 focus:outline-stamp ${align === 'right' ? 'tabular text-right' : ''} ${muted ? 'text-ink-soft italic' : 'text-ink'}`}
+    >
       {children}
     </div>
   )

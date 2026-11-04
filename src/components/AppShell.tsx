@@ -1,315 +1,86 @@
-import { useState, type ComponentType, type FormEvent, type SVGProps } from 'react'
-import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { useBusinesses } from '../lib/businesses'
+import { useEffect, useState } from 'react'
+import { Outlet, useLocation, useParams } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
+import { markOpened, useBusiness } from '../lib/businesses'
 import { useTables } from '../lib/tables'
-import { Seal } from './Seal'
-import { NewBusinessModal } from './NewBusinessModal'
-import {
-  IconBell,
-  IconChartBar,
-  IconChevronDown,
-  IconGrid,
-  IconLink,
-  IconPlus,
-  IconReceipt,
-  IconSearch,
-  IconSettings,
-  IconShare,
-  IconShield,
-  IconTable,
-} from './icons'
+import { BottomNav } from './shell/BottomNav'
+import { Outline } from './shell/Outline'
+import { TopBar } from './shell/TopBar'
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/)
-  if (parts.length === 1) return parts[0].slice(0, 2)
-  return (parts[0][0] + parts[1][0]).toUpperCase()
+const OUTLINE_KEY = 'exin_outline_open'
+
+function readOpen(): boolean {
+  try {
+    return localStorage.getItem(OUTLINE_KEY) !== '0'
+  } catch {
+    return true
+  }
 }
 
-function NavLink({
-  to,
-  label,
-  active,
-  icon: IconComponent,
-}: {
-  to: string
-  label: string
-  active: boolean
-  icon: ComponentType<SVGProps<SVGSVGElement>>
-}) {
-  return (
-    <Link
-      to={to}
-      className={`flex items-center gap-2.5 rounded-ledger px-2.5 py-1.5 text-[13.5px] font-semibold transition-colors ${
-        active ? 'bg-stamp text-white' : 'text-ink-inverse-soft hover:bg-white/[0.06] hover:text-white'
-      }`}
-    >
-      <IconComponent width={17} height={17} />
-      {label}
-    </Link>
-  )
-}
+// The page frame: a white top bar (business, search, Share, account), a light outline on the left (money, tables,
+// reports, connections, sharing) and the page. The tables are tabs at the bottom of the sheet, as in a spreadsheet.
+// On a phone the outline is a drawer.
+export function AppShell() {
+  const { businessId } = useParams<{ businessId?: string }>()
+  const location = useLocation()
+  const { user } = useAuth()
+  const { data: business } = useBusiness(businessId)
+  // Someone who was given only some tables (no Cash book among them) gets a menu of just those.
+  const { data: tableList } = useTables(businessId)
+  const tableOnly = tableList !== undefined && !tableList.some((t) => t.kind === 'LEDGER')
+  const canManage = Boolean(business && user && business.ownerId === user.id)
+  const [open, setOpen] = useState(readOpen)
+  const [drawer, setDrawer] = useState(false)
+  // The Workspace, the Connections map and the invoice editor use the whole page: no margins, one scroll.
+  const fullBleed = businessId !== undefined && new RegExp(`^/businesses/${businessId}/(workspace|accounts|connections|invoices/new|invoices/[^/]+/edit)(/|$)`).test(location.pathname)
+  const hasOutline = businessId !== undefined
 
-function NavHeading({ children }: { children: string }) {
-  return <div className="mt-2.5 mb-0.5 px-1 text-[11px] tracking-wider text-ink-inverse-soft uppercase first:mt-0">{children}</div>
-}
+  // The Home list is ordered by what you opened last.
+  const tab = new URLSearchParams(location.search).get('tab') ?? undefined
+  useEffect(() => {
+    if (businessId) void markOpened(businessId, tab)
+  }, [businessId, tab])
 
-function BusinessSwitcher({ businessId }: { businessId?: string }) {
-  const { data: businesses } = useBusinesses()
-  const [open, setOpen] = useState(false)
-  const [showNewBusiness, setShowNewBusiness] = useState(false)
-  const current = businesses?.find((b) => b.id === businessId)
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2.5 rounded-ledger border border-white/15 bg-white/[0.06] px-2.5 py-2 text-left transition-colors hover:bg-white/[0.1]"
-      >
-        <span className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full border border-white/25 bg-white/10 font-display text-[12px] font-bold text-white">
-          {current ? initials(current.name) : 'All'}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13.5px] font-semibold">{current ? current.name : 'All businesses'}</span>
-          <span className="text-[11.5px] text-ink-inverse-soft">{current ? current.currency : 'Combined view'}</span>
-        </span>
-        <IconChevronDown width={16} height={16} className="flex-none text-ink-inverse-soft" />
-      </button>
-
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-0 z-50 mt-1.5 w-full rounded-ledger border border-white/15 bg-ink py-1.5 shadow-lg">
-            <Link
-              to="/"
-              onClick={() => setOpen(false)}
-              className={`flex items-center gap-2.5 px-2.5 py-2 transition-colors ${!businessId ? 'bg-white/[0.08]' : 'hover:bg-white/[0.06]'}`}
-            >
-              <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full border border-white/25 bg-white/10 font-display text-[11px] font-bold text-white">
-                All
-              </span>
-              <span className="text-[13.5px] font-semibold">All businesses</span>
-            </Link>
-            {businesses?.map((business) => (
-              <Link
-                key={business.id}
-                to={`/businesses/${business.id}`}
-                onClick={() => setOpen(false)}
-                className={`flex items-center gap-2.5 px-2.5 py-2 transition-colors ${
-                  businessId === business.id ? 'bg-white/[0.08]' : 'hover:bg-white/[0.06]'
-                }`}
-              >
-                <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full border border-white/25 bg-white/10 font-display text-[11px] font-bold text-white">
-                  {initials(business.name)}
-                </span>
-                <span className="truncate text-[13.5px] font-semibold">{business.name}</span>
-              </Link>
-            ))}
-            <button
-              onClick={() => {
-                setOpen(false)
-                setShowNewBusiness(true)
-              }}
-              className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left transition-colors hover:bg-white/[0.06]"
-            >
-              <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full border border-dashed border-white/30 text-[14px] font-bold text-ink-inverse-soft">
-                +
-              </span>
-              <span className="text-[13.5px] font-semibold">New business</span>
-            </button>
-          </div>
-        </>
-      )}
-
-      {showNewBusiness && <NewBusinessModal onClose={() => setShowNewBusiness(false)} />}
-    </div>
-  )
-}
-
-function TopBar() {
-  const navigate = useNavigate()
-  const { data: businesses } = useBusinesses()
-  const [query, setQuery] = useState('')
-  const [showNotifications, setShowNotifications] = useState(false)
-  const [showNewBusiness, setShowNewBusiness] = useState(false)
-
-  function handleSearch(event: FormEvent) {
-    event.preventDefault()
-    const match = businesses?.find((b) => b.name.toLowerCase().includes(query.trim().toLowerCase()))
-    if (match) {
-      navigate(`/businesses/${match.id}`)
-      setQuery('')
+  function toggle() {
+    if (window.matchMedia('(min-width: 768px)').matches) {
+      setOpen((current) => {
+        const next = !current
+        try {
+          localStorage.setItem(OUTLINE_KEY, next ? '1' : '0')
+        } catch {
+          // a private window: the choice just is not remembered
+        }
+        return next
+      })
+    } else {
+      setDrawer((current) => !current)
     }
   }
 
   return (
-    <header className="flex flex-none items-center justify-between gap-4 border-b border-paper-line bg-white px-5 py-3 md:px-10">
-      <form onSubmit={handleSearch} className="max-w-xs flex-1">
-        <label className="relative block">
-          <IconSearch width={16} height={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-soft" />
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search a venture…"
-            className="w-full rounded-ledger border border-paper-line bg-paper py-2 pr-3 pl-9 text-[13.5px] text-ink placeholder:text-ink-soft focus:border-stamp focus:bg-white focus:outline-none"
-          />
-        </label>
-      </form>
-
-      <div className="flex flex-none items-center gap-2.5">
-        <div className="relative">
-          <button
-            onClick={() => setShowNotifications((s) => !s)}
-            aria-label="Notifications"
-            className="flex h-9 w-9 items-center justify-center rounded-ledger border border-paper-line text-ink-soft transition-colors hover:bg-black/[0.03]"
-          >
-            <IconBell width={17} height={17} />
-          </button>
-          {showNotifications && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-              <div className="absolute top-full right-0 z-50 mt-1.5 w-56 rounded-ledger border border-paper-line bg-white p-4 text-[13px] text-ink-soft shadow-lg">
-                No new notifications.
+    <div className="flex h-screen flex-col overflow-hidden bg-paper">
+      <TopBar businessId={businessId} canManage={canManage} hasOutline={hasOutline} onToggleOutline={toggle} />
+      <div className="relative flex min-h-0 flex-1">
+        {hasOutline && businessId && (
+          <>
+            <aside className={`scrollbar-thin hidden w-[236px] flex-none overflow-y-auto border-r border-paper-line bg-white ${open ? 'md:block' : ''}`}>
+              <Outline businessId={businessId} tableOnly={tableOnly} canManage={canManage} />
+            </aside>
+            {drawer && (
+              <div className="fixed inset-x-0 top-14 bottom-0 z-40 md:hidden">
+                <div className="absolute inset-0 bg-ink/40" onClick={() => setDrawer(false)} />
+                <aside className="scrollbar-thin absolute inset-y-0 left-0 w-[272px] max-w-[85vw] overflow-y-auto bg-white shadow-xl">
+                  <Outline businessId={businessId} tableOnly={tableOnly} canManage={canManage} onNavigate={() => setDrawer(false)} />
+                </aside>
               </div>
-            </>
-          )}
-        </div>
-        <button
-          onClick={() => setShowNewBusiness(true)}
-          className="flex items-center gap-1.5 rounded-ledger bg-stamp px-3.5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-stamp/90"
-        >
-          <IconPlus width={15} height={15} />
-          New
-        </button>
-      </div>
-
-      {showNewBusiness && <NewBusinessModal onClose={() => setShowNewBusiness(false)} />}
-    </header>
-  )
-}
-
-export function AppShell() {
-  const { businessId } = useParams<{ businessId?: string }>()
-  const location = useLocation()
-  const { user, logout } = useAuth()
-  // Someone who was given only some tables (no Cash book among them) gets a menu of just those.
-  const { data: tableList } = useTables(businessId)
-  const tableOnly = tableList !== undefined && !tableList.some((t) => t.kind === 'LEDGER')
-  // The Workspace, the Connections map and the invoice editor use the whole page: no margins, one scroll.
-  const fullBleed = businessId !== undefined && new RegExp(`^/businesses/${businessId}/(workspace|accounts|connections|invoices/new|invoices/[^/]+/edit)(/|$)`).test(location.pathname)
-
-  return (
-    <div className="md:grid md:h-screen md:grid-cols-[248px_1fr] md:overflow-hidden">
-      <aside className="scrollbar-thin-dark flex flex-col gap-6 bg-ink p-5 text-white md:overflow-y-auto md:p-5">
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2.5">
-            <Seal />
-            <div className="font-display text-[17px] leading-tight font-bold">Accounting Tool</div>
-          </div>
-          <div className="text-[11px] tracking-wider text-ink-inverse-soft uppercase">Bookkeeping for every venture</div>
-        </div>
-
-        <BusinessSwitcher businessId={businessId} />
-
-        {businessId && tableOnly && (
-          <nav className="flex flex-col gap-1" aria-label="This business">
-            <NavHeading>Shared with you</NavHeading>
-            <NavLink to={`/businesses/${businessId}/workspace`} label="Shared tables" icon={IconTable} active={location.pathname.startsWith(`/businesses/${businessId}/workspace`)} />
-          </nav>
+            )}
+          </>
         )}
-
-        {businessId && !tableOnly && (
-          <nav className="flex flex-col gap-1" aria-label="This business">
-            <NavHeading>Overview</NavHeading>
-            <NavLink
-              to={`/businesses/${businessId}`}
-              label="Dashboard"
-              icon={IconGrid}
-              active={location.pathname === `/businesses/${businessId}`}
-            />
-            <NavHeading>Workspace</NavHeading>
-            <NavLink
-              to={`/businesses/${businessId}/workspace`}
-              label="Workspace"
-              icon={IconTable}
-              active={['workspace', 'accounts'].some((part) => location.pathname.startsWith(`/businesses/${businessId}/${part}`))}
-            />
-            <NavLink
-              to={`/businesses/${businessId}/invoices`}
-              label="Invoices"
-              icon={IconReceipt}
-              active={location.pathname.startsWith(`/businesses/${businessId}/invoices`)}
-            />
-            <NavLink
-              to={`/businesses/${businessId}/connections`}
-              label="Connections"
-              icon={IconLink}
-              active={location.pathname.startsWith(`/businesses/${businessId}/connections`)}
-            />
-            <NavHeading>Reports</NavHeading>
-            <NavLink
-              to={`/businesses/${businessId}/statement`}
-              label="Statement"
-              icon={IconChartBar}
-              active={location.pathname.startsWith(`/businesses/${businessId}/statement`) || location.pathname.startsWith(`/businesses/${businessId}/reports`)}
-            />
-            <NavLink
-              to={`/businesses/${businessId}/monthly`}
-              label="Monthly view"
-              icon={IconChartBar}
-              active={location.pathname.startsWith(`/businesses/${businessId}/monthly`)}
-            />
-            <NavHeading>Manage</NavHeading>
-            <NavLink
-              to={`/businesses/${businessId}/sharing`}
-              label="Sharing"
-              icon={IconShare}
-              active={location.pathname.startsWith(`/businesses/${businessId}/sharing`)}
-            />
-            <NavLink
-              to={`/businesses/${businessId}/settings`}
-              label="Settings"
-              icon={IconSettings}
-              active={location.pathname.startsWith(`/businesses/${businessId}/settings`)}
-            />
-          </nav>
-        )}
-
-        <nav className="flex flex-col gap-1" aria-label="Account">
-          <div className="mb-0.5 px-1 text-[11px] tracking-wider text-ink-inverse-soft uppercase">Account</div>
-          <NavLink
-            to="/shared-with-me"
-            label="Shared with you"
-            icon={IconShare}
-            active={location.pathname === '/shared-with-me'}
-          />
-          <NavLink to="/admin" label="Admin" icon={IconShield} active={location.pathname === '/admin'} />
-        </nav>
-
-        <div className="mt-auto flex flex-col gap-3 text-xs text-ink-inverse-soft">
-          <div className="flex items-center justify-between border-t border-white/10 pt-3">
-            <span className="truncate text-[13px] font-semibold text-white">{user?.name}</span>
-            <button onClick={logout} className="flex-none border-b border-current text-ink-inverse-soft hover:text-white">
-              Sign out
-            </button>
-          </div>
-          <div>
-            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/15 px-2.5 py-1">
-              <span className="h-1.5 w-1.5 flex-none rounded-full bg-stamp" />
-              Stage 1 — local storage
-            </div>
-            <div>Documents will move to Google Drive once Google sign-in is switched on.</div>
-          </div>
-        </div>
-      </aside>
-
-      <div className="min-w-0 md:flex md:flex-col md:overflow-hidden">
-        <TopBar />
-        <main className={`scrollbar-thin md:flex-1 ${fullBleed ? 'bg-white md:overflow-auto' : 'bg-paper px-5 pt-8 pb-14 md:overflow-y-auto md:px-10'}`}>
+        <main className={`scrollbar-thin min-w-0 flex-1 ${fullBleed ? 'overflow-auto bg-white' : 'overflow-y-auto bg-paper px-5 pt-8 pb-14 md:px-10'}`}>
           <Outlet />
         </main>
       </div>
+      {hasOutline && businessId && <BottomNav businessId={businessId} tableOnly={tableOnly} onMore={() => setDrawer(true)} />}
     </div>
   )
 }

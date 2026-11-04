@@ -85,3 +85,24 @@ describe('FN_LABEL', () => {
     expect(FN_LABEL.avg).toBe('Average')
   })
 })
+
+describe('cellText with a column format', () => {
+  const row = (values: Record<string, unknown>, cells: Record<string, { v: string | number | boolean | null }> = {}) => ({ id: 'r', number: 1, version: 1, values, cells }) as never
+  const f = (type: string, format?: unknown) => ({ id: 'f', name: 'F', type, config: format ? { format } : {}, position: 0, locked: false }) as never
+  it('shows money with two decimals unless the format says otherwise', () => {
+    expect(cellText(f('MONEY'), row({ f: 1234.5 }))).toBe('1,234.50')
+    expect(cellText(f('MONEY', { decimals: 0 }), row({ f: 1234.5 }))).toBe('1,235')
+  })
+  it('shows plain numbers as typed unless formatted', () => {
+    expect(cellText(f('NUMBER'), row({ f: 12.5 }))).toBe('12.5')
+    expect(cellText(f('NUMBER', { decimals: 2, thousands: true }), row({ f: 12000 }))).toBe('12,000.00')
+  })
+  it('writes dates in the chosen style', () => {
+    expect(cellText(f('DATE'), row({ f: '2026-10-05' }))).toBe('5 Oct 2026')
+    expect(cellText(f('DATE', { dateFormat: 'dmy' }), row({ f: '2026-10-05' }))).toBe('05/10/2026')
+  })
+  it('applies the format to a worked-out column too', () => {
+    expect(cellText(f('FORMULA', { decimals: 0 }), row({}, { f: { v: 2510.4 } }))).toBe('2,510')
+    expect(cellText(f('FORMULA'), row({}, { f: { v: 2510.4 } }))).toBe('2,510.40')
+  })
+})
