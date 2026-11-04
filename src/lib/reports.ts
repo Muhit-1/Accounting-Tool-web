@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from './api-client'
 import type { CategoryType, CurrencyTotals } from '../types/api'
+import { neutralizeText } from './export-table'
 
 export interface ReportCategoryRow {
   categoryId: string | null
@@ -105,10 +106,11 @@ export function downloadReportCsv(
   const rows = transactions.map((tx) => [
     tx.date.slice(0, 10),
     tx.type,
-    ...(hasBusinessColumn ? [(tx as CombinedReportTransaction).businessName] : []),
-    tx.memo ?? '',
-    tx.categoryName ?? '',
-    tx.counterparty ?? '',
+    // text typed by people: made harmless if the file is opened in a spreadsheet (a cell starting with = + - @ runs as a formula)
+    ...(hasBusinessColumn ? [neutralizeText((tx as CombinedReportTransaction).businessName)] : []),
+    neutralizeText(tx.memo ?? ''),
+    neutralizeText(tx.categoryName ?? ''),
+    neutralizeText(tx.counterparty ?? ''),
     String(tx.amount),
   ])
   const csv = [header, ...rows].map((row) => row.map((cell) => csvEscape(String(cell))).join(',')).join('\n')
