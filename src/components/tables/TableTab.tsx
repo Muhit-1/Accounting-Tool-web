@@ -109,7 +109,6 @@ export function TableTab({ businessId, table, tables, currency, onRules }: { bus
   const [draft, setDraft] = useState<{ values: Record<string, string>; bad: string | null }>({ values: {}, bad: null })
   const [adding, setAdding] = useState(false)
   const [columnDialog, setColumnDialog] = useState<{ field?: TableField; type?: TableField['type'] } | null>(null)
-  const [renaming, setRenaming] = useState<TableField | null>(null)
   const [fnDialog, setFnDialog] = useState<{ row: FnRow; field: TableField } | null>(null)
   const [fnRenaming, setFnRenaming] = useState<FnRow | null>(null)
   const [filtering, setFiltering] = useState(false)
@@ -380,7 +379,27 @@ export function TableTab({ businessId, table, tables, currency, onRules }: { bus
                   </button>
                 ) : undefined
               }
-              onRenameColumn={canDesign ? (column) => setRenaming(table.fields.find((f) => f.id === column.id) ?? null) : undefined}
+              addRowLabel={canEdit ? 'Add row' : undefined}
+              onAddBlankRow={async () => {
+                try {
+                  await insertRow.mutateAsync({})
+                } catch (err) {
+                  toast(messageOf(err))
+                }
+              }}
+              onRenameTo={
+                canDesign
+                  ? async (column, name) => {
+                      try {
+                        await updateField.mutateAsync({ id: column.id, name })
+                        toast(`Renamed to “${name}”. Formulas that use it were updated.`)
+                        return null
+                      } catch (err) {
+                        return messageOf(err)
+                      }
+                    }
+                  : undefined
+              }
               footRows={footRows}
               footEnd={
                 <>
@@ -546,23 +565,6 @@ export function TableTab({ businessId, table, tables, currency, onRules }: { bus
       )}
 
       {columnDialog && <ColumnPanel key={columnDialog.field?.id ?? columnDialog.type ?? 'new'} businessId={businessId} table={table} tables={tables} field={columnDialog.field} initialType={columnDialog.type} onClose={() => setColumnDialog(null)} />}
-      {renaming && (
-        <PromptDialog
-          title="Rename column"
-          label="Column name"
-          initial={renaming.name}
-          maxLength={60}
-          validate={(value) => (value === '' ? 'Give the column a name.' : null)}
-          onSubmit={(value) => {
-            if (value === renaming.name) return
-            void updateField
-              .mutateAsync({ id: renaming.id, name: value })
-              .then(() => toast(`Renamed to “${value}”. Formulas that use it were updated.`))
-              .catch((err) => toast(messageOf(err)))
-          }}
-          onClose={() => setRenaming(null)}
-        />
-      )}
       {fnDialog && (
         <FnDialog
           businessId={businessId}

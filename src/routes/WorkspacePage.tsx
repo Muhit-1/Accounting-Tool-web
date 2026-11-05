@@ -6,6 +6,7 @@ import { useBusiness } from '../lib/businesses'
 import { useCategories } from '../lib/categories'
 import type { InvoiceScanResult } from '../lib/invoice-scan'
 import { useApplyTemplate, useCreateTable, useDeleteTable, useDuplicateTable, useReorderTables, useRestoreTable, useTables, useTemplates, useUpdateTable } from '../lib/tables'
+import { loadZoom, saveZoom, stepZoom, zoomLabel, ZOOM_STEPS } from '../lib/sheet-zoom'
 import { useToast } from '../lib/toast-context'
 import type { Transaction } from '../types/api'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -72,6 +73,28 @@ export function WorkspacePage() {
   // The pinned top (tabs, toolbar) and how tall it is, so the column letters stick right under it.
   const [toolbarHost, setToolbarHost] = useState<HTMLDivElement | null>(null)
   const [barHost, setBarHost] = useState<HTMLDivElement | null>(null)
+  // Zoom of the sheet (the toolbar and the tabs keep their size). Ctrl or ⌘ + the mouse wheel zooms too.
+  const [zoom, setZoomState] = useState(loadZoom)
+  const content = useRef<HTMLDivElement>(null)
+  const setZoom = (next: number) => {
+    setZoomState(next)
+    saveZoom(next)
+  }
+  useEffect(() => {
+    const element = content.current
+    if (!element) return
+    function onWheel(event: WheelEvent) {
+      if (!event.ctrlKey && !event.metaKey) return
+      event.preventDefault()
+      setZoomState((current) => {
+        const next = stepZoom(current, event.deltaY < 0 ? 1 : -1)
+        saveZoom(next)
+        return next
+      })
+    }
+    element.addEventListener('wheel', onWheel, { passive: false })
+    return () => element.removeEventListener('wheel', onWheel)
+  }, [])
   const head = useRef<HTMLDivElement>(null)
   const [headHeight, setHeadHeight] = useState(0)
   // The sheet can be wider than the window. The pinned top and the tabs stay as wide as the window, so they stay in
@@ -263,7 +286,7 @@ export function WorkspacePage() {
           {isFresh && active?.key === 'cashbook' && <StartStrip businessId={businessId} onUpload={() => setUploadingSheet(true)} onTemplates={setNewMenu} />}
         </div>
 
-        <div className="min-h-0 flex-1 px-4 py-4 md:p-0">
+        <div ref={content} style={{ zoom, ['--ws-top' as string]: `${headHeight / zoom}px` }} className="min-h-0 flex-1 px-4 py-4 md:p-0">
           {active?.key === 'cashbook' &&
             (account ? (
               <CashBookTab
@@ -299,7 +322,8 @@ export function WorkspacePage() {
         </div>
 
         {/* The sheets are tabs at the bottom, as in a spreadsheet. */}
-        <div style={viewWidth ? { width: viewWidth } : undefined} className="sticky bottom-0 left-0 z-20 bg-paper">
+        <div style={viewWidth ? { width: viewWidth } : undefined} className="sticky bottom-0 left-0 z-20 flex items-start bg-paper">
+          <div className="min-w-0 flex-1">
           <TableTabs
             tabs={tabs}
             activeKey={active?.key ?? ''}
@@ -312,6 +336,18 @@ export function WorkspacePage() {
               if (t && !restricted) setRenaming({ key, name: t.name })
             }}
           />
+          </div>
+          <div role="group" aria-label="Zoom" className="hidden flex-none items-center gap-0.5 self-center px-3 md:flex">
+            <button type="button" aria-label="Zoom out" title="Zoom out (or Ctrl + scroll)" disabled={zoom <= ZOOM_STEPS[0]} onClick={() => setZoom(stepZoom(zoom, -1))} className="h-7 w-7 rounded-md text-[17px] leading-none text-ink-soft hover:bg-white disabled:opacity-40">
+              −
+            </button>
+            <button type="button" title="Back to 100%" onClick={() => setZoom(1)} className="min-w-[46px] rounded-md px-1 py-1 text-center text-[12px] font-semibold text-ink-soft hover:bg-white">
+              {zoomLabel(zoom)}
+            </button>
+            <button type="button" aria-label="Zoom in" title="Zoom in (or Ctrl + scroll)" disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]} onClick={() => setZoom(stepZoom(zoom, 1))} className="h-7 w-7 rounded-md text-[17px] leading-none text-ink-soft hover:bg-white disabled:opacity-40">
+              +
+            </button>
+          </div>
         </div>
       </div>
 

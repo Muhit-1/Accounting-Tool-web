@@ -168,6 +168,13 @@ export interface GridProps<R> {
   onActiveCell?: (cell: ActiveCell<R> | null) => void
   // A right click on a row: the menu entries to show (insert above / below, delete …). Nothing = no menu.
   rowMenu?: (row: R, index: number) => MenuEntry[]
+  // Adds a visible "＋ <label>" button to the toolbar that jumps to the empty row at the bottom (the row is also there to click).
+  addRowLabel?: string
+  // When given, that button adds an empty row at once (like a spreadsheet) and puts the cursor in it, instead of only moving to the empty row.
+  onAddBlankRow?: () => Promise<void>
+  // Double-click on a column name renames it in place. Returns a problem in plain words, or nothing when saved.
+  // Without it the name is only changed for this viewer (kept in this browser).
+  onRenameTo?: (column: GridColumn<R>, name: string) => Promise<string | null | undefined | void> | void
 }
 
 export interface ActiveCell<R> {

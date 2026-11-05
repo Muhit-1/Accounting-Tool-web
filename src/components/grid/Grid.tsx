@@ -59,6 +59,8 @@ interface RowHandlers<R> {
   paste?: (text: string) => void
   // A right click on a row; returns true when a menu opened (so the browser's own menu stays away).
   contextMenu?: (row: R, index: number, x: number, y: number) => boolean
+  // The ⋮ button in the row number cell: the same menu as a right click (or just Delete).
+  rowActions?: (row: R, index: number, anchor: DOMRect) => void
 }
 
 function FxButton({ active, onClick }: { active: boolean; onClick: (anchor: DOMRect) => void }) {
@@ -110,7 +112,7 @@ function BodyRowImpl<R>({
   bad: BadCell | null
   handlers: RowHandlers<R>
 }) {
-  const { commit, pick, remove, fxOpen, paste, contextMenu } = handlers
+  const { commit, pick, remove, fxOpen, paste, contextMenu, rowActions } = handlers
   return (
     <div
       role="row"
@@ -135,9 +137,25 @@ function BodyRowImpl<R>({
               type="checkbox"
               checked={picked}
               aria-label="Select row"
-              className={`absolute h-4 w-4 accent-stamp focus-visible:opacity-100 group-hover/row:opacity-100 ${picked ? 'opacity-100' : 'opacity-0'}`}
+              className={`absolute left-2 h-4 w-4 accent-stamp focus-visible:opacity-100 group-hover/row:opacity-100 ${picked ? 'opacity-100' : 'opacity-0'}`}
               onChange={(event) => pick(id, event.target.checked)}
             />
+            {rowActions && (
+              <button
+                type="button"
+                aria-label={`Row ${index + 1}: insert, copy or delete`}
+                aria-haspopup="menu"
+                title="Insert, copy or delete this row"
+                onClick={(event) => rowActions(row, index, event.currentTarget.getBoundingClientRect())}
+                className="absolute right-0.5 flex h-6 w-5 items-center justify-center rounded text-ink-soft opacity-0 group-hover/row:opacity-100 hover:bg-stamp-soft hover:text-stamp focus-visible:opacity-100"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <circle cx="12" cy="5" r="1.8" />
+                  <circle cx="12" cy="12" r="1.8" />
+                  <circle cx="12" cy="19" r="1.8" />
+                </svg>
+              </button>
+            )}
           </>
         )}
       </div>
@@ -320,6 +338,9 @@ export function Grid<R>(props: GridProps<R>) {
     footEnd,
     onActiveCell,
     rowMenu,
+    addRowLabel,
+    onAddBlankRow,
+    onRenameTo,
   } = props
   const toast = useToast()
   const chrome = useWorkspaceChrome()
@@ -334,6 +355,8 @@ export function Grid<R>(props: GridProps<R>) {
   const [bad, setBad] = useState<BadCell | null>(null)
   const [menu, setMenu] = useState<{ anchor: DOMRect; items: MenuEntry[] } | null>(null)
   const [renaming, setRenaming] = useState<GridColumn<R> | null>(null)
+  // A column name being edited in place (double-click on the header).
+  const [headEdit, setHeadEdit] = useState<{ id: string; text: string } | null>(null)
   const [filterAnchor, setFilterAnchor] = useState<DOMRect | null>(null)
 
   // The viewer's own column names; the columns they hid are left out.
@@ -349,6 +372,7 @@ export function Grid<R>(props: GridProps<R>) {
     latest.current = { onCommit, onDeleteRows, fx, onPasteText, rowId, rowMenu }
   })
   const hasRowMenu = rowMenu !== undefined
+  const hasDelete = onDeleteRows !== undefined
   const hasFx = fx !== undefined
   const hasPaste = onPasteText !== undefined
 
@@ -387,8 +411,16 @@ export function Grid<R>(props: GridProps<R>) {
             return true
           }
         : undefined,
+      rowActions:
+        hasRowMenu || hasDelete
+          ? (row, index, anchor) => {
+              const own = latest.current.rowMenu?.(row, index) ?? []
+              const items: MenuEntry[] = own.length > 0 ? own : [{ label: 'Delete row', danger: true, onSelect: () => latest.current.onDeleteRows?.([row]) }]
+              setMenu({ anchor, items })
+            }
+          : undefined,
     }),
-    [hasFx, hasPaste, hasRowMenu, toast, setMenu],
+    [hasFx, hasPaste, hasRowMenu, hasDelete, toast, setMenu],
   )
 
   const list = useMemo(() => {
@@ -408,8 +440,32 @@ export function Grid<R>(props: GridProps<R>) {
   const pickedRows = selectable.filter((row) => picked.has(rowId(row)))
   const allPicked = selectable.length > 0 && pickedRows.length === selectable.length
   const isFiltered = query.trim() !== '' || filterValue !== ''
-  const gridTemplate = `40px ${visible.map((column) => column.width).join(' ')} 44px`
+  const gridTemplate = `56px ${visible.map((column) => column.width).join(' ')} 44px`
   const hiddenColumns = labelled.filter((column) => prefs.hidden.includes(column.id))
+
+  // Double-click (or the menu) renames in place: type, Enter to save, Escape to cancel. A grid that has its own
+  // rename dialog (a caller that shares names with everyone) keeps using it.
+  function startRename(column: GridColumn<R>) {
+    if (onRenameTo || !onRenameColumn) setHeadEdit({ id: column.id, text: column.unnamed ? '' : column.label })
+    else onRenameColumn(column)
+  }
+
+  async function commitRename(column: GridColumn<R>, text: string) {
+    setHeadEdit(null)
+    const name = text.trim()
+    if (name === '' || name === column.label) return
+    if (labelled.some((other) => other.id !== column.id && other.label.toLowerCase() === name.toLowerCase())) {
+      toast('Another column already has this name.')
+      return
+    }
+    if (onRenameTo) {
+      const problem = await onRenameTo(column, name)
+      if (problem) toast(problem)
+    } else {
+      const original = columns.find((c) => c.id === column.id)?.label ?? column.label
+      rename(column.id, name, original)
+    }
+  }
 
   function openHeaderMenu(column: GridColumn<R>, anchor: DOMRect) {
     const items: MenuEntry[] = []
@@ -426,7 +482,7 @@ export function Grid<R>(props: GridProps<R>) {
     }
     items.push(
       'separator',
-      { label: 'Rename column', onSelect: () => (onRenameColumn ? onRenameColumn(column) : setRenaming({ ...column, label: column.label })) },
+      { label: 'Rename column', hint: 'Or double-click the name.', onSelect: () => startRename(column) },
       {
         label: 'Hide column',
         hint: column.required ? 'Needed for the totals.' : undefined,
@@ -523,6 +579,35 @@ export function Grid<R>(props: GridProps<R>) {
         <button type="button" aria-haspopup="menu" onClick={(event) => setMenu({ anchor: event.currentTarget.getBoundingClientRect(), items: dataItems })} className={toolButton}>
           Data
           <span className="text-[10px] opacity-50">▾</span>
+        </button>
+      )}
+      {draft && addRowLabel && (
+        <button
+          type="button"
+          onClick={() => {
+            if (!onAddBlankRow) {
+              focusDraft(draft.focusColumn)
+              root.current?.querySelector('[data-grid-cell][data-draft]')?.scrollIntoView({ block: 'center', inline: 'nearest' })
+              return
+            }
+            // an empty row at the bottom, then the cursor in its first cell you can type in
+            const index = list.length
+            void onAddBlankRow().then(() => {
+              let tries = 0
+              const timer = window.setInterval(() => {
+                const cell = root.current?.querySelector<HTMLElement>(`[data-grid-cell][data-row="${index}"]:not([data-readonly]):not([data-draft])`)
+                if (cell || ++tries > 20) {
+                  window.clearInterval(timer)
+                  cell?.focus()
+                  cell?.scrollIntoView({ block: 'center', inline: 'nearest' })
+                }
+              }, 60)
+            })
+          }}
+          className="inline-flex items-center gap-1.5 rounded-ledger bg-stamp px-3 py-1.5 text-[12.5px] font-semibold text-white hover:bg-stamp/90"
+        >
+          <span aria-hidden>＋</span>
+          {addRowLabel}
         </button>
       )}
       {toolbarEnd}
@@ -641,10 +726,37 @@ export function Grid<R>(props: GridProps<R>) {
                 role="columnheader"
                 className={`flex min-w-0 border-r border-paper-edge ${column.tint === 'formula' ? 'border-b-2 border-b-stamp/60 bg-[#eef4fd]' : column.tint === 'lookup' ? 'border-b-2 border-b-brass/50 bg-[#f8f1dc]' : ''}`}
               >
+                {headEdit?.id === column.id ? (
+                  <input
+                    autoFocus
+                    aria-label={`New name for ${column.label}`}
+                    value={headEdit.text}
+                    maxLength={60}
+                    placeholder="Column name"
+                    onChange={(event) => setHeadEdit({ id: column.id, text: event.target.value })}
+                    onFocus={(event) => event.currentTarget.select()}
+                    onBlur={(event) => void commitRename(column, event.currentTarget.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault()
+                        event.currentTarget.blur()
+                      } else if (event.key === 'Escape') {
+                        event.preventDefault()
+                        setHeadEdit(null)
+                      }
+                    }}
+                    className="m-1 w-full min-w-0 rounded-md border-2 border-stamp bg-white px-2 py-0.5 text-[13px] font-semibold text-ink focus:outline-none"
+                  />
+                ) : (
                 <button
                   type="button"
                   aria-haspopup="menu"
+                  title="Click for options. Double-click to rename."
                   onClick={(event) => openHeaderMenu(column, event.currentTarget.getBoundingClientRect())}
+                  onDoubleClick={() => {
+                    setMenu(null)
+                    startRename(column)
+                  }}
                   className={`group/head flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-[13px] font-semibold text-ink hover:bg-stamp/[0.06] hover:text-stamp ${isRightAligned(column) ? 'justify-end' : ''}`}
                 >
                   {column.glyph ? (
@@ -665,6 +777,7 @@ export function Grid<R>(props: GridProps<R>) {
                     <span className="text-[10px] opacity-0 group-hover/head:opacity-60 group-focus-visible/head:opacity-60">▾</span>
                   )}
                 </button>
+                )}
               </div>
             ))}
             <div className="flex items-center justify-center">{headerEnd}</div>
