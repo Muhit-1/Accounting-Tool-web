@@ -414,7 +414,7 @@ export function CashBookTab({
   const fxSide = fx?.columnId === 'inn' ? 'in' : 'out'
 
   const addEntryMenu: MenuEntry[] = [
-    { label: 'Type in the sheet', hint: 'Fill the empty row and press Enter.', onSelect: () => document.querySelector<HTMLElement>('[data-grid-cell][data-draft][data-col="desc"]')?.focus() },
+    { label: 'Type in the table', hint: 'Fill the empty row and press Enter.', onSelect: () => document.querySelector<HTMLElement>('[data-grid-cell][data-draft][data-col="desc"]')?.focus() },
     { label: 'From an invoice or receipt file…', hint: 'The amount, date and name are read for you.', onSelect: onScanInvoice },
     { label: 'Several at once (paste)', hint: 'Copy rows from Excel.', onSelect: () => setPaste('') },
   ]
@@ -466,7 +466,6 @@ export function CashBookTab({
               emptyTitle="No entries yet"
               emptyHint="Fill the empty row below and press Enter."
               exportName={tableName}
-              minRows={24}
               summary={
                 <div className="mr-1 flex items-center gap-4 text-[12.5px] text-ink-soft">
                   <span>
@@ -483,7 +482,7 @@ export function CashBookTab({
               filterPanel={() => (
                 <p className="flex items-start gap-2 text-[12.5px] text-ink-soft">
                   <i className="mt-0.5 inline-block h-3.5 w-3.5 flex-none rounded-[3px] border border-brass-line bg-brass-row" />
-                  Gold rows were posted from other sheets or invoices{posted > 0 ? ` (${posted} now)` : ''}. Change them where they came from.
+                  Gold rows were posted from other tables or invoices{posted > 0 ? ` (${posted} now)` : ''}. Change them where they came from.
                 </p>
               )}
               viewMenuItems={[{ label: 'Categories…', hint: 'Rename, regroup, add or delete.', onSelect: () => setShowCategories(true) }]}

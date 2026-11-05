@@ -114,17 +114,16 @@ export function columnWidth(field: TableField): string {
       return '110px'
     case 'MONEY':
     case 'ROLLUP':
-      return '130px'
     case 'DATE':
-      return '130px'
+      return '120px'
     case 'CHOICE':
     case 'LOOKUP':
     case 'FORMULA':
-      return '160px'
+      return '140px'
     case 'LINK':
       return '190px'
     default:
-      return 'minmax(180px,1fr)'
+      return 'minmax(160px,1fr)'
   }
 }
 

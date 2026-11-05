@@ -7,6 +7,8 @@
   --color-paper-edge: #e2e6ec;
   --color-ink: #0f2a4a;
   --color-ink-soft: #6b7684;
+  /* small text inside a table (row numbers, footer labels, hints): 6:1 on the header tint, where ink-soft is 4.4:1 */
+  --color-ink-soft2: #566170;
   --color-ink-inverse-soft: #a9bcd6;
   --color-stamp: #1c6dd0;
   --color-stamp-soft: #e6f0fb;

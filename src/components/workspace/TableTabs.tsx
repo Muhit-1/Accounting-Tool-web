@@ -14,8 +14,8 @@ export interface TabInfo {
   movable?: boolean
 }
 
-// Every sheet of the business, in one bar on top. Each tab has its own ⋮ menu (always on the open tab, on hover for
-// the others) and a right click opens the same menu. A double click renames. “New sheet” is a button you cannot miss.
+// Every table of the business, in one bar on top. Each tab has its own ⋮ menu (always on the open tab, on hover for
+// the others) and a right click opens the same menu. A double click renames. “New table” is a button you cannot miss.
 // Drag a tab to put it somewhere else.
 export function TableTabs({
   tabs,
@@ -30,7 +30,7 @@ export function TableTabs({
   activeKey: string
   onSelect: (key: string) => void
   menuFor: (key: string) => MenuEntry[]
-  // Left out for someone who may not make sheets: then there is no “New sheet”.
+  // Left out for someone who may not make tables: then there is no “New table”.
   onNew?: (anchor: DOMRect) => void
   // Called with the new order of the movable tabs' keys.
   onMove: (keys: string[]) => void
@@ -53,7 +53,7 @@ export function TableTabs({
   }
 
   return (
-    <div role="tablist" aria-label="Sheets" className="flex items-start gap-0.5 overflow-x-auto border-t border-paper-line bg-paper px-3 pb-1">
+    <div role="tablist" aria-label="Tables" className="flex items-start gap-0.5 overflow-x-auto border-t border-paper-line bg-paper px-3 pb-1">
       {tabs.map((tab) => {
         const active = tab.key === activeKey
         const hasMenu = menuFor(tab.key).length > 0
@@ -88,7 +88,7 @@ export function TableTabs({
               setMenu({ anchor: new DOMRect(event.clientX, event.clientY, 0, 0), items })
             }}
             style={{ ['--tab' as string]: tab.color ?? 'var(--color-stamp)' }}
-            className={`group/tab flex items-center gap-1 rounded-b-[8px] border border-t-0 py-1.5 pr-1 pl-3 text-[13.5px] whitespace-nowrap ${
+            className={`group/tab flex items-center gap-1 rounded-b-[8px] border border-t-0 pr-1 pl-3 text-[13.5px] whitespace-nowrap ${
               active ? '-mt-px border-paper-line border-b-[3px] border-b-[var(--tab)] bg-white font-semibold text-ink' : 'border-transparent font-medium text-ink-soft hover:bg-white'
             } ${over === tab.key ? 'outline-2 outline-dashed outline-stamp' : ''}`}
           >
@@ -98,7 +98,7 @@ export function TableTabs({
               aria-selected={active}
               onClick={() => onSelect(tab.key)}
               onDoubleClick={() => onRename?.(tab.key)}
-              className="flex items-center gap-1.5 py-0.5"
+              className="flex min-h-[34px] items-center gap-1.5 py-1"
             >
               <span className="h-2 w-2 rounded-full bg-[var(--tab)]" aria-hidden />
               {tab.name}
@@ -120,7 +120,7 @@ export function TableTabs({
                 aria-haspopup="menu"
                 title="Rename, delete and more"
                 onClick={(event) => setMenu({ anchor: event.currentTarget.getBoundingClientRect(), items: menuFor(tab.key) })}
-                className={`flex h-6 w-6 items-center justify-center rounded-md text-ink-soft hover:bg-stamp-soft hover:text-ink focus-visible:opacity-100 ${
+                className={`flex h-8 w-8 items-center justify-center rounded-md text-ink-soft hover:bg-stamp-soft hover:text-ink focus-visible:opacity-100 ${
                   active ? 'opacity-100' : 'opacity-0 group-hover/tab:opacity-100'
                 }`}
               >
@@ -143,7 +143,7 @@ export function TableTabs({
           className="mb-1 ml-2 inline-flex flex-none items-center gap-1.5 self-center rounded-ledger border-[1.5px] border-stamp bg-stamp-soft px-3 py-1 text-[13px] font-bold text-stamp hover:bg-stamp hover:text-white"
         >
           <IconPlus width={14} height={14} />
-          New sheet
+          New table
         </button>
       )}
       {menu && <FloatingMenu anchor={menu.anchor} items={menu.items} onClose={() => setMenu(null)} />}

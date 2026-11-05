@@ -124,11 +124,21 @@ export interface TableRule {
   enabled: boolean
   config: RuleConfig
 }
+// A row that matches a rule but cannot post (no usable date, or a worked-out error). `amount` is what is waiting.
+export interface BlockedRow {
+  rowId: string
+  number: number
+  label: string
+  reason: 'date' | 'error'
+  amount: number | null
+}
 export interface RulePreview {
   posting: number
   of: number
   total: number
   blocked: number
+  // up to 50 of the blocked rows (`blocked` is always the full count)
+  blockedRows: BlockedRow[]
 }
 export interface RuleSaveResult {
   rule: { id: string; tableId: string; enabled: boolean; config: RuleConfig }

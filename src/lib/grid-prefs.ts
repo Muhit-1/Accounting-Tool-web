@@ -7,6 +7,10 @@ export interface GridPrefs {
   // column id -> the name this viewer gave it
   labels: Record<string, string>
   hidden: string[]
+  // A, B, C over the columns (off unless this viewer turned them on)
+  showLetters?: boolean
+  // Show the columns nobody has typed in (they are hidden unless this viewer asked to see them)
+  showEmpty?: boolean
 }
 
 export interface TablePrefs {
@@ -57,6 +61,8 @@ export function loadGridPrefs(storage: ReadableStorage, key: string): GridPrefs 
   return {
     labels: stored && isStringRecord(stored.labels) ? stored.labels : {},
     hidden: stored && isStringList(stored.hidden) ? stored.hidden : [],
+    ...(stored?.showLetters === true ? { showLetters: true } : {}),
+    ...(stored?.showEmpty === true ? { showEmpty: true } : {}),
   }
 }
 
@@ -93,6 +99,16 @@ export function withHiddenColumn(prefs: GridPrefs, columnId: string): GridPrefs 
 
 export function withShownColumn(prefs: GridPrefs, columnId: string | 'all'): GridPrefs {
   return { ...prefs, hidden: columnId === 'all' ? [] : prefs.hidden.filter((id) => id !== columnId) }
+}
+
+export function withLetters(prefs: GridPrefs, on: boolean): GridPrefs {
+  const { showLetters: _old, ...rest } = prefs
+  return on ? { ...rest, showLetters: true } : rest
+}
+
+export function withShowEmpty(prefs: GridPrefs, on: boolean): GridPrefs {
+  const { showEmpty: _old, ...rest } = prefs
+  return on ? { ...rest, showEmpty: true } : rest
 }
 
 export function withTableName(prefs: TablePrefs, tableKey: string, name: string, original: string): TablePrefs {

@@ -61,10 +61,10 @@ export function SearchBox({ businessId, canManage }: { businessId?: string; canM
     }
     const base = `/businesses/${businessId}`
     if (found && debounced.trim() === text.trim()) {
-      for (const t of found.tables) out.push({ key: `t-${t.id}`, group: 'Tables', label: t.name, color: t.color, to: t.kind === 'LEDGER' ? `${base}/workspace` : `${base}/workspace?tab=${t.id}` })
+      for (const t of found.tables) out.push({ key: `t-${t.id}`, group: 'Tables', label: t.name, color: t.color, to: `${base}/workspace?tab=${t.kind === 'LEDGER' ? 'cashbook' : t.id}` })
       for (const r of found.rows) out.push({ key: `r-${r.rowId}`, group: 'Rows', label: r.title, sub: `${r.field}: ${r.value}`, tag: r.tableName, color: r.tableColor, to: `${base}/workspace?tab=${r.tableId}&row=${r.rowId}` })
       for (const e of found.entries)
-        out.push({ key: `e-${e.id}`, group: 'Cash book', label: e.memo || e.counterparty || 'Entry', sub: `${e.direction === 'IN' ? '+' : '−'}${money(e.amount)} · ${e.date.slice(0, 10)}`, tag: 'Cash book', to: `${base}/workspace` })
+        out.push({ key: `e-${e.id}`, group: 'Cash book', label: e.memo || e.counterparty || 'Entry', sub: `${e.direction === 'IN' ? '+' : '−'}${money(e.amount)} · ${e.date.slice(0, 10)}`, tag: 'Cash book', to: `${base}/workspace?tab=cashbook` })
       for (const i of found.invoices) out.push({ key: `i-${i.id}`, group: 'Invoices', label: `#${i.number} · ${i.client}`, sub: `${money(i.total)} · ${i.status.toLowerCase()}`, tag: 'Invoices', to: `${base}/invoices/${i.id}` })
     }
     const actions: [string, string][] = [

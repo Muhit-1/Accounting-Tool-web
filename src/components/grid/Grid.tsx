@@ -1,6 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { columnLetter, fillerRowCount } from '../../lib/grid-letters'
+import { emptyColumnIds } from '../../lib/empty-columns'
 import { formatDateCell, formatMoneyCell, parseDateInput, parseMoneyInput } from '../../lib/grid-parse'
 import { downloadFile } from '../../lib/download'
 import { exportFileName, toCsv, toXlsx, type ExportCell } from '../../lib/export-table'
@@ -11,7 +12,7 @@ import { FloatingMenu, type MenuEntry } from '../FloatingMenu'
 import { Popover } from '../Popover'
 import { PromptDialog } from '../PromptDialog'
 import { useWorkspaceChrome } from '../workspace/workspace-chrome'
-import { IconLink, IconLock, IconSearch, IconTrash } from '../icons'
+import { IconChevronDown, IconLink, IconLock, IconPlus, IconSearch, IconTrash } from '../icons'
 import { ChoiceCell, ReadCell, TextCell, TickCell } from './GridCells'
 import { NEW_CHOICE, type GridColumn, type GridProps, type RowLock } from './grid-types'
 
@@ -79,7 +80,7 @@ function FxButton({ active, onClick }: { active: boolean; onClick: (anchor: DOMR
 
 function CalcChip({ children }: { children: ReactNode }) {
   return (
-    <span className="pointer-events-none absolute right-2 bottom-px rounded-full bg-stamp-soft px-[7px] text-[10.5px] text-stamp">
+    <span className="pointer-events-none absolute right-2 bottom-px rounded-full bg-stamp-soft px-[7px] text-xs text-stamp">
       {children}
     </span>
   )
@@ -116,6 +117,7 @@ function BodyRowImpl<R>({
   return (
     <div
       role="row"
+      aria-rowindex={index + 2}
       onContextMenu={
         contextMenu
           ? (event) => {
@@ -125,7 +127,7 @@ function BodyRowImpl<R>({
       }
       className={`group/row relative grid grid-cols-[var(--cols)] border-b border-paper-edge ${lock ? 'bg-[var(--color-brass-row)]' : picked ? 'bg-[var(--color-sel)]' : 'bg-white'}`}
     >
-      <div className="relative flex items-center justify-center border-r border-paper-edge bg-[#f8fafc] text-[11.5px] text-ink-soft">
+      <div className="relative flex items-center justify-center border-r border-paper-edge bg-[#f6f8fb] text-xs text-ink-soft2">
         {lock ? (
           <span className="text-brass" title={`Posted from ${lock.label} — change it there`}>
             <IconLock width={14} height={14} />
@@ -133,13 +135,9 @@ function BodyRowImpl<R>({
         ) : (
           <>
             <span className={picked ? 'opacity-0' : 'group-focus-within/row:opacity-0 group-hover/row:opacity-0'}>{index + 1}</span>
-            <input
-              type="checkbox"
-              checked={picked}
-              aria-label="Select row"
-              className={`absolute left-2 h-4 w-4 accent-stamp focus-visible:opacity-100 group-hover/row:opacity-100 ${picked ? 'opacity-100' : 'opacity-0'}`}
-              onChange={(event) => pick(id, event.target.checked)}
-            />
+            <label className={`absolute left-0 flex h-full w-7 cursor-pointer items-center justify-center focus-within:opacity-100 group-hover/row:opacity-100 ${picked ? 'opacity-100' : 'opacity-0'}`}>
+              <input type="checkbox" checked={picked} aria-label="Select row" className="h-4 w-4 accent-stamp" onChange={(event) => pick(id, event.target.checked)} />
+            </label>
             {rowActions && (
               <button
                 type="button"
@@ -147,7 +145,7 @@ function BodyRowImpl<R>({
                 aria-haspopup="menu"
                 title="Insert, copy or delete this row"
                 onClick={(event) => rowActions(row, index, event.currentTarget.getBoundingClientRect())}
-                className="absolute right-0.5 flex h-6 w-5 items-center justify-center rounded text-ink-soft opacity-0 group-hover/row:opacity-100 hover:bg-stamp-soft hover:text-stamp focus-visible:opacity-100"
+                className="absolute right-0 flex h-6 w-6 items-center justify-center rounded text-ink-soft2 opacity-0 group-hover/row:opacity-100 hover:bg-stamp-soft hover:text-stamp focus-visible:opacity-100"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                   <circle cx="12" cy="5" r="1.8" />
@@ -160,7 +158,7 @@ function BodyRowImpl<R>({
         )}
       </div>
 
-      {columns.map((column) => {
+      {columns.map((column, columnIndex) => {
         const isBad = bad?.columnId === column.id
         const message = isBad ? bad?.message : undefined
         const text = cellText(column, row)
@@ -170,7 +168,7 @@ function BodyRowImpl<R>({
 
         if (lock && column.id === lockChipColumn) {
           content = (
-            <div className="flex min-w-0 items-center gap-2 px-3 py-2.5 text-[13.5px]">
+            <div className="flex min-w-0 items-center gap-2 px-3 py-2.5 text-[14px]">
               <span className="truncate">{text}</span>
               <button
                 type="button"
@@ -274,7 +272,8 @@ function BodyRowImpl<R>({
         return (
           <div
             key={column.id}
-            role="cell"
+            role="gridcell"
+            aria-colindex={columnIndex + 2}
             className={`relative flex min-w-0 items-center border-r border-paper-edge ${column.tint === 'formula' && !lock ? 'bg-[#f6f9fe]' : column.tint === 'lookup' && !lock ? 'bg-[#fbf6e6]' : ''}`}
           >
             {content}
@@ -321,6 +320,7 @@ export function Grid<R>(props: GridProps<R>) {
     onPasteText,
     toolbarLeft,
     toolbarEnd,
+    toolbarAction,
     summary,
     filterPanel,
     filterCount,
@@ -341,11 +341,14 @@ export function Grid<R>(props: GridProps<R>) {
     addRowLabel,
     onAddBlankRow,
     onRenameTo,
+    hideEmpty,
+    keepColumns,
+    exampleRow,
   } = props
   const toast = useToast()
   const chrome = useWorkspaceChrome()
   const root = useRef<HTMLDivElement>(null)
-  const { prefs, rename, hide, show } = useGridPrefs(prefsKey)
+  const { prefs, rename, hide, show, setLetters, setShowEmpty } = useGridPrefs(prefsKey)
 
   const [sort, setSort] = useState<SortState>(null)
   const [query, setQuery] = useState('')
@@ -358,13 +361,18 @@ export function Grid<R>(props: GridProps<R>) {
   // A column name being edited in place (double-click on the header).
   const [headEdit, setHeadEdit] = useState<{ id: string; text: string } | null>(null)
   const [filterAnchor, setFilterAnchor] = useState<DOMRect | null>(null)
+  // The column the cursor is in: its header shows its type sign and menu arrow, like a hovered one.
+  const [activeCol, setActiveCol] = useState<string | null>(null)
 
   // The viewer's own column names; the columns they hid are left out.
   const labelled = useMemo(
     () => columns.map((column) => ({ ...column, label: prefs.labels[column.id] ?? column.label })),
     [columns, prefs.labels],
   )
-  const visible = useMemo(() => labelled.filter((column) => !prefs.hidden.includes(column.id)), [labelled, prefs.hidden])
+  // Columns nobody has typed in are left out (a table the viewer is looking at, not the Cash book) until the viewer asks.
+  const emptyIds = useMemo(() => (hideEmpty ? emptyColumnIds(columns, rows, keepColumns) : []), [hideEmpty, columns, rows, keepColumns])
+  const hiddenEmpty = useMemo(() => (prefs.showEmpty ? [] : emptyIds.filter((id) => !prefs.hidden.includes(id))), [emptyIds, prefs.showEmpty, prefs.hidden])
+  const visible = useMemo(() => labelled.filter((column) => !prefs.hidden.includes(column.id) && !hiddenEmpty.includes(column.id)), [labelled, prefs.hidden, hiddenEmpty])
 
   // Latest callbacks, so the memoised rows do not redraw on every keystroke elsewhere.
   const latest = useRef({ onCommit, onDeleteRows, fx, onPasteText, rowId, rowMenu })
@@ -523,7 +531,7 @@ export function Grid<R>(props: GridProps<R>) {
   const draftIndex = shown.length
   const fillers = minRows ? fillerRowCount(minRows, shown.length, Boolean(draft)) : 0
   // A sheet with a minimum of rows shows its empty rows instead of a message (unless a search found nothing).
-  const showEmptyMessage = list.length === 0 && (isFiltered || !minRows)
+  const showEmptyMessage = list.length === 0 && (isFiltered || (!minRows && !(draft && exampleRow)))
   const letterOf = (columnId: string) => columnLetter(labelled.findIndex((column) => column.id === columnId))
   const filterBadge = (filterValue !== '' ? 1 : 0) + (filterCount ?? 0)
   const hasFilterPanel = Boolean(filter) || Boolean(filterPanel)
@@ -532,9 +540,13 @@ export function Grid<R>(props: GridProps<R>) {
     root.current?.querySelector<HTMLElement>(`[data-grid-cell][data-draft][data-col="${CSS.escape(columnId)}"]`)?.focus()
   }
 
-  const toolButton = 'inline-flex items-center gap-1.5 rounded-ledger border border-paper-line bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-stamp-soft'
+  const toolButton = 'inline-flex h-8 items-center gap-1.5 rounded-ledger border border-paper-line bg-white px-3 text-[13px] font-medium text-ink hover:bg-paper'
 
   const viewItems: MenuEntry[] = [
+    { heading: 'Show' },
+    { label: 'Column letters (A, B, C)', checked: prefs.showLetters === true, onSelect: () => setLetters(prefs.showLetters !== true) },
+    ...(hideEmpty ? [{ label: 'Hide empty columns', checked: prefs.showEmpty !== true, onSelect: () => setShowEmpty(prefs.showEmpty !== true) } as MenuEntry] : []),
+    'separator',
     ...hiddenColumns.map((column) => ({ label: `Show “${column.label}”`, onSelect: () => show(column.id) }) as MenuEntry),
     ...(hiddenColumns.length > 1 ? [{ label: 'Show all columns', onSelect: () => show('all') } as MenuEntry] : []),
     ...(hiddenColumns.length === 0 ? [{ label: 'No hidden columns', hint: 'Hide one from its column menu.', disabled: true } as MenuEntry] : []),
@@ -548,39 +560,47 @@ export function Grid<R>(props: GridProps<R>) {
     : []
   const dataItems: MenuEntry[] = [...(dataMenuItems ?? []), ...(dataMenuItems && dataMenuItems.length > 0 && exportItems.length > 0 ? (['separator'] as MenuEntry[]) : []), ...exportItems]
 
+  const chevron = <IconChevronDown width={14} height={14} className="text-ink-soft2" aria-hidden />
+  // One row: find, filter, view, data on the left; the ways to add (a column, a row) on the right.
   const toolbar = (
-    <div className="flex flex-wrap items-center gap-2 border-b border-paper-line bg-white px-4 py-2">
+    <div className="flex min-h-[44px] flex-wrap items-center gap-2 border-b border-paper-edge bg-white px-4 py-1.5">
       <label className="relative block">
-        <IconSearch width={15} height={15} className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-ink-soft" />
+        <IconSearch width={15} height={15} className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-ink-soft2" />
         <input
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search"
-          aria-label="Search"
-          className="w-48 rounded-ledger border border-paper-line bg-white py-1.5 pr-2.5 pl-8 text-[13px] focus:border-stamp focus:outline-none"
+          placeholder={exportName ? `Find in ${exportName}` : 'Find'}
+          aria-label="Find in this table"
+          className="h-8 w-[232px] rounded-ledger border border-paper-line bg-white pr-2.5 pl-8 text-[13px] focus:border-stamp focus:outline-none"
         />
       </label>
       {hasFilterPanel && (
         <button type="button" aria-haspopup="dialog" onClick={(event) => setFilterAnchor(event.currentTarget.getBoundingClientRect())} className={toolButton}>
           Filter
           {filterBadge > 0 && <span className="rounded-full bg-stamp px-1.5 text-[11px] leading-[18px] text-white">{filterBadge}</span>}
-          <span className="text-[10px] opacity-50">▾</span>
+          {chevron}
         </button>
       )}
       <button type="button" aria-haspopup="menu" onClick={(event) => setMenu({ anchor: event.currentTarget.getBoundingClientRect(), items: viewItems })} className={toolButton}>
         View{hiddenColumns.length > 0 ? ` (${hiddenColumns.length} hidden)` : ''}
-        <span className="text-[10px] opacity-50">▾</span>
+        {chevron}
       </button>
-      {toolbarLeft}
-      <div className="flex-1" />
-      {summary}
       {dataItems.length > 0 && (
         <button type="button" aria-haspopup="menu" onClick={(event) => setMenu({ anchor: event.currentTarget.getBoundingClientRect(), items: dataItems })} className={toolButton}>
           Data
-          <span className="text-[10px] opacity-50">▾</span>
+          {chevron}
         </button>
       )}
+      {toolbarLeft}
+      <div className="flex-1" />
+      {hiddenEmpty.length > 0 && (
+        <button type="button" onClick={() => setShowEmpty(true)} title="Show the columns nobody has typed in" className="inline-flex h-8 items-center rounded-ledger px-2.5 text-xs text-ink-soft2 hover:bg-paper hover:text-ink">
+          {hiddenEmpty.length} empty {hiddenEmpty.length === 1 ? 'column' : 'columns'} hidden · <span className="ml-1 font-semibold text-stamp">Show</span>
+        </button>
+      )}
+      {summary}
+      {toolbarAction}
       {draft && addRowLabel && (
         <button
           type="button"
@@ -604,9 +624,9 @@ export function Grid<R>(props: GridProps<R>) {
               }, 60)
             })
           }}
-          className="inline-flex items-center gap-1.5 rounded-ledger bg-stamp px-3 py-1.5 text-[12.5px] font-semibold text-white hover:bg-stamp/90"
+          className="inline-flex h-8 items-center gap-1.5 rounded-ledger bg-stamp px-3.5 text-[13px] font-semibold text-white hover:bg-stamp/90"
         >
-          <span aria-hidden>＋</span>
+          <IconPlus width={15} height={15} aria-hidden />
           {addRowLabel}
         </button>
       )}
@@ -616,7 +636,7 @@ export function Grid<R>(props: GridProps<R>) {
 
   const bulkBar =
     pickedRows.length > 0 ? (
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 bg-ink px-4 py-2.5 text-[13.5px] text-white">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 bg-ink px-4 py-2.5 text-[14px] text-white">
         <span>
           <b>{pickedRows.length}</b> selected
         </span>
@@ -683,6 +703,7 @@ export function Grid<R>(props: GridProps<R>) {
               if (!cell) return
               const columnId = cell.dataset.col ?? ''
               const rowIndex = Number(cell.dataset.row ?? -1)
+              setActiveCol(columnId)
               const draftRow = cell.dataset.draft !== undefined
               onActiveCell({ columnId, rowIndex, row: draftRow ? null : (shown[rowIndex] ?? null) })
             }
@@ -691,39 +712,37 @@ export function Grid<R>(props: GridProps<R>) {
     >
       {chrome.toolbarHost ? createPortal(head, chrome.toolbarHost) : head}
 
-      <div role="table" aria-label={`${noun}s`}>
+      <div role="grid" aria-label={`${noun}s`} aria-rowcount={list.length + 1} aria-colcount={visible.length + 1}>
         <div className="min-w-max" style={{ '--cols': gridTemplate } as CSSProperties}>
-          {/* A, B, C … like a spreadsheet. They stay under the tabs and the toolbar while the rows scroll. */}
-          <div
-            role="presentation"
-            aria-hidden
-            className="sticky top-[var(--ws-top,0px)] z-[3] grid h-[22px] grid-cols-[var(--cols)] border-b border-paper-line bg-[#f8fafc] text-[11px] tracking-wider text-ink-soft"
-          >
-            <div className="border-r border-paper-edge" />
-            {visible.map((column) => (
-              <div key={column.id} className="flex items-center justify-center border-r border-paper-edge">
-                {letterOf(column.id)}
-              </div>
-            ))}
-            <div />
-          </div>
+          {/* A, B, C … like a spreadsheet, only when the viewer turned them on (View menu). They stay under the toolbar while the rows scroll. */}
+          {prefs.showLetters && (
+            <div
+              role="presentation"
+              aria-hidden
+              className="sticky top-[var(--ws-top,0px)] z-[3] grid h-[22px] grid-cols-[var(--cols)] border-b border-paper-line bg-[#f8fafc] text-[11px] tracking-wider text-ink-soft"
+            >
+              <div className="border-r border-paper-edge" />
+              {visible.map((column) => (
+                <div key={column.id} className="flex items-center justify-center border-r border-paper-edge">
+                  {letterOf(column.id)}
+                </div>
+              ))}
+              <div />
+            </div>
+          )}
           <div
             role="row"
-            className="sticky top-[calc(var(--ws-top,0px)+22px)] z-[3] grid grid-cols-[var(--cols)] border-b-2 border-paper-line bg-[#f8fafc]"
+            aria-rowindex={1}
+            className={`sticky ${prefs.showLetters ? 'top-[calc(var(--ws-top,0px)+22px)]' : 'top-[var(--ws-top,0px)]'} z-[3] grid h-9 grid-cols-[var(--cols)] border-b border-paper-line bg-[#f6f8fb]`}
           >
-            <div className="flex items-center justify-center border-r border-paper-edge">
-              <input
-                type="checkbox"
-                checked={allPicked}
-                aria-label="Select all rows"
-                className="h-4 w-4 accent-stamp"
-                onChange={(event) => togglePickAll(event.target.checked)}
-              />
-            </div>
+            <label className="flex cursor-pointer items-center justify-center border-r border-paper-edge">
+              <input type="checkbox" checked={allPicked} aria-label="Select all rows" className="h-4 w-4 accent-stamp" onChange={(event) => togglePickAll(event.target.checked)} />
+            </label>
             {visible.map((column) => (
               <div
                 key={column.id}
                 role="columnheader"
+                aria-colindex={visible.indexOf(column) + 2}
                 className={`flex min-w-0 border-r border-paper-edge ${column.tint === 'formula' ? 'border-b-2 border-b-stamp/60 bg-[#eef4fd]' : column.tint === 'lookup' ? 'border-b-2 border-b-brass/50 bg-[#f8f1dc]' : ''}`}
               >
                 {headEdit?.id === column.id ? (
@@ -757,25 +776,23 @@ export function Grid<R>(props: GridProps<R>) {
                     setMenu(null)
                     startRename(column)
                   }}
-                  className={`group/head flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-[13px] font-semibold text-ink hover:bg-stamp/[0.06] hover:text-stamp ${isRightAligned(column) ? 'justify-end' : ''}`}
+                  className={`group/head relative flex w-full items-center gap-1.5 px-3 text-left text-[14px] font-semibold text-ink hover:bg-stamp/[0.06] hover:text-stamp ${isRightAligned(column) ? 'justify-end' : ''}`}
                 >
-                  {column.glyph ? (
-                    <span className={`w-5 flex-none text-center text-[11.5px] font-semibold ${column.tint === 'formula' ? 'font-serif text-[14px] text-stamp italic' : column.tint === 'lookup' ? 'text-brass' : 'text-ink-soft'}`} aria-hidden>
-                      {column.glyph}
+                  {!column.glyph && (column.locked || column.type === 'calc') && (
+                    <span className="text-brass" title="Worked out for you">
+                      <IconLock width={12} height={12} />
                     </span>
-                  ) : (
-                    (column.locked || column.type === 'calc') && (
-                      <span className="text-brass" title="Worked out for you">
-                        <IconLock width={12} height={12} />
-                      </span>
-                    )
                   )}
-                  <span className="truncate">{column.unnamed ? <span className="font-medium text-ink-soft/60">Name</span> : column.label}</span>
-                  {sort?.columnId === column.id ? (
-                    <span aria-label={sort.dir === 1 ? 'sorted ascending' : 'sorted descending'}>{sort.dir === 1 ? '↑' : '↓'}</span>
-                  ) : (
-                    <span className="text-[10px] opacity-0 group-hover/head:opacity-60 group-focus-visible/head:opacity-60">▾</span>
-                  )}
+                  <span className="truncate">{column.unnamed ? <span className="font-medium text-ink-soft2">Name</span> : column.label}</span>
+                  {sort?.columnId === column.id && <span aria-label={sort.dir === 1 ? 'sorted ascending' : 'sorted descending'}>{sort.dir === 1 ? '↑' : '↓'}</span>}
+                  {/* the kind of column and the menu arrow: only on hover, or where the cursor is, so the header is just a name */}
+                  <span
+                    aria-hidden
+                    className={`pointer-events-none absolute top-1/2 ${isRightAligned(column) ? 'left-1' : 'right-1'} -translate-y-1/2 items-center gap-1 rounded bg-[#eef3fa] px-1.5 py-0.5 text-xs font-medium text-ink-soft2 group-hover/head:inline-flex group-focus-visible/head:inline-flex ${activeCol === column.id ? 'inline-flex' : 'hidden'}`}
+                  >
+                    {column.glyph && <span className={column.tint === 'formula' ? 'font-serif text-[14px] text-stamp italic' : column.tint === 'lookup' ? 'text-brass' : ''}>{column.glyph}</span>}
+                    <span className="text-xs">▾</span>
+                  </span>
                 </button>
                 )}
               </div>
@@ -838,9 +855,21 @@ export function Grid<R>(props: GridProps<R>) {
             </div>
           )}
 
+          {draft && exampleRow && shown.length === 0 && !isFiltered && (
+            <div role="presentation" aria-hidden className="grid grid-cols-[var(--cols)] border-b border-paper-edge bg-[#fffdf3] text-ink-soft2">
+              <div className="flex items-center justify-center border-r border-paper-edge bg-[#f6f8fb] text-xs">e.g.</div>
+              {visible.map((column) => (
+                <div key={column.id} className={`min-w-0 truncate border-r border-paper-edge px-3 py-2 text-[14px] leading-5 ${isRightAligned(column) ? 'tabular text-right' : ''}`}>
+                  {exampleRow[column.id] ?? ''}
+                </div>
+              ))}
+              <div />
+            </div>
+          )}
+
           {draft && (
             <div role="row" className="grid grid-cols-[var(--cols)] border-b border-paper-edge bg-white">
-              <div className="flex items-center justify-center border-r border-paper-edge bg-[#f8fafc] text-[11.5px] text-ink-soft">{draftIndex + 1}</div>
+              <div className="flex items-center justify-center border-r border-paper-edge bg-[#f6f8fb] text-xs text-ink-soft2">{draftIndex + 1}</div>
               {visible.map((column) => {
                 const address = { column: column.id, row: draftIndex, draft: true }
                 const isBad = draft.badColumn === column.id
@@ -915,7 +944,7 @@ export function Grid<R>(props: GridProps<R>) {
                   title="Add (Enter)"
                   disabled={draft.isSubmitting}
                   onClick={draft.onSubmit}
-                  className="h-7 w-7 rounded-ledger bg-stamp font-bold text-white disabled:opacity-50"
+                  className="h-8 w-8 rounded-ledger bg-stamp text-[14px] font-bold text-white disabled:opacity-50"
                 >
                   +
                 </button>
@@ -948,10 +977,10 @@ export function Grid<R>(props: GridProps<R>) {
           ))}
 
           {footRows ? (
-            <div className="sticky bottom-0 z-[2] border-t-2 border-paper-line bg-[#f8fafc] text-[13.5px]">
+            <div className="sticky bottom-0 z-[2] border-t border-paper-line bg-[#f6f8fb] text-[14px]">
               {footRows.map((fr) => (
                 <div key={fr.id} role="row" className="grid grid-cols-[var(--cols)] border-b border-paper-edge font-semibold last:border-b-0">
-                  <div aria-hidden className="flex items-center justify-center text-[16px] text-stamp">
+                  <div aria-hidden className="flex items-center justify-center text-[14px] text-stamp">
                     Σ
                   </div>
                   {visible.map((column, index) => {
@@ -961,7 +990,7 @@ export function Grid<R>(props: GridProps<R>) {
                       <div key={column.id} className={`relative flex min-w-0 items-center border-r border-paper-edge/60 ${right ? 'justify-end' : ''}`}>
                         {index === 0 ? (
                           <span className="block px-3 py-2">
-                            <span className="mr-2 text-xs tracking-wider text-ink-soft uppercase">{fr.label}</span>
+                            <span className="mr-2 text-xs tracking-wider text-ink-soft2 uppercase">{fr.label}</span>
                             {cell?.text}
                           </span>
                         ) : cell?.onClick ? (
@@ -969,19 +998,20 @@ export function Grid<R>(props: GridProps<R>) {
                             type="button"
                             onClick={cell.onClick}
                             title="Choose what this cell shows"
-                            className={`m-1 inline-flex max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-[13px] hover:border-stamp hover:text-stamp ${
-                              cell.text === '' ? 'border-dashed border-paper-line bg-white text-ink-soft' : 'border-paper-line bg-white'
+                            aria-label={`${fr.label}: choose what ${column.label} shows`}
+                            className={`m-1 inline-flex max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-[14px] hover:border-stamp hover:text-stamp ${
+                              cell.text === '' ? 'border-transparent bg-transparent text-ink-soft2 opacity-0 hover:opacity-100 focus-visible:opacity-100 [div:hover>&]:opacity-100' : 'border-paper-line bg-white'
                             } ${cell.error ? 'text-xs font-medium text-rust' : ''}`}
                           >
                             {cell.text === '' ? (
                               <span className="font-semibold">{right ? 'Add' : 'Σ'}</span>
                             ) : (
                               <>
-                                {cell.label && <span className="text-[11.5px] font-semibold text-ink-soft">{cell.label}</span>}
+                                {cell.label && <span className="text-xs font-semibold text-ink-soft2">{cell.label}</span>}
                                 <span className="tabular truncate">{cell.text}</span>
                               </>
                             )}
-                            <span className="text-[10px] opacity-50">▾</span>
+                            <span className="text-xs opacity-50">▾</span>
                           </button>
                         ) : (
                           <span className="tabular block px-3 py-2">{cell?.text}</span>
@@ -992,11 +1022,11 @@ export function Grid<R>(props: GridProps<R>) {
                   <div />
                 </div>
               ))}
-              {footEnd && <div className="sticky left-0 flex w-max max-w-[100vw] items-center gap-5 border-t border-paper-edge px-3 py-1.5 text-[12.5px] font-normal text-ink-soft">{footEnd}</div>}
+              {footEnd && <div className="sticky left-0 flex w-max max-w-[100vw] items-center gap-5 border-t border-paper-edge px-3 py-1.5 text-xs font-normal text-ink-soft2">{footEnd}</div>}
             </div>
           ) : (
-            <div role="row" className="sticky bottom-0 z-[2] grid grid-cols-[var(--cols)] border-t-2 border-paper-line bg-[#f8fafc] text-[13.5px] font-bold">
-              <div aria-hidden className="flex items-center justify-center text-[16px] text-stamp">
+            <div role="row" className="sticky bottom-0 z-[2] grid grid-cols-[var(--cols)] border-t border-paper-line bg-[#f6f8fb] text-[14px] font-bold">
+              <div aria-hidden className="flex items-center justify-center text-[14px] text-stamp">
                 Σ
               </div>
               {visible.map((column, index) => {
@@ -1043,7 +1073,7 @@ export function Grid<R>(props: GridProps<R>) {
             )}
             {filterPanel?.(() => setFilterAnchor(null))}
             {filterValue !== '' && (
-              <button type="button" className="self-start text-[12.5px] font-semibold text-stamp underline" onClick={() => setFilterValue('')}>
+              <button type="button" className="self-start text-xs font-semibold text-stamp underline" onClick={() => setFilterValue('')}>
                 Clear this filter
               </button>
             )}

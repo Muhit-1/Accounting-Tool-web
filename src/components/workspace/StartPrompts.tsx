@@ -87,19 +87,22 @@ export function WelcomeCards({ businessId, onChoose }: { businessId: string; onC
   )
 }
 
-// One thin line under the toolbar of a business nobody has touched yet. It never pushes the sheet down.
+// One thin line under the toolbar of a business nobody has touched yet, on its empty first table. It never pushes the
+// sheet down.
 export function StartStrip({ businessId, onUpload, onTemplates }: { businessId: string; onUpload: () => void; onTemplates: (anchor: DOMRect) => void }) {
   const [closed, setClosed] = useState(() => wasDismissed(stripKey(businessId)))
   if (closed) return null
   return (
-    <div className="flex items-center gap-3 border-b border-paper-line bg-stamp-soft px-4 py-1.5 text-[13px]">
-      <span>Already have a sheet?</span>
-      <button type="button" onClick={onUpload} className="font-bold text-stamp underline">
-        Upload it
+    <div className="flex h-9 items-center gap-3 border-b border-[#d6e4f6] bg-[#f1f6fd] px-4 text-[14px]">
+      <span>
+        <b className="font-semibold">Start here.</b> Type in a cell, or paste from Excel (Ctrl + V).
+      </span>
+      <span className="h-4 w-px bg-ink/25" aria-hidden />
+      <button type="button" onClick={onUpload} className="text-[13px] font-semibold text-stamp underline underline-offset-[3px]">
+        Upload a sheet
       </button>
-      <span className="text-ink-soft">or</span>
-      <button type="button" onClick={(event) => onTemplates(event.currentTarget.getBoundingClientRect())} className="font-bold text-stamp underline">
-        use a template
+      <button type="button" onClick={(event) => onTemplates(event.currentTarget.getBoundingClientRect())} className="text-[13px] font-semibold text-stamp underline underline-offset-[3px]">
+        Use a template
       </button>
       <span className="flex-1" />
       <button

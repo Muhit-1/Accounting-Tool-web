@@ -7,6 +7,7 @@ import { useCategories } from '../lib/categories'
 import type { InvoiceScanResult } from '../lib/invoice-scan'
 import { useApplyTemplate, useCreateTable, useDeleteTable, useDuplicateTable, useReorderTables, useRestoreTable, useTables, useTemplates, useUpdateTable } from '../lib/tables'
 import { loadZoom, saveZoom, stepZoom, zoomLabel, ZOOM_STEPS } from '../lib/sheet-zoom'
+import { CASHBOOK_KEY, pickTabKey } from '../lib/workspace-landing'
 import { useToast } from '../lib/toast-context'
 import type { Transaction } from '../types/api'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -143,20 +144,23 @@ export function WorkspacePage() {
 
   // Every table of the business, in one list.
   const engine = engineTables ?? []
-  const keyOf = (t: { id: string; kind: string }) => (t.kind === 'LEDGER' ? 'cashbook' : t.id)
-  // Someone who was given only some tables (never the Cash book) sees just those: no New sheet, no menus.
+  const keyOf = (t: { id: string; kind: string }) => (t.kind === 'LEDGER' ? CASHBOOK_KEY : t.id)
+  // Someone who was given only some tables (never the Cash book) sees just those: no New table, no menus.
   const restricted = engineTables !== undefined && !engineTables.some((t) => t.kind === 'LEDGER')
   const tabs: TabInfo[] = engine.map((t) => ({ key: keyOf(t), name: t.name, color: t.color, ledger: t.kind === 'LEDGER', movable: !restricted, posts: t.rules.some((r) => r.enabled) }))
-  // A business nobody has touched yet: at most one sheet of its own, nothing in it, and an empty Cash book.
+  // A business nobody has touched yet: at most one table of its own, nothing in it, and an empty Cash book.
   const ownTables = engine.filter((t) => t.kind === 'TABLE')
   const ledgerRows = engine.find((t) => t.kind === 'LEDGER')?.rowCount ?? 0
   const isFresh = !restricted && engineTables !== undefined && ownTables.length <= 1 && ownTables.every((t) => t.rowCount === 0) && ledgerRows === 0
-  const requested = searchParams.get('tab')
-  const active = tabs.find((t) => t.key === requested) ?? tabs[0]
+  // The address names the tab; a Cash book address (/accounts/:id) means the Cash book. With none, a business nobody
+  // has touched opens on its first table, every other one on its first tab (see lib/workspace-landing.ts).
+  const requested = searchParams.get('tab') ?? (accountIdParam ? CASHBOOK_KEY : null)
+  const activeKey = pickTabKey(engine, requested)
+  const active = tabs.find((t) => t.key === activeKey)
   const activeEngine = active ? engine.find((t) => keyOf(t) === active.key) : undefined
 
   function selectTab(key: string) {
-    setSearchParams(key === 'cashbook' ? {} : { tab: key }, { replace: true })
+    setSearchParams({ tab: key }, { replace: true })
   }
 
   // A gold Cash book row leads back to the table that posted it.
@@ -225,7 +229,7 @@ export function WorkspacePage() {
         onSelect: () => void updateTable.mutateAsync({ id: t.id, color: c.hex }).catch((err) => toast(messageOf(err))),
       })),
     )
-    items.push('separator', { label: 'Delete sheet…', danger: true, onSelect: () => setDeleting({ id: t.id, name: t.name }) })
+    items.push('separator', { label: 'Delete table…', danger: true, onSelect: () => setDeleting({ id: t.id, name: t.name }) })
     return items
   }
 
@@ -248,7 +252,7 @@ export function WorkspacePage() {
     try {
       const made = await applyTemplate.mutateAsync(key)
       if (made[0]) selectTab(made[0].id)
-      toast(made.length > 1 ? `${made.length} sheets added.` : 'Sheet added.')
+      toast(made.length > 1 ? `${made.length} tables added.` : 'Table added.')
     } catch (err) {
       toast(messageOf(err))
     }
@@ -256,7 +260,7 @@ export function WorkspacePage() {
 
   const templateItems: MenuEntry[] = (templates ?? []).map((t) => ({ label: t.name, hint: t.description, onSelect: () => void addTemplate(t.key) }))
   const newMenuItems: MenuEntry[] = [
-    { label: 'Blank sheet', hint: 'An empty sheet. Type in it like a spreadsheet.', onSelect: () => void newBlankTable() },
+    { label: 'Blank table', hint: 'An empty table. Type in it like a spreadsheet.', onSelect: () => void newBlankTable() },
     { heading: 'Start from a template' },
     ...templateItems,
     'separator',
@@ -283,11 +287,11 @@ export function WorkspacePage() {
           {/* The sheet's toolbar is for a larger screen; a phone gets the cards and the + button. */}
           <div ref={setToolbarHost} className="hidden md:block" />
           <div ref={setBarHost} />
-          {isFresh && active?.key === 'cashbook' && <StartStrip businessId={businessId} onUpload={() => setUploadingSheet(true)} onTemplates={setNewMenu} />}
+          {isFresh && active && active.key === ownTables[0]?.id && <StartStrip businessId={businessId} onUpload={() => setUploadingSheet(true)} onTemplates={setNewMenu} />}
         </div>
 
         <div ref={content} style={{ zoom, ['--ws-top' as string]: `${headHeight / zoom}px` }} className="min-h-0 flex-1 px-4 py-4 md:p-0">
-          {active?.key === 'cashbook' &&
+          {active?.key === CASHBOOK_KEY &&
             (account ? (
               <CashBookTab
                 key={account.id}
@@ -321,7 +325,7 @@ export function WorkspacePage() {
           {activeEngine && activeEngine.kind === 'TABLE' && <TableTab key={activeEngine.id} businessId={businessId} table={activeEngine} tables={engine} currency={currency} onRules={() => setRulesTableId(activeEngine.id)} />}
         </div>
 
-        {/* The sheets are tabs at the bottom, as in a spreadsheet. */}
+        {/* The tables are tabs at the bottom, as in a spreadsheet. */}
         <div style={viewWidth ? { width: viewWidth } : undefined} className="sticky bottom-0 left-0 z-20 flex items-start bg-paper">
           <div className="min-w-0 flex-1">
           <TableTabs
@@ -351,7 +355,7 @@ export function WorkspacePage() {
         </div>
       </div>
 
-      {active?.key === 'cashbook' && account && !restricted && (
+      {active?.key === CASHBOOK_KEY && account && !restricted && (
         <button
           type="button"
           onClick={openCreate}
@@ -399,7 +403,7 @@ export function WorkspacePage() {
         <ConfirmDialog
           title={`Delete “${deleting.name}”?`}
           body="It moves to the Trash for 30 days, and you can bring it back from there or press Undo right after."
-          confirmLabel="Delete sheet"
+          confirmLabel="Delete table"
           onCancel={() => setDeleting(null)}
           onConfirm={() => {
             const target = deleting
@@ -411,18 +415,18 @@ export function WorkspacePage() {
 
       {renaming && (
         <PromptDialog
-          title="Rename sheet"
-          label="Sheet name"
+          title="Rename table"
+          label="Table name"
           initial={renaming.name}
           maxLength={60}
           validate={(value) => {
-            if (value === '') return 'Give the sheet a name.'
-            if (/[{}[\]']/.test(value)) return 'A sheet name can’t contain { } [ ] or an apostrophe.'
-            return tabs.some((t) => t.key !== renaming.key && t.name.toLowerCase() === value.toLowerCase()) ? 'You already have a sheet with this name.' : null
+            if (value === '') return 'Give the table a name.'
+            if (/[{}[\]']/.test(value)) return 'A table name can’t contain { } [ ] or an apostrophe.'
+            return tabs.some((t) => t.key !== renaming.key && t.name.toLowerCase() === value.toLowerCase()) ? 'You already have a table with this name.' : null
           }}
           onSubmit={(value) => {
             const t = engine.find((x) => keyOf(x) === renaming.key)
-            if (t) void updateTable.mutateAsync({ id: t.id, name: value }).then(() => toast('Renamed. Formulas that use this sheet were updated.')).catch((err) => toast(messageOf(err)))
+            if (t) void updateTable.mutateAsync({ id: t.id, name: value }).then(() => toast('Renamed. Formulas that use this table were updated.')).catch((err) => toast(messageOf(err)))
           }}
           onClose={() => setRenaming(null)}
         />

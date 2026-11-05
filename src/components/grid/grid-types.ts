@@ -136,6 +136,14 @@ export interface GridProps<R> {
   toolbarLeft?: ReactNode
   // The main actions, at the very end of the toolbar (Add entry, Posts to Cash book).
   toolbarEnd?: ReactNode
+  // A control just before the Add row button (the ＋ Column menu of a table).
+  toolbarAction?: ReactNode
+  // Leave out the columns nobody has typed in (the viewer can show them again). Off for the Cash book.
+  hideEmpty?: boolean
+  // Columns that stay even when empty (what a Cash book rule reads).
+  keepColumns?: string[]
+  // A grey example row (text per column id) above the add-row of a table with no rows. Never saved.
+  exampleRow?: Record<string, string> | null
   // A short line of numbers before the Data menu (money in, money out, balance).
   summary?: ReactNode
   // More controls inside the Filter panel, under the built-in filter. `close` shuts the panel.

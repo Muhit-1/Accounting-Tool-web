@@ -29,13 +29,14 @@ import type { MenuEntry } from '../FloatingMenu'
 import { Grid } from '../grid/Grid'
 import type { ActiveCell, BulkAction, FootRow, GridColumn } from '../grid/grid-types'
 import { FormulaBar } from './FormulaBar'
-import { MoneyStrip } from './MoneyStrip'
+import { PostingLine } from './PostingLine'
+import { ColumnMenu } from './ColumnMenu'
 import { useWorkspaceChrome } from '../workspace/workspace-chrome'
 import { PromptDialog } from '../PromptDialog'
-import { PostsButton } from '../workspace/PostsButton'
 import { TableHistoryDialog } from '../trust/TableHistoryDialog'
 import { ColumnPanel } from './ColumnPanel'
 import { exportBookName, saveExport } from '../../lib/export-formulas'
+import { exampleRowFor } from '../../lib/example-row'
 import { filterSentence } from '../../lib/table-filters'
 import { FilterDialog } from './FilterDialog'
 import { FnDialog } from './FnDialog'
@@ -106,6 +107,11 @@ export function TableTab({ businessId, table, tables, currency, onRules }: { bus
   const saveView = useSaveView(businessId, table.id)
   const deleteView = useDeleteView(businessId, table.id)
 
+  // The columns an enabled Cash book rule reads stay on screen even when empty.
+  const ruleColumns = useMemo(
+    () => table.rules.filter((r) => r.enabled).flatMap((r) => [r.config.amountFieldId, r.config.dateFieldId ?? '', ...r.config.conditions.map((c) => c.fieldId)]).filter(Boolean),
+    [table.rules],
+  )
   const [draft, setDraft] = useState<{ values: Record<string, string>; bad: string | null }>({ values: {}, bad: null })
   const [adding, setAdding] = useState(false)
   const [columnDialog, setColumnDialog] = useState<{ field?: TableField; type?: TableField['type'] } | null>(null)
@@ -331,8 +337,8 @@ export function TableTab({ businessId, table, tables, currency, onRules }: { bus
           {chrome.barHost &&
             createPortal(
               <>
+                <PostingLine businessId={businessId} table={table} currency={currency} rows={rows} canEdit={canEdit} />
                 <FormulaBar table={table} tables={tables} active={active} canDesign={canDesign} onEditField={(f) => setColumnDialog({ field: f })} />
-                <MoneyStrip businessId={businessId} table={table} currency={currency} onOpenRule={onRules} />
               </>,
               chrome.barHost,
             )}
@@ -363,9 +369,11 @@ export function TableTab({ businessId, table, tables, currency, onRules }: { bus
               hiddenIds={hiddenIds}
               exportName={table.name}
               noun="row"
-              minRows={24}
+              hideEmpty
+              keepColumns={ruleColumns}
+              exampleRow={canEdit && rows.length === 0 ? exampleRowFor(table) : null}
               emptyTitle="Nothing here yet"
-              emptyHint={canEdit ? 'Type in the row below and press Enter.' : 'This sheet has no rows yet.'}
+              emptyHint={canEdit ? 'Type in the row below and press Enter.' : 'This table has no rows yet.'}
               headerEnd={
                 canDesign ? (
                   <button
@@ -373,7 +381,7 @@ export function TableTab({ businessId, table, tables, currency, onRules }: { bus
                     aria-label="Add a column"
                     title="Add a column"
                     onClick={() => setColumnDialog({})}
-                    className="h-7 w-7 rounded-ledger border border-paper-line bg-white font-bold text-stamp hover:bg-stamp-soft"
+                    className="h-8 w-8 rounded-ledger border border-paper-line bg-white text-[14px] font-bold text-stamp hover:bg-stamp-soft"
                   >
                     ＋
                   </button>
@@ -407,20 +415,13 @@ export function TableTab({ businessId, table, tables, currency, onRules }: { bus
                     {data?.total ?? rows.length} {(data?.total ?? rows.length) === 1 ? 'row' : 'rows'}
                     {data && data.total > data.rows.length ? ` (showing ${data.rows.length})` : ''}
                   </span>
-                  {canDesign && (
+                  {canDesign && table.fnRows.length > 0 && (
                     <span className="flex items-center gap-3">
                       {table.fnRows.map((fr) => (
                         <button key={fr.id} type="button" className="underline decoration-dotted" onClick={() => setFnRenaming(fr)} title="Rename or delete this summary row">
                           {fr.label} ✎
                         </button>
                       ))}
-                      <button
-                        type="button"
-                        onClick={addFnRow}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-stamp/40 bg-stamp-soft px-2.5 py-1 text-[13px] font-bold text-stamp hover:bg-stamp hover:text-white"
-                      >
-                        ＋ {table.fnRows.length === 0 ? 'Add a summary row (totals, averages, counts)' : 'Add another summary row'}
-                      </button>
                     </span>
                   )}
                 </>
@@ -431,9 +432,10 @@ export function TableTab({ businessId, table, tables, currency, onRules }: { bus
                   hint: 'An Excel file whose formulas still calculate.',
                   onSelect: () => void saveExport(businessId, exportBookName(table.name), table.id).then(() => toast('Saved with its formulas.')).catch(() => toast('Could not save the file.')),
                 },
-                { label: 'History', hint: 'Who changed what in this sheet.', onSelect: () => setHistory(true) },
+                ...(canDesign ? [{ label: 'Posts to Cash book…', hint: table.rules.some((r) => r.enabled) ? 'On' : 'Off. Choose which rows go to the Cash book.', onSelect: onRules }] : []),
+                { label: 'History', hint: 'Who changed what in this table.', onSelect: () => setHistory(true) },
               ]}
-              toolbarEnd={canDesign ? <PostsButton on={table.rules.some((r) => r.enabled)} onClick={onRules} /> : undefined}
+              toolbarAction={canDesign ? <ColumnMenu onPick={(type) => setColumnDialog({ type })} onAddSummary={addFnRow} /> : undefined}
               filterCount={viewFilters.length + filters.length}
               filterPanel={(close) => (
                 <div className="flex flex-col gap-3">
@@ -497,32 +499,6 @@ export function TableTab({ businessId, table, tables, currency, onRules }: { bus
               )}
               toolbarLeft={
                 <>
-                  {canDesign && (
-                    <>
-                      <span className="mx-0.5 h-5 w-px bg-paper-line" aria-hidden />
-                      {(
-                        [
-                          ['＋ Column', undefined, 'Add a column typed by you'],
-                          ['ƒ Formula column', 'FORMULA', 'One formula for the whole column'],
-                          ['↗ Link a table', 'LINK', 'Connect rows to another table'],
-                        ] as const
-                      ).map(([label, kind, hint]) => (
-                        <button
-                          key={label}
-                          type="button"
-                          title={hint}
-                          onClick={() => setColumnDialog({ type: kind })}
-                          className="inline-flex items-center gap-1 rounded-ledger px-2.5 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-stamp-soft"
-                        >
-                          {label}
-                        </button>
-                      ))}
-                      <button type="button" title="A row under the table that adds up a column" onClick={addFnRow} className="inline-flex items-center gap-1 rounded-ledger px-2.5 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-stamp-soft">
-                        Σ Totals row
-                      </button>
-                      <span className="mx-0.5 h-5 w-px bg-paper-line" aria-hidden />
-                    </>
-                  )}
                   {[...viewFilters, ...filters].map((f, i) => {
                     const own = i >= viewFilters.length
                     return (

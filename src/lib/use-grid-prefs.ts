@@ -6,6 +6,8 @@ import {
   withHiddenColumn,
   withHiddenTable,
   withLabel,
+  withLetters,
+  withShowEmpty,
   withShownColumn,
   withShownTable,
   withTableName,
@@ -45,6 +47,8 @@ export function useGridPrefs(key: string) {
     rename: (columnId: string, label: string, original: string) => update((p) => withLabel(p, columnId, label, original)),
     hide: (columnId: string) => update((p) => withHiddenColumn(p, columnId)),
     show: (columnId: string | 'all') => update((p) => withShownColumn(p, columnId)),
+    setLetters: (on: boolean) => update((p) => withLetters(p, on)),
+    setShowEmpty: (on: boolean) => update((p) => withShowEmpty(p, on)),
   }
 }
 

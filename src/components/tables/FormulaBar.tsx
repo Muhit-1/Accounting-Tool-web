@@ -19,19 +19,20 @@ export function FormulaBar({
   canDesign: boolean
   onEditField: (field: TableField) => void
 }) {
-  const field = active ? table.fields.find((f) => f.id === active.columnId) : undefined
-  const row = active?.row ?? null
+  // Only while a cell is chosen: a bar that says "No cell chosen" is a row of the screen for nothing.
+  if (!active) return null
+  const field = table.fields.find((f) => f.id === active.columnId)
+  const row = active.row
   const explain = field ? explainField(field, table, tables) : null
   const value = field && row ? cellText(field, row) : ''
   const editable = field !== undefined && canDesign && (field.type === 'FORMULA' || field.type === 'LOOKUP' || field.type === 'ROLLUP' || field.type === 'LINK' || field.type === 'CHOICE' || field.type === 'AUTO')
 
   return (
-    <div className="hidden min-h-[38px] items-stretch border-b border-paper-line bg-white text-[13px] md:flex" aria-label="Formula bar">
+    <div className="hidden min-h-[36px] items-stretch border-b border-paper-edge bg-[#f9fbfd] text-[14px] md:flex" aria-label="Formula bar">
       <div className="flex w-[190px] flex-none items-center border-r border-paper-line px-3 font-semibold text-ink">
-        <span className="truncate">{field ? nameBoxText(field.name, row ? row.number : null) : 'No cell chosen'}</span>
+        <span className="truncate">{field ? nameBoxText(field.name, row ? row.number : null) : ''}</span>
       </div>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5">
-        {!field && <span className="text-ink-soft">Click a cell to see what is in it.</span>}
         {field && explain?.kind === 'formula' && (
           <>
             <span className="font-serif text-[15px] text-stamp italic" aria-hidden>

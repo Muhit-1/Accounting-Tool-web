@@ -1,6 +1,7 @@
 import type { ComponentType, SVGProps } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTables } from '../../lib/tables'
+import { CASHBOOK_KEY, landingTableId } from '../../lib/workspace-landing'
 import { SetupChecklist } from './SetupChecklist'
 import { IconChartBar, IconDoc, IconGraph, IconLock, IconPlus, IconSettings, IconTable, IconUsers } from '../icons'
 
@@ -38,9 +39,12 @@ export function Outline({ businessId, tableOnly, canManage, onNavigate }: { busi
   const tab = new URLSearchParams(location.search).get('tab')
   const inWorkspace = path.startsWith(`${base}/workspace`) || path.startsWith(`${base}/accounts`)
   const own = (tables ?? []).filter((t) => t.kind === 'TABLE')
+  // With no ?tab, a business nobody has touched opens its first table (lib/workspace-landing.ts), so that is the one lit.
+  const landing = tab === null && !path.startsWith(`${base}/accounts`) ? landingTableId(tables) : null
+  const cashActive = path.startsWith(`${base}/accounts`) || (inWorkspace && (tab === CASHBOOK_KEY || (tab === null && landing === null)))
 
   const tableItems = own.map((t) => (
-    <Item key={t.id} to={`${base}/workspace?tab=${t.id}`} label={t.name} dot={t.color} active={inWorkspace && tab === t.id} onNavigate={onNavigate}>
+    <Item key={t.id} to={`${base}/workspace?tab=${t.id}`} label={t.name} dot={t.color} active={inWorkspace && (tab === t.id || (tab === null && landing === t.id))} onNavigate={onNavigate}>
       {t.rules.some((r) => r.enabled) && <IconGraph width={13} height={13} className="flex-none text-brass" aria-label="Posts to the Cash book" />}
     </Item>
   ))
@@ -57,7 +61,7 @@ export function Outline({ businessId, tableOnly, canManage, onNavigate }: { busi
   return (
     <nav aria-label="This business" className="flex flex-col gap-px p-2.5 pb-6">
       <Heading>Money</Heading>
-      <Item to={`${base}/workspace`} label="Cash book" icon={IconLock} active={inWorkspace && !tab} onNavigate={onNavigate} />
+      <Item to={`${base}/workspace?tab=${CASHBOOK_KEY}`} label="Cash book" icon={IconLock} active={cashActive} onNavigate={onNavigate} />
       <Item to={`${base}/invoices`} label="Invoices" icon={IconDoc} active={path.startsWith(`${base}/invoices`)} onNavigate={onNavigate} />
 
       <Heading>Your tables</Heading>

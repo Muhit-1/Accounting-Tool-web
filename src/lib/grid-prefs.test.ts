@@ -10,6 +10,8 @@ import {
   withHiddenColumn,
   withHiddenTable,
   withLabel,
+  withLetters,
+  withShowEmpty,
   withShownColumn,
   withShownTable,
   withTableName,
@@ -92,5 +94,20 @@ describe('table prefs', () => {
     expect(hidden.hidden).toEqual(['orders'])
     expect(withHiddenTable(hidden, 'orders').hidden).toEqual(['orders'])
     expect(withShownTable(hidden, 'orders').hidden).toEqual([])
+  })
+})
+
+describe('letters and empty columns', () => {
+  it('both are off until this viewer turns them on, and turning off removes them again', () => {
+    const on = withShowEmpty(withLetters(EMPTY_GRID_PREFS, true), true)
+    expect(on).toEqual({ labels: {}, hidden: [], showLetters: true, showEmpty: true })
+    expect(withLetters(on, false)).toEqual({ labels: {}, hidden: [], showEmpty: true })
+    expect(withShowEmpty(withLetters(on, false), false)).toEqual(EMPTY_GRID_PREFS)
+  })
+  it('round-trips through storage and ignores wrong values', () => {
+    const storage = fakeStorage()
+    savePrefs(storage, 'k', withLetters(EMPTY_GRID_PREFS, true))
+    expect(loadGridPrefs(storage, 'k')).toEqual({ labels: {}, hidden: [], showLetters: true })
+    expect(loadGridPrefs(fakeStorage({ k: JSON.stringify({ labels: {}, hidden: [], showLetters: 'yes' }) }), 'k')).toEqual(EMPTY_GRID_PREFS)
   })
 })
