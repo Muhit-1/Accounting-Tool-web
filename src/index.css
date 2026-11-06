@@ -108,6 +108,15 @@ p {
   outline: 2px solid var(--color-stamp);
   outline-offset: 2px;
 }
+/* A cell of a table: the box is drawn inside it, so a neighbour (the pinned summary row) never covers one side. */
+[data-grid-cell]:focus-visible,
+[data-grid-cell]:focus {
+  outline-offset: -2px;
+}
+/* Inside a scrolling strip (the tabs) an outside outline is cut off at the strip's edge. */
+[role='tablist'] :focus-visible {
+  outline-offset: -2px;
+}
 
 @keyframes rise {
   from {

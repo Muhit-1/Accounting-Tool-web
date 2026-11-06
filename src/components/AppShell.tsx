@@ -5,6 +5,7 @@ import { markOpened, useBusiness } from '../lib/businesses'
 import { useTables } from '../lib/tables'
 import { BottomNav } from './shell/BottomNav'
 import { Outline } from './shell/Outline'
+import { IconMenu } from './icons'
 import { TopBar } from './shell/TopBar'
 
 const OUTLINE_KEY = 'exin_outline_open'
@@ -59,12 +60,29 @@ export function AppShell() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-paper">
-      <TopBar businessId={businessId} canManage={canManage} hasOutline={hasOutline} onToggleOutline={toggle} />
+      <TopBar businessId={businessId} canManage={canManage} />
       <div className="relative flex min-h-0 flex-1">
         {hasOutline && businessId && (
           <>
-            <aside className={`scrollbar-thin hidden w-[236px] flex-none overflow-y-auto border-r border-paper-line bg-white ${open ? 'md:block' : ''}`}>
-              <Outline businessId={businessId} tableOnly={tableOnly} canManage={canManage} />
+            {/* The left menu. Its own button (top left of the menu) hides it down to a thin strip and shows it again. */}
+            <aside className={`hidden flex-none flex-col border-r border-paper-line bg-white md:flex ${open ? 'w-[236px]' : 'w-14'}`}>
+              <div className="flex h-12 flex-none items-center px-2">
+                <button
+                  type="button"
+                  onClick={toggle}
+                  aria-label={open ? 'Hide the menu' : 'Show the menu'}
+                  aria-expanded={open}
+                  title={open ? 'Hide the menu' : 'Show the menu'}
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft hover:bg-paper"
+                >
+                  <IconMenu width={21} height={21} />
+                </button>
+              </div>
+              {open && (
+                <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
+                  <Outline businessId={businessId} tableOnly={tableOnly} canManage={canManage} />
+                </div>
+              )}
             </aside>
             {drawer && (
               <div className="fixed inset-x-0 top-14 bottom-0 z-40 md:hidden">

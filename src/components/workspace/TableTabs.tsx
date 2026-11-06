@@ -88,8 +88,8 @@ export function TableTabs({
               setMenu({ anchor: new DOMRect(event.clientX, event.clientY, 0, 0), items })
             }}
             style={{ ['--tab' as string]: tab.color ?? 'var(--color-stamp)' }}
-            className={`group/tab flex items-center gap-1 rounded-b-[8px] border border-t-0 pr-1 pl-3 text-[13.5px] whitespace-nowrap ${
-              active ? '-mt-px border-paper-line border-b-[3px] border-b-[var(--tab)] bg-white font-semibold text-ink' : 'border-transparent font-medium text-ink-soft hover:bg-white'
+            className={`group/tab flex items-center gap-1 rounded-b-[8px] border border-t-0 border-b-[3px] pr-1 pl-3 text-[13.5px] whitespace-nowrap ${
+              active ? '-mt-px border-paper-line border-b-[var(--tab)] bg-white pt-px font-semibold text-ink' : 'border-transparent border-b-transparent font-medium text-ink-soft hover:bg-white'
             } ${over === tab.key ? 'outline-2 outline-dashed outline-stamp' : ''}`}
           >
             <button

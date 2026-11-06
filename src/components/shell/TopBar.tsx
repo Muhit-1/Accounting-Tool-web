@@ -7,7 +7,7 @@ import { CopyBusinessDialog } from '../CopyBusinessDialog'
 import { NewBusinessModal } from '../NewBusinessModal'
 import { ShareDialog } from '../sharing/ShareDialog'
 import { Seal } from '../Seal'
-import { IconChevronDown, IconCloudCheck, IconCopy, IconHome, IconMenu, IconPlus, IconShare } from '../icons'
+import { IconChevronDown, IconCloudCheck, IconCopy, IconHome, IconPlus, IconShare } from '../icons'
 import { SearchBox } from './SearchBox'
 
 function initials(name: string): string {
@@ -175,27 +175,12 @@ function ShareButton({ businessId }: { businessId: string }) {
   )
 }
 
-// The bar on top of every page: the menu button, the business (or the product name on Home), one search box,
-// Share and the account.
-export function TopBar({
-  businessId,
-  canManage,
-  onToggleOutline,
-  hasOutline,
-}: {
-  businessId?: string
-  canManage: boolean
-  onToggleOutline: () => void
-  hasOutline: boolean
-}) {
+// The bar on top of every page: the logo (always the far left), the business (or the product name on Home), one search
+// box, Share and the account. The button that hides and shows the left menu sits at the top of that menu.
+export function TopBar({ businessId, canManage }: { businessId?: string; canManage: boolean }) {
   return (
     <header className="flex h-14 flex-none items-center gap-2 border-b border-paper-line bg-white px-2 sm:gap-3 sm:px-3">
-      {hasOutline && (
-        <button type="button" onClick={onToggleOutline} aria-label="Show or hide the outline" className="flex h-10 w-10 flex-none items-center justify-center rounded-full text-ink-soft hover:bg-paper">
-          <IconMenu width={21} height={21} />
-        </button>
-      )}
-      <Link to="/" aria-label="All businesses" className={`flex flex-none items-center gap-2 rounded-ledger p-1 ${hasOutline ? '' : 'ml-1'}`}>
+      <Link to="/" aria-label="All businesses" className="ml-1 flex flex-none items-center gap-2 rounded-ledger p-1">
         <Seal size={32} />
         {!businessId && <span className="hidden font-display text-[18px] font-bold tracking-[-0.015em] sm:inline">Exin Finance</span>}
       </Link>

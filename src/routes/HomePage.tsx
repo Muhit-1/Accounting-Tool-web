@@ -31,7 +31,7 @@ function TemplateCard({ template, onPick }: { template: BusinessTemplate | null;
   const colors = template ? (TEMPLATE_COLORS[template.key] ?? ['#2457d6']) : []
   const bars = colors.length ? previewBars({ tables: colors.map((c, i) => ({ id: String(i), name: '', color: c, kind: 'TABLE' as const })) }, 5) : []
   return (
-    <button type="button" onClick={() => onPick(template?.key ?? 'blank')} className="group w-[150px] flex-none text-left">
+    <button type="button" onClick={() => onPick(template?.key ?? 'blank')} className="group w-[150px] flex-none self-start text-left">
       <span className="flex h-[100px] items-center justify-center rounded-[10px] border border-paper-line bg-white transition-colors group-hover:border-stamp group-focus-visible:border-stamp">
         {template ? <MiniSheet bars={bars} /> : <IconPlus width={40} height={40} className="text-stamp" strokeWidth={2.4} />}
       </span>
