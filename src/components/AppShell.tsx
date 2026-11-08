@@ -12,10 +12,12 @@ const OUTLINE_KEY = 'exin_outline_open'
 
 function readOpen(): boolean {
   try {
-    return localStorage.getItem(OUTLINE_KEY) !== '0'
+    const saved = localStorage.getItem(OUTLINE_KEY)
+    if (saved !== null) return saved !== '0'
   } catch {
-    return true
+    // no saved choice
   }
+  return window.matchMedia('(min-width: 1024px)').matches
 }
 
 // The page frame: a white top bar (business, search, Share, account), a light outline on the left (money, tables,
@@ -33,7 +35,7 @@ export function AppShell() {
   const [open, setOpen] = useState(readOpen)
   const [drawer, setDrawer] = useState(false)
   // The Workspace, the Connections map and the invoice editor use the whole page: no margins, one scroll.
-  const fullBleed = businessId !== undefined && new RegExp(`^/businesses/${businessId}/(workspace|accounts|connections|invoices/new|invoices/[^/]+/edit)(/|$)`).test(location.pathname)
+  const fullBleed = businessId !== undefined && new RegExp(`^/businesses/${businessId}/(workspace|accounts/[^/]+|connections|invoices/new|invoices/[^/]+/edit)(/|$)`).test(location.pathname)
   const hasOutline = businessId !== undefined
 
   // The Home list is ordered by what you opened last.

@@ -31,6 +31,7 @@ import type { ActiveCell, BulkAction, FootRow, GridColumn } from '../grid/grid-t
 import { FormulaBar } from './FormulaBar'
 import { PostingLine } from './PostingLine'
 import { ColumnMenu } from './ColumnMenu'
+import { RowForm } from './RowForm'
 import { useWorkspaceChrome } from '../workspace/workspace-chrome'
 import { PromptDialog } from '../PromptDialog'
 import { TableHistoryDialog } from '../trust/TableHistoryDialog'
@@ -119,6 +120,8 @@ export function TableTab({ businessId, table, tables, currency, onRules }: { bus
   const [fnRenaming, setFnRenaming] = useState<FnRow | null>(null)
   const [filtering, setFiltering] = useState(false)
   const [savingView, setSavingView] = useState(false)
+  // A phone has no sheet: a row is added or changed in a form that slides up (RowForm).
+  const [rowForm, setRowForm] = useState<{ row?: EngineRow } | null>(null)
 
   // The rows of every table this one links to, so a link column can offer them.
   const linkFields = useMemo(() => table.fields.filter((f) => f.type === 'LINK'), [table.fields])
@@ -185,6 +188,17 @@ export function TableTab({ businessId, table, tables, currency, onRules }: { bus
       toast(messageOf(err))
     } finally {
       setAdding(false)
+    }
+  }
+
+  async function saveRowForm(values: Record<string, unknown>): Promise<string | null> {
+    try {
+      if (rowForm?.row) await updateAsync({ id: rowForm.row.id, values, version: rowForm.row.version })
+      else await createRow.mutateAsync(values)
+      setRowForm(null)
+      return null
+    } catch (err) {
+      return messageOf(err)
     }
   }
 
@@ -517,12 +531,19 @@ export function TableTab({ businessId, table, tables, currency, onRules }: { bus
             />
           </div>
           <ul className="flex flex-col gap-2.5 md:hidden">
-            {rows.length === 0 && <li className="rounded-[14px] border border-paper-line bg-white px-5 py-8 text-sm text-ink-soft">No rows yet. Add rows on a larger screen or in the app.</li>}
-            {rows.map((row) => {
+            {rows.every((r) => hiddenIds.has(r.id)) && <li className="rounded-[14px] border border-paper-line bg-white px-5 py-8 text-sm text-ink-soft">{canEdit ? 'No rows yet. Tap + to add the first one.' : 'No rows yet.'}</li>}
+            {rows.filter((r) => !hiddenIds.has(r.id)).map((row) => {
               const title = table.fields.find((f) => f.type === 'TEXT') ?? table.fields[0]
               const others = table.fields.filter((f) => f.id !== title?.id && cellText(f, row) !== '').slice(0, 5)
               return (
-                <li key={row.id} className="rounded-[14px] border border-paper-line bg-white px-4 py-3 text-[13.5px] shadow-sm">
+                <li key={row.id} className="rounded-[14px] border border-paper-line bg-white text-[13.5px] shadow-sm">
+                  <button
+                    type="button"
+                    disabled={!canEdit}
+                    onClick={() => setRowForm({ row })}
+                    aria-label={canEdit ? `Edit row ${row.number}` : undefined}
+                    className="block w-full rounded-[14px] px-4 py-3 text-left enabled:active:bg-paper"
+                  >
                   <div className="mb-1.5 flex items-baseline justify-between gap-3">
                     <span className="truncate text-[15.5px] font-semibold">{title ? cellText(title, row) || `Row ${row.number}` : `Row ${row.number}`}</span>
                     <span className="tabular flex-none text-[12px] text-ink-soft">#{row.number}</span>
@@ -533,10 +554,23 @@ export function TableTab({ businessId, table, tables, currency, onRules }: { bus
                       <span className={`min-w-0 truncate text-right ${f.type === 'MONEY' || f.type === 'FORMULA' || f.type === 'ROLLUP' ? 'tabular font-semibold' : ''}`}>{cellText(f, row)}</span>
                     </div>
                   ))}
+                  </button>
                 </li>
               )
             })}
           </ul>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setRowForm({})}
+              aria-label="Add a row"
+              className="fixed right-4 bottom-[88px] z-30 flex h-14 w-14 items-center justify-center rounded-[18px] bg-stamp text-white shadow-[0_6px_16px_rgba(28,109,208,0.4)] md:hidden"
+            >
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+          )}
         </>
       )}
 
@@ -591,6 +625,24 @@ export function TableTab({ businessId, table, tables, currency, onRules }: { bus
               .catch((err) => toast(messageOf(err)))
           }}
           onClose={() => setSavingView(false)}
+        />
+      )}
+      {rowForm && (
+        <RowForm
+          key={rowForm.row?.id ?? 'new'}
+          table={table}
+          row={rowForm.row}
+          linkOptions={linkOptions}
+          onSave={saveRowForm}
+          onDelete={
+            rowForm.row
+              ? () => {
+                  schedule([rowForm.row as EngineRow])
+                  setRowForm(null)
+                }
+              : undefined
+          }
+          onClose={() => setRowForm(null)}
         />
       )}
       {history && <TableHistoryDialog businessId={businessId} tableId={table.id} tableName={table.name} onClose={() => setHistory(false)} />}

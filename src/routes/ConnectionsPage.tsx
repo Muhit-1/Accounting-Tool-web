@@ -48,7 +48,7 @@ export function ConnectionsPage() {
   const [moved, setMoved] = useState<SavedLayout>(() => (businessId ? loadLayout(businessId) : {}))
   const [view, setView] = useState<MapView>({ x: 20, y: 20, z: 1 })
   const [panning, setPanning] = useState(false)
-  const [showList, setShowList] = useState(false)
+  const [showList, setShowList] = useState(() => window.matchMedia('(max-width: 767px)').matches)
   const [hover, setHover] = useState<string | null>(null)
   const [pinned, setPinned] = useState<string | null>(null)
 

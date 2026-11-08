@@ -14,7 +14,7 @@ function signed(value: number): string {
   return `${value > 0 ? '+' : '−'}${formatAmount(Math.abs(value))}`
 }
 
-const HEAD = 'border-b border-paper-line px-3 py-2.5 text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase'
+const HEAD = 'border-b border-paper-line px-2 py-2.5 text-[12px] sm:px-3 sm:text-[12.5px] font-semibold tracking-wider text-ink-soft uppercase'
 
 // Money in / out / net / closing balance for each month of a window, a bar
 // chart, and a check that nothing falls outside the months shown.
@@ -75,33 +75,33 @@ export function MonthlyPanel({ businessId, accountId, currency }: { businessId: 
               <MonthlyBarChart rows={data.rows} currency={currency} />
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px] border-collapse text-[13.5px]">
+              <table className="w-full min-w-[340px] border-collapse text-[12.5px] sm:min-w-[520px] sm:text-[13.5px]">
                 <thead>
                   <tr className="bg-black/[0.02]">
-                    <th className={`${HEAD} pl-5 text-left`}>Month</th>
+                    <th className={`${HEAD} pl-3 sm:pl-5 text-left`}>Month</th>
                     <th className={`${HEAD} text-right`}>Money in</th>
                     <th className={`${HEAD} text-right`}>Money out</th>
                     <th className={`${HEAD} text-right`}>Net</th>
-                    <th className={`${HEAD} pr-5 text-right text-stamp`}>Closing balance</th>
+                    <th className={`${HEAD} pr-3 sm:pr-5 text-right text-stamp`}>Closing balance</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.rows.map((row) => (
                     <tr key={row.month} className="border-b border-paper-line">
-                      <td className="py-2.5 pr-3 pl-5 font-medium">{monthLabel(row.month)}</td>
-                      <td className="tabular px-3 py-2.5 text-right">{formatAmount(row.moneyIn)}</td>
-                      <td className="tabular px-3 py-2.5 text-right">{formatAmount(row.moneyOut)}</td>
-                      <td className={`tabular px-3 py-2.5 text-right ${row.net > 0 ? 'text-green' : row.net < 0 ? 'text-rust' : ''}`}>
+                      <td className="py-2.5 pr-3 pl-3 sm:pl-5 font-medium">{monthLabel(row.month)}</td>
+                      <td className="tabular px-2 py-2.5 sm:px-3 text-right">{formatAmount(row.moneyIn)}</td>
+                      <td className="tabular px-2 py-2.5 sm:px-3 text-right">{formatAmount(row.moneyOut)}</td>
+                      <td className={`tabular px-2 py-2.5 sm:px-3 text-right ${row.net > 0 ? 'text-green' : row.net < 0 ? 'text-rust' : ''}`}>
                         {signed(row.net)}
                       </td>
-                      <td className="tabular bg-stamp-soft py-2.5 pr-5 pl-3 text-right">{formatAmount(row.closingBalance)}</td>
+                      <td className="tabular bg-stamp-soft py-2.5 pr-3 sm:pr-5 pl-3 text-right">{formatAmount(row.closingBalance)}</td>
                     </tr>
                   ))}
                   <tr>
-                    <td className="py-2.5 pr-3 pl-5 font-bold">Total</td>
-                    <td className="tabular px-3 py-2.5 text-right font-medium">{formatAmount(data.totals.moneyIn)}</td>
-                    <td className="tabular px-3 py-2.5 text-right font-medium">{formatAmount(data.totals.moneyOut)}</td>
-                    <td className="tabular px-3 py-2.5 text-right font-medium">{signed(data.totals.net)}</td>
+                    <td className="py-2.5 pr-3 pl-3 sm:pl-5 font-bold">Total</td>
+                    <td className="tabular px-2 py-2.5 sm:px-3 text-right font-medium">{formatAmount(data.totals.moneyIn)}</td>
+                    <td className="tabular px-2 py-2.5 sm:px-3 text-right font-medium">{formatAmount(data.totals.moneyOut)}</td>
+                    <td className="tabular px-2 py-2.5 sm:px-3 text-right font-medium">{signed(data.totals.net)}</td>
                     <td className="bg-stamp-soft" />
                   </tr>
                 </tbody>

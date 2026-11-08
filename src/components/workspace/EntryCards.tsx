@@ -18,7 +18,7 @@ export function EntryCards({
   if (transactions.length === 0) {
     return (
       <p className="rounded-ledger border border-paper-line bg-white px-5 py-8 text-sm text-ink-soft">
-        No entries yet — add your first one above.
+        No entries yet. Tap + to add your first one.
       </p>
     )
   }
