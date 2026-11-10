@@ -178,9 +178,3 @@ export function readWorkbook(XLSX: typeof Xlsx, bytes: Uint8Array): ReadResult {
   }
   return { ok: true, sheets }
 }
-
-// The address behind a cell, only when it is a plain https link.
-export function httpsLink(link: string | null | undefined): string | null {
-  if (!link) return null
-  return /^https:\/\/\S+$/i.test(link.trim()) ? link.trim() : null
-}

@@ -82,33 +82,6 @@ export function useUploadReceipt(businessId: string) {
   })
 }
 
-// Opens the uploaded invoice/receipt for a transaction in a new tab. Opens
-// the tab synchronously (before the fetch) so browsers don't treat it as a
-// blocked popup; falls back to a normal download if that's blocked anyway.
-export async function openReceipt(businessId: string, transactionId: string, filename: string) {
-  const newTab = window.open('', '_blank')
-  // The tab only ever shows our own blob; there's no reason for it to keep a
-  // handle back to this app's window.
-  if (newTab) newTab.opener = null
-  try {
-    const blob = await api.getBlob(`/businesses/${businessId}/transactions/${transactionId}/receipt`)
-    const url = URL.createObjectURL(blob)
-    if (newTab) {
-      newTab.location.href = url
-    } else {
-      const link = document.createElement('a')
-      link.href = url
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-    }
-  } catch (err) {
-    newTab?.close()
-    throw err
-  }
-}
-
 export interface TransactionWithBusiness extends Transaction {
   businessId: string
   businessName: string

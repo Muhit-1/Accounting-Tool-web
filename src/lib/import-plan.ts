@@ -12,7 +12,7 @@ import {
   type SourceRow,
 } from './sheet-import'
 import { findFileTotals, segmentGrid, type FileTotals, type Segment, type SheetGrid } from './sheet-segments'
-import { MAX_IMPORT_ROWS, type ImportOptions, type ImportRunner, type MoneyTotals, type RowCheck } from './paste-import'
+import { MAX_IMPORT_ROWS, type ImportOptions, type ImportRunner, type MoneyTotals } from './paste-import'
 import { sumMoney } from './grid-rows'
 
 export interface SheetPlan {
@@ -58,12 +58,6 @@ export function withMapping(plan: SheetPlan, key: string, targetId: string | nul
 
 export function planColumns(plan: SheetPlan): ColumnChoice[] {
   return columnChoices(plan.segments, plan.mapping)
-}
-
-export interface CheckedSheetRow {
-  sheetName: string
-  rowNumber: number
-  check: RowCheck<unknown>
 }
 
 export interface FileComparison {

@@ -21,11 +21,3 @@ export function Panel({
     </section>
   )
 }
-
-export function PanelLink({ children, ...props }: { children: ReactNode } & React.AnchorHTMLAttributes<HTMLAnchorElement>) {
-  return (
-    <a className="border-b border-current text-[13px] text-stamp no-underline" {...props}>
-      {children}
-    </a>
-  )
-}

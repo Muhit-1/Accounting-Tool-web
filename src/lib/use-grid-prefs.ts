@@ -1,18 +1,13 @@
 import { useCallback, useState } from 'react'
 import {
   loadGridPrefs,
-  loadTablePrefs,
   savePrefs,
   withHiddenColumn,
-  withHiddenTable,
   withLabel,
   withLetters,
   withShowEmpty,
   withShownColumn,
-  withShownTable,
-  withTableName,
   type GridPrefs,
-  type TablePrefs,
 } from './grid-prefs'
 
 function storage(): Storage | null {
@@ -55,31 +50,4 @@ export function useGridPrefs(key: string) {
 function load(key: string): GridPrefs {
   const store = storage()
   return store ? loadGridPrefs(store, key) : { labels: {}, hidden: [] }
-}
-
-function loadTables(key: string): TablePrefs {
-  const store = storage()
-  return store ? loadTablePrefs(store, key) : { names: {}, hidden: [] }
-}
-
-// This viewer's table names and hidden tables (the tab bar), same rules.
-export function useTablePrefs(key: string) {
-  const [state, setState] = useState(() => ({ key, prefs: loadTables(key) }))
-  if (state.key !== key) setState({ key, prefs: loadTables(key) })
-
-  const update = useCallback((change: (current: TablePrefs) => TablePrefs) => {
-    setState((current) => {
-      const next = change(current.prefs)
-      const store = storage()
-      if (store) savePrefs(store, current.key, next)
-      return { key: current.key, prefs: next }
-    })
-  }, [])
-
-  return {
-    prefs: state.prefs,
-    rename: (tableKey: string, name: string, original: string) => update((p) => withTableName(p, tableKey, name, original)),
-    hide: (tableKey: string) => update((p) => withHiddenTable(p, tableKey)),
-    show: (tableKey: string) => update((p) => withShownTable(p, tableKey)),
-  }
 }

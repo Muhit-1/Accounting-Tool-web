@@ -6,11 +6,6 @@ export interface User {
   name: string
 }
 
-export interface AuthResponse {
-  accessToken: string
-  user: User
-}
-
 export interface Business {
   id: string
   ownerId: string

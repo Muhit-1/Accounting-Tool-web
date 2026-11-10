@@ -203,30 +203,6 @@ export function useUpdateRow(businessId: string, tableId: string) {
   })
 }
 
-export function useDeleteRow(businessId: string, tableId: string) {
-  const refresh = useRefresh(businessId)
-  return useMutation({
-    mutationFn: (id: string) => api.delete(`${base(businessId)}/${tableId}/rows/${id}`),
-    onSuccess: refresh.data,
-  })
-}
-
-export function useBulkRows(businessId: string, tableId: string) {
-  const refresh = useRefresh(businessId)
-  return useMutation({
-    mutationFn: (input: { rows: Record<string, unknown>[]; importBatchId?: string }) => api.post<{ importBatchId: string; created: number }>(`${base(businessId)}/${tableId}/rows/bulk`, input),
-    onSuccess: refresh.data,
-  })
-}
-
-export function useUndoRowBatch(businessId: string, tableId: string) {
-  const refresh = useRefresh(businessId)
-  return useMutation({
-    mutationFn: (importBatchId: string) => api.delete<{ deleted: number }>(`${base(businessId)}/${tableId}/rows/batch/${importBatchId}`),
-    onSuccess: refresh.data,
-  })
-}
-
 export function useSaveView(businessId: string, tableId: string) {
   const refresh = useRefresh(businessId)
   return useMutation({
