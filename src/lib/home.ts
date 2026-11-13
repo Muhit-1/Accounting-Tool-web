@@ -52,6 +52,12 @@ export function previewBars(b: Pick<BusinessSummary, 'tables'>, max = 6): { widt
   return Array.from({ length: Math.min(max, Math.max(colors.length * 2, 4)) }, (_, i) => ({ width: widths[i % widths.length], color: colors[i % colors.length] }))
 }
 
+/** The tables a card shows as chips: the Cash book first, then your tables in their order, at most `max`, and how many are left out. */
+export function tableChips(tables: BusinessSummary['tables'], max = 3): { shown: BusinessSummary['tables']; more: number } {
+  const ordered = [...tables].sort((a, b) => Number(b.kind === 'LEDGER') - Number(a.kind === 'LEDGER'))
+  return { shown: ordered.slice(0, max), more: Math.max(0, ordered.length - max) }
+}
+
 const SYMBOLS: Record<string, string> = { BDT: '৳', EUR: '€', USD: '$', CNY: '¥' }
 
 /** A balance for a card: "৳ 17,654" (cents only when there are some), the currency code for an unknown currency. */

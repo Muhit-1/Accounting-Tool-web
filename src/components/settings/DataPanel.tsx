@@ -116,7 +116,7 @@ export function DataPanel({ businessId }: { businessId: string }) {
       {confirmingDelete && (
         <ConfirmDialog
           title={`Delete ${business?.name ?? 'this business'}?`}
-          body="Every entry, order, cost, client and invoice will be permanently removed."
+          body="Every entry, table, client, invoice and uploaded file, and its folder in your Google Drive, will be permanently removed. This cannot be undone."
           confirmLabel="Delete business"
           isPending={deleteBusiness.isPending}
           onConfirm={handleDelete}

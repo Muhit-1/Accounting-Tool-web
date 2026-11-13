@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { CopyBusinessDialog } from '../components/CopyBusinessDialog'
 import { FloatingMenu, type MenuEntry } from '../components/FloatingMenu'
 import { NewBusinessModal } from '../components/NewBusinessModal'
 import { IconLock, IconPlus, IconUsers } from '../components/icons'
-import { useBusinessSummaries, useBusinessTemplates } from '../lib/businesses'
-import { filterSummaries, formatBalance, openedLabel, openPath, previewBars, roleLabel, type HomeSort, type OwnerFilter } from '../lib/home'
+import { useBusinessSummaries, useBusinessTemplates, useDeleteBusiness } from '../lib/businesses'
+import { ApiError } from '../lib/api-client'
+import { filterSummaries, formatBalance, openedLabel, openPath, previewBars, roleLabel, tableChips, type HomeSort, type OwnerFilter } from '../lib/home'
 import type { BusinessSummary, BusinessTemplate } from '../types/api'
+
+const messageOf = (err: unknown) => (err instanceof ApiError ? err.message : 'Something went wrong. Please try again.')
 
 const TEMPLATE_COLORS: Record<string, string[]> = {
   'online-shop': ['#2457d6', '#0e9f6e', '#d97706'],
@@ -24,6 +28,23 @@ function MiniSheet({ bars }: { bars: { width: number; color: string }[] }) {
         <i key={i} className="block h-[6px] rounded-[2px]" style={{ width: `${bar.width}%`, background: bar.color, opacity: i % 3 === 0 ? 0.55 : 0.3 }} />
       ))}
     </div>
+  )
+}
+
+// What is inside a business, for real: its tables as small chips in their own colours (the Cash book has a lock).
+// The first few only; "+2" says there are more.
+function TableChips({ tables }: { tables: BusinessSummary['tables'] }) {
+  const { shown, more } = tableChips(tables)
+  return (
+    <ul className="flex flex-wrap content-start gap-1.5 p-3" aria-label="Tables">
+      {shown.map((t) => (
+        <li key={t.id} className="flex max-w-[48%] items-center gap-1.5 rounded-full border border-paper-line bg-white px-2 py-0.5 text-[11.5px] font-medium text-ink">
+          {t.kind === 'LEDGER' ? <IconLock width={11} height={11} className="flex-none text-brass" /> : <span className="h-2 w-2 flex-none rounded-full" style={{ background: t.color ?? 'var(--color-stamp)' }} aria-hidden />}
+          <span className="truncate">{t.name}</span>
+        </li>
+      ))}
+      {more > 0 && <li className="rounded-full px-1.5 py-0.5 text-[11.5px] font-semibold text-ink-soft">+{more}</li>}
+    </ul>
   )
 }
 
@@ -54,8 +75,8 @@ function BusinessCard({ b, onMenu }: { b: BusinessSummary; onMenu: (anchor: DOMR
       }}
       className="group cursor-pointer overflow-hidden rounded-[12px] border border-paper-line bg-white transition-shadow hover:shadow-[0_4px_16px_rgba(15,42,74,0.1)] focus-visible:shadow-[0_4px_16px_rgba(15,42,74,0.1)]"
     >
-      <div className="relative flex h-[104px] items-center justify-center border-b border-paper-edge bg-[#f5f7fb]">
-        <MiniSheet bars={previewBars(b)} />
+      <div className="relative h-[104px] border-b border-paper-edge bg-[#f5f7fb]">
+        <TableChips tables={b.tables} />
         {b.balance !== null ? (
           <span className="tabular absolute right-2.5 bottom-2.5 rounded-full border border-paper-line bg-white px-2.5 py-0.5 text-[12.5px] font-semibold text-ink">{formatBalance(b.balance, b.currency)}</span>
         ) : (
@@ -110,6 +131,9 @@ export function HomePage() {
   const [creating, setCreating] = useState<string | null>(null)
   const [menu, setMenu] = useState<{ anchor: DOMRect; items: MenuEntry[] } | null>(null)
   const [copying, setCopying] = useState<{ id: string; name: string } | null>(null)
+  const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const deleteBusiness = useDeleteBusiness()
   const navigate = useNavigate()
 
   const list = filterSummaries(summaries ?? [], owner, sort)
@@ -117,7 +141,12 @@ export function HomePage() {
   function openMenu(anchor: DOMRect, b: BusinessSummary) {
     const items: MenuEntry[] = [{ label: 'Open', onSelect: () => navigate(openPath(b)) }]
     if (b.role === 'OWNER') {
-      items.push({ label: 'Make a copy…', onSelect: () => setCopying({ id: b.id, name: b.name }) }, { label: 'Settings', onSelect: () => navigate(`/businesses/${b.id}/settings`) })
+      items.push(
+        { label: 'Make a copy…', onSelect: () => setCopying({ id: b.id, name: b.name }) },
+        { label: 'Settings', onSelect: () => navigate(`/businesses/${b.id}/settings`) },
+        'separator',
+        { label: 'Delete…', danger: true, onSelect: () => { setDeleteError(null); setDeleting({ id: b.id, name: b.name }) } },
+      )
     }
     setMenu({ anchor, items })
   }
@@ -205,6 +234,24 @@ export function HomePage() {
 
       {menu && <FloatingMenu anchor={menu.anchor} items={menu.items} onClose={() => setMenu(null)} />}
       {creating && <NewBusinessModal templateKey={creating} onClose={() => setCreating(null)} />}
+      {deleting && (
+        <ConfirmDialog
+          title={`Delete ${deleting.name}?`}
+          body="Every entry, table, client, invoice and uploaded file of this business, and its folder in your Google Drive, will be permanently removed, and so will everyone's access to it. This cannot be undone."
+          confirmLabel="Delete business"
+          isPending={deleteBusiness.isPending}
+          error={deleteError}
+          onConfirm={async () => {
+            try {
+              await deleteBusiness.mutateAsync(deleting.id)
+              setDeleting(null)
+            } catch (err) {
+              setDeleteError(messageOf(err))
+            }
+          }}
+          onCancel={() => setDeleting(null)}
+        />
+      )}
       {copying && <CopyBusinessDialog businessId={copying.id} name={copying.name} onClose={() => setCopying(null)} />}
     </div>
   )

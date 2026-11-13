@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BusinessSummary } from '../types/api'
-import { filterSummaries, formatBalance, openedLabel, openPath, previewBars, roleLabel } from './home'
+import { filterSummaries, formatBalance, openedLabel, openPath, previewBars, roleLabel, tableChips } from './home'
 
 const make = (o: Partial<BusinessSummary>): BusinessSummary => ({
   id: 'b1',
@@ -86,5 +86,18 @@ describe('formatBalance', () => {
   it('shows a minus sign and the code of an unknown currency', () => {
     expect(formatBalance(-1200, 'BDT')).toBe('−৳ 1,200')
     expect(formatBalance(5, 'XAF')).toBe('XAF 5')
+  })
+})
+
+describe('tableChips', () => {
+  const t = (id: string, kind: 'LEDGER' | 'TABLE') => ({ id, name: id, color: null, kind })
+  it('puts the Cash book first and keeps at most three, counting the rest', () => {
+    const r = tableChips([t('a', 'TABLE'), t('b', 'TABLE'), t('cash', 'LEDGER'), t('c', 'TABLE'), t('d', 'TABLE'), t('e', 'TABLE')])
+    expect(r.shown.map((x) => x.id)).toEqual(['cash', 'a', 'b'])
+    expect(r.more).toBe(3)
+  })
+  it('shows everything when there are few, and nothing for none', () => {
+    expect(tableChips([t('a', 'TABLE')])).toEqual({ shown: [t('a', 'TABLE')], more: 0 })
+    expect(tableChips([])).toEqual({ shown: [], more: 0 })
   })
 })
