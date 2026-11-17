@@ -4,6 +4,8 @@ export interface User {
   id: string
   email: string
   name: string
+  // USER, ADMIN or SUPER_ADMIN (what the admin panel allows). Older API answers have none = a plain person.
+  role?: 'USER' | 'ADMIN' | 'SUPER_ADMIN'
 }
 
 export interface Business {

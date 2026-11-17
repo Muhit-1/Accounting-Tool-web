@@ -8,7 +8,7 @@ interface AuthContextValue {
   isLoading: boolean
   // Finishes a Google sign-in: stores the API's JWT and loads the user it
   // belongs to. Rejects (and keeps nothing stored) if the token is not accepted.
-  completeLogin: (token: string) => Promise<void>
+  completeLogin: (token: string) => Promise<User>
   logout: () => void
 }
 
@@ -29,7 +29,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient])
 
   useEffect(() => {
-    onUnauthorized(endSession)
+    onUnauthorized((code) => {
+      endSession()
+      // A deactivated person is told why instead of finding a plain sign-in page.
+      if (code === 'account_disabled') window.location.replace('/login?error=account_disabled')
+    })
     return () => onUnauthorized(null)
   }, [endSession])
 
@@ -42,10 +46,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsLoading(false))
   }, [])
 
-  async function completeLogin(token: string) {
+  async function completeLogin(token: string): Promise<User> {
     setToken(token)
     try {
-      setUser(await api.get<User>('/auth/me'))
+      const loaded = await api.get<User>('/auth/me')
+      setUser(loaded)
+      return loaded
     } catch (error) {
       setToken(null)
       throw error

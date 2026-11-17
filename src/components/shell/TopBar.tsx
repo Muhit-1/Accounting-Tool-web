@@ -1,3 +1,5 @@
+import { isStaff } from '../../lib/admin-format'
+import { useSupportUnread } from '../../lib/support'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../lib/auth-context'
@@ -110,6 +112,7 @@ function BusinessTitle({ businessId, canManage }: { businessId: string; canManag
 
 function AccountMenu() {
   const { user, logout } = useAuth()
+  const { data: unread } = useSupportUnread()
   const [open, setOpen] = useState(false)
   const name = user?.name ?? ''
   return (
@@ -136,9 +139,18 @@ function AccountMenu() {
             <Link to="/shared-with-me" onClick={() => setOpen(false)} role="menuitem" className="block px-3.5 py-2 text-[13.5px] font-medium hover:bg-paper">
               Shared with you
             </Link>
-            <Link to="/admin" onClick={() => setOpen(false)} role="menuitem" className="block px-3.5 py-2 text-[13.5px] font-medium hover:bg-paper">
-              Admin
+            <Link to="/support" onClick={() => setOpen(false)} role="menuitem" className="flex items-center gap-2 px-3.5 py-2 text-[13.5px] font-medium hover:bg-paper">
+              Help and support
+              {unread?.count ? <span className="h-2 w-2 rounded-full bg-stamp" aria-label="New answer" /> : null}
             </Link>
+            <Link to="/account" onClick={() => setOpen(false)} role="menuitem" className="block px-3.5 py-2 text-[13.5px] font-medium hover:bg-paper">
+              Account
+            </Link>
+            {isStaff(user?.role) && (
+              <Link to="/admin" onClick={() => setOpen(false)} role="menuitem" className="block px-3.5 py-2 text-[13.5px] font-semibold text-brass hover:bg-paper">
+                Admin panel
+              </Link>
+            )}
             <Link to="/privacy" onClick={() => setOpen(false)} role="menuitem" className="block px-3.5 py-2 text-[13.5px] font-medium hover:bg-paper">
               Privacy and terms
             </Link>

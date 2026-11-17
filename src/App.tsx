@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './routes/LoginPage'
 import { AuthCallbackPage } from './routes/AuthCallbackPage'
@@ -15,11 +16,18 @@ import { BusinessSettingsPage } from './routes/BusinessSettingsPage'
 import { ReportsPage } from './routes/ReportsPage'
 import { SharingPage } from './routes/SharingPage'
 import { SharedWithMePage } from './routes/SharedWithMePage'
-import { AdminPage } from './routes/AdminPage'
+import { AccountPage } from './routes/AccountPage'
+import { SupportPage } from './routes/SupportPage'
+import { SupportNewPage } from './routes/SupportNewPage'
+import { SupportTicketPage } from './routes/SupportTicketPage'
 import { NotFoundPage } from './routes/NotFoundPage'
 import { LegalPage } from './routes/LegalPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { StaffRoute } from './components/StaffRoute'
 import { AppShell } from './components/AppShell'
+
+// The admin panel is its own chunk: only staff ever load it.
+const AdminRoutes = lazy(() => import('./routes/admin/AdminRoutes'))
 
 export default function App() {
   return (
@@ -32,13 +40,26 @@ export default function App() {
       <Route path="/privacy" element={<LegalPage slug="privacy" />} />
       <Route path="/terms" element={<LegalPage slug="terms" />} />
       <Route element={<ProtectedRoute />}>
+        <Route element={<StaffRoute />}>
+          <Route
+            path="/admin/*"
+            element={
+              <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-ink-soft">Loading…</div>}>
+                <AdminRoutes />
+              </Suspense>
+            }
+          />
+        </Route>
         <Route element={<AppShell />}>
           <Route path="/" element={<HomePage />} />
           {/* The old combined overview stays reachable until the new Home has been checked on production. */}
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/shared-with-me" element={<SharedWithMePage />} />
-          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/account" element={<AccountPage />} />
+          <Route path="/support" element={<SupportPage />} />
+          <Route path="/support/new" element={<SupportNewPage />} />
+          <Route path="/support/:id" element={<SupportTicketPage />} />
           <Route path="/businesses/:businessId" element={<DashboardPage />} />
           <Route path="/businesses/:businessId/reports" element={<ReportsPage />} />
           <Route path="/businesses/:businessId/accounts" element={<AccountsPage />} />

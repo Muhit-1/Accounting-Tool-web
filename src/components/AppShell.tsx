@@ -7,6 +7,8 @@ import { BottomNav } from './shell/BottomNav'
 import { Outline } from './shell/Outline'
 import { IconMenu } from './icons'
 import { TopBar } from './shell/TopBar'
+import { Banner } from './Banner'
+import { useNotice } from '../lib/support'
 
 const OUTLINE_KEY = 'exin_outline_open'
 
@@ -34,6 +36,7 @@ export function AppShell() {
   const canManage = Boolean(business && user && business.ownerId === user.id)
   const [open, setOpen] = useState(readOpen)
   const [drawer, setDrawer] = useState(false)
+  const { data: notice } = useNotice()
   // The Workspace, the Connections map and the invoice editor use the whole page: no margins, one scroll.
   const fullBleed = businessId !== undefined && new RegExp(`^/businesses/${businessId}/(workspace|accounts/[^/]+|connections|invoices/new|invoices/[^/]+/edit)(/|$)`).test(location.pathname)
   const hasOutline = businessId !== undefined
@@ -62,6 +65,8 @@ export function AppShell() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-paper">
+      {notice?.maintenance && <Banner level="warning" text={notice.maintenance} />}
+      {notice?.announcement && <Banner level={notice.announcement.level} text={notice.announcement.text} />}
       <TopBar businessId={businessId} canManage={canManage} />
       <div className="relative flex min-h-0 flex-1">
         {hasOutline && businessId && (

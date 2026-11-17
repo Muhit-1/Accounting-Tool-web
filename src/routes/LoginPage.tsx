@@ -3,12 +3,17 @@ import { GoogleSignInButton } from '../components/GoogleSignInButton'
 import { Seal } from '../components/Seal'
 import { LegalFooter } from '../components/LegalFooter'
 import { googleLoginErrorMessage } from '../lib/google-login'
+import { useNotice } from '../lib/support'
 
 // One page for signing in and signing up: Google is the only way in, and the
 // first Google login creates the account.
 export function LoginPage() {
   const [searchParams] = useSearchParams()
-  const error = googleLoginErrorMessage(searchParams.get('error'))
+  const code = searchParams.get('error')
+  const { data: notice } = useNotice()
+  const base = googleLoginErrorMessage(code)
+  // a deactivated person is given the address to write to (set in the admin panel)
+  const error = base && code === 'account_disabled' && notice?.supportEmail ? `${base.replace(/ write to the support address of Exin Finance\.$/, ' write to')} ${notice.supportEmail}.` : base
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
@@ -48,7 +53,13 @@ export function LoginPage() {
           </p>
         </div>
 
-        <LegalFooter className="mt-8" />
+        <p className="mt-5 text-center text-sm">
+          <Link to="/" className="text-ink-soft underline underline-offset-2 hover:text-ink">
+            ← Back to home
+          </Link>
+        </p>
+
+        <LegalFooter className="mt-6" />
       </div>
     </div>
   )

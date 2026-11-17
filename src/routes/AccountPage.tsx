@@ -6,7 +6,7 @@ import { formatMoney, formatPerCurrency } from '../lib/format'
 import { useCombinedDashboard } from '../lib/dashboard'
 import { Panel } from '../components/Panel'
 
-export function AdminPage() {
+export function AccountPage() {
   const { user } = useAuth()
   const { data: businesses, isLoading: isBusinessesLoading } = useBusinesses()
   const list = businesses ?? []
@@ -19,8 +19,8 @@ export function AdminPage() {
   return (
     <div>
       <div className="mb-6">
-        <p className="mb-1.5 text-xs tracking-wider text-ink-soft uppercase">Account administration</p>
-        <h1 className="font-display text-[28px] font-bold tracking-tight">Admin</h1>
+        <p className="mb-1.5 text-xs tracking-wider text-ink-soft uppercase">Your account</p>
+        <h1 className="font-display text-[28px] font-bold tracking-tight">Account</h1>
         <p className="mt-1 text-sm text-ink-soft">
           A single place for account-level details — every venture you own, everyone with access to them, and who
           you're signed in as.

@@ -32,16 +32,22 @@ export function setToken(token: string | null): void {
 // 401 (token expired, revoked, or its user deleted) so the app can drop the
 // dead session and send the user back to the login screen instead of
 // leaving them on a page where every request now fails.
-let unauthorizedHandler: (() => void) | null = null
+let unauthorizedHandler: ((code?: string) => void) | null = null
 
-export function onUnauthorized(handler: (() => void) | null): void {
+export function onUnauthorized(handler: ((code?: string) => void) | null): void {
   unauthorizedHandler = handler
 }
 
-function handleUnauthorized(hadToken: boolean): void {
+// `code` is the API's short reason (for example `account_disabled`), so the sign-in page can say why.
+function handleUnauthorized(hadToken: boolean, code?: string): void {
   if (hadToken) {
-    unauthorizedHandler?.()
+    unauthorizedHandler?.(code)
   }
+}
+
+function errorCode(body: unknown): string | undefined {
+  const code = body && typeof body === 'object' ? (body as { code?: unknown }).code : undefined
+  return typeof code === 'string' ? code : undefined
 }
 
 export class ApiError extends Error {
@@ -94,7 +100,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     // Only a 401 on an already-authenticated request means the session died
     // (the /auth/login and /auth/register 401s just mean bad credentials).
     if (response.status === 401 && !path.startsWith('/auth/login') && !path.startsWith('/auth/register')) {
-      handleUnauthorized(token !== null)
+      handleUnauthorized(token !== null, errorCode(body))
     }
     throw new ApiError(response.status, extractErrorMessage(body, response.statusText), body)
   }
@@ -126,6 +132,7 @@ export const api = {
   postForm: <T>(path: string, formData: FormData) => request<T>(path, { method: 'POST', body: formData }),
   patch: <T>(path: string, data?: unknown) =>
     request<T>(path, { method: 'PATCH', body: data ? JSON.stringify(data) : undefined }),
-  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  // DELETE may carry a body (typing the email again to confirm); the API's CORS list and every client allow it.
+  delete: <T>(path: string, data?: unknown) => request<T>(path, { method: 'DELETE', body: data ? JSON.stringify(data) : undefined }),
   getBlob: (path: string) => requestBlob(path),
 }

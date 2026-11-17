@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
+import { isStaff } from '../lib/admin-format'
 import { readTokenFromHash } from '../lib/google-login'
 
 // Landing page of the Google login: the API redirects here with the JWT in the
@@ -25,7 +26,8 @@ export function AuthCallbackPage() {
       return
     }
     completeLogin(token).then(
-      () => navigate('/', { replace: true }),
+      // Staff land in the admin panel (they have a link back to their own books); everyone else on Home.
+      (user) => navigate(isStaff(user.role) ? '/admin' : '/', { replace: true }),
       () => navigate('/login?error=google_failed', { replace: true }),
     )
   }, [completeLogin, navigate])

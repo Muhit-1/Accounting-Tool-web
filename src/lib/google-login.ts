@@ -14,6 +14,8 @@ const ERROR_MESSAGES: Record<string, string> = {
     'Exin Finance needs permission to store files in your Google Drive. On Google’s screen, keep the Google Drive option ticked, then try again.',
   invalid_state: 'Your sign-in expired or was interrupted. Please try again.',
   google_failed: 'Google sign-in did not work. Please try again.',
+  account_disabled: 'This account is deactivated. If you think this is a mistake, write to the support address of Exin Finance.',
+  signup_closed: 'New accounts are not being accepted right now.',
 }
 
 export function googleLoginErrorMessage(code: string | null): string | null {
