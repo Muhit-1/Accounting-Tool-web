@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useBusiness, useBusinessSummaries } from '../../lib/businesses'
+import { initials } from '../../lib/side-menu'
 import type { BusinessSummary } from '../../types/api'
 import { CopyBusinessDialog } from '../CopyBusinessDialog'
 import { NewBusinessModal } from '../NewBusinessModal'
