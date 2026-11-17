@@ -5,7 +5,8 @@ import { API_URL } from './api-client'
 // redirects and keep the API's httpOnly flow cookie.
 export const GOOGLE_LOGIN_URL = `${API_URL}/auth/google`
 
-// The API reports login failures as `/login?error=<code>`. Only these fixed
+// The API reports login failures as `/login?error=<code>`; the web turns that address into `/?error=<code>` (the home
+// page has the sign-in button and shows the sentence). Only these fixed
 // codes are ever turned into text; anything else (including a code someone
 // typed into the address bar) gets the generic message, never an echo.
 const ERROR_MESSAGES: Record<string, string> = {
@@ -21,6 +22,16 @@ const ERROR_MESSAGES: Record<string, string> = {
 export function googleLoginErrorMessage(code: string | null): string | null {
   if (code === null) return null
   return Object.hasOwn(ERROR_MESSAGES, code) ? ERROR_MESSAGES[code] : ERROR_MESSAGES.google_failed
+}
+
+// The sentence shown on the home page after a failed sign-in. A deactivated person is given the support address that
+// the admin panel sets, when there is one.
+export function loginErrorText(code: string | null, supportEmail?: string | null): string | null {
+  const base = googleLoginErrorMessage(code)
+  if (base !== null && code === 'account_disabled' && supportEmail) {
+    return `${base.replace(/ write to the support address of Exin Finance\.$/, ' write to')} ${supportEmail}.`
+  }
+  return base
 }
 
 // The API hands the JWT over in the URL fragment: `#token=<jwt>`. A JWT is three

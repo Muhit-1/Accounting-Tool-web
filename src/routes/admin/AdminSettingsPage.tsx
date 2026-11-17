@@ -135,7 +135,7 @@ function Switch({ on, label, onChange, disabled }: { on: boolean; label: string;
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!on)}
-      className={`relative h-[22px] w-10 flex-none rounded-full transition-colors disabled:opacity-60 ${on ? 'bg-green' : 'bg-[#c5ccd6]'}`}
+      className={`relative h-[22px] w-10 flex-none rounded-full transition-colors disabled:opacity-60 ${on ? 'bg-green' : 'bg-paper-line'}`}
     >
       <span className={`absolute top-0.5 h-[18px] w-[18px] rounded-full bg-white transition-all ${on ? 'left-5' : 'left-0.5'}`} />
     </button>

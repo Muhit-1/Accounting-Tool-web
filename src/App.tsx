@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
-import { LoginPage } from './routes/LoginPage'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthCallbackPage } from './routes/AuthCallbackPage'
 import { DashboardPage } from './routes/DashboardPage'
 import { HomePage } from './routes/HomePage'
@@ -29,12 +28,19 @@ import { AppShell } from './components/AppShell'
 // The admin panel is its own chunk: only staff ever load it.
 const AdminRoutes = lazy(() => import('./routes/admin/AdminRoutes'))
 
+// There is no separate sign-in page: the home page has the Google button. The address stays only because the API sends
+// failed sign-ins to `/login?error=<code>`; this passes the code on to the home page.
+function LoginRedirect() {
+  const { search } = useLocation()
+  return <Navigate to={{ pathname: '/', search }} replace />
+}
+
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      {/* Google is the only way in, so one page serves both sign-in and sign-up. */}
-      <Route path="/register" element={<Navigate to="/login" replace />} />
+      <Route path="/login" element={<LoginRedirect />} />
+      {/* Google is the only way in, and the home page has its button: first sign-in creates the account. */}
+      <Route path="/register" element={<Navigate to="/" replace />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       {/* Public on purpose (Google's OAuth review needs login-free URLs): outside ProtectedRoute. */}
       <Route path="/privacy" element={<LegalPage slug="privacy" />} />

@@ -4,8 +4,7 @@ import { useAuth } from '../lib/auth-context'
 import { markOpened, useBusiness } from '../lib/businesses'
 import { useTables } from '../lib/tables'
 import { BottomNav } from './shell/BottomNav'
-import { Outline } from './shell/Outline'
-import { IconMenu } from './icons'
+import { SideMenu } from './shell/SideMenu'
 import { TopBar } from './shell/TopBar'
 import { Banner } from './Banner'
 import { useNotice } from '../lib/support'
@@ -47,19 +46,13 @@ export function AppShell() {
     if (businessId) void markOpened(businessId, tab)
   }, [businessId, tab])
 
-  function toggle() {
-    if (window.matchMedia('(min-width: 768px)').matches) {
-      setOpen((current) => {
-        const next = !current
-        try {
-          localStorage.setItem(OUTLINE_KEY, next ? '1' : '0')
-        } catch {
-          // a private window: the choice just is not remembered
-        }
-        return next
-      })
-    } else {
-      setDrawer((current) => !current)
+  // Hides or shows the list beside the rail (desktop). The choice is remembered in this browser.
+  function setOutline(next: boolean) {
+    setOpen(next)
+    try {
+      localStorage.setItem(OUTLINE_KEY, next ? '1' : '0')
+    } catch {
+      // a private window: the choice just is not remembered
     }
   }
 
@@ -71,31 +64,15 @@ export function AppShell() {
       <div className="relative flex min-h-0 flex-1">
         {hasOutline && businessId && (
           <>
-            {/* The left menu. Its own button (top left of the menu) hides it down to a thin strip and shows it again. */}
-            <aside className={`hidden flex-none flex-col border-r border-paper-line bg-white md:flex ${open ? 'w-[236px]' : 'w-14'}`}>
-              <div className="flex h-12 flex-none items-center px-2">
-                <button
-                  type="button"
-                  onClick={toggle}
-                  aria-label={open ? 'Hide the menu' : 'Show the menu'}
-                  aria-expanded={open}
-                  title={open ? 'Hide the menu' : 'Show the menu'}
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft hover:bg-paper"
-                >
-                  <IconMenu width={21} height={21} />
-                </button>
-              </div>
-              {open && (
-                <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
-                  <Outline businessId={businessId} tableOnly={tableOnly} canManage={canManage} />
-                </div>
-              )}
+            {/* The left menu: a rail of four areas and the list of the chosen one. The rail's last button hides the list. */}
+            <aside className="hidden flex-none md:flex">
+              <SideMenu businessId={businessId} tableOnly={tableOnly} canManage={canManage} open={open} setOpen={setOutline} />
             </aside>
             {drawer && (
               <div className="fixed inset-x-0 top-14 bottom-0 z-40 md:hidden">
                 <div className="absolute inset-0 bg-ink/40" onClick={() => setDrawer(false)} />
                 <aside className="scrollbar-thin absolute inset-y-0 left-0 w-[272px] max-w-[85vw] overflow-y-auto bg-white shadow-xl">
-                  <Outline businessId={businessId} tableOnly={tableOnly} canManage={canManage} onNavigate={() => setDrawer(false)} />
+                  <SideMenu layout="drawer" businessId={businessId} tableOnly={tableOnly} canManage={canManage} open setOpen={() => undefined} onNavigate={() => setDrawer(false)} />
                 </aside>
               </div>
             )}

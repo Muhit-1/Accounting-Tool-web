@@ -1,8 +1,8 @@
 import type { AnnouncementLevel } from '../types/admin'
 
 const STYLES: Record<AnnouncementLevel, string> = {
-  info: 'bg-stamp-soft text-[#144a8c]',
-  warning: 'bg-brass-soft text-[#5d4510]',
+  info: 'bg-stamp-soft text-info-ink',
+  warning: 'bg-brass-soft text-warn-ink',
   critical: 'bg-rust text-white',
 }
 

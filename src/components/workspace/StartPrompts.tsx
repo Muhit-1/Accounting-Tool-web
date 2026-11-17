@@ -93,7 +93,7 @@ export function StartStrip({ businessId, onUpload, onTemplates }: { businessId: 
   const [closed, setClosed] = useState(() => wasDismissed(stripKey(businessId)))
   if (closed) return null
   return (
-    <div className="flex h-9 items-center gap-3 border-b border-[#d6e4f6] bg-[#f1f6fd] px-4 text-[14px]">
+    <div className="flex h-9 items-center gap-3 border-b border-prompt-line bg-prompt px-4 text-[14px]">
       <span>
         <b className="font-semibold">Start here.</b> Type in a cell, or paste from Excel (Ctrl + V).
       </span>

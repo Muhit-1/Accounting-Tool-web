@@ -127,7 +127,7 @@ function BodyRowImpl<R>({
       }
       className={`group/row relative grid grid-cols-[var(--cols)] border-b border-paper-edge ${lock ? 'bg-[var(--color-brass-row)]' : picked ? 'bg-[var(--color-sel)]' : 'bg-white'}`}
     >
-      <div className="relative flex items-center justify-center border-r border-paper-edge bg-[#f6f8fb] text-xs text-ink-soft2">
+      <div className="relative flex items-center justify-center border-r border-paper-edge bg-sheet text-xs text-ink-soft2">
         {lock ? (
           <span className="text-brass" title={`Posted from ${lock.label} — change it there`}>
             <IconLock width={14} height={14} />
@@ -274,7 +274,7 @@ function BodyRowImpl<R>({
             key={column.id}
             role="gridcell"
             aria-colindex={columnIndex + 2}
-            className={`relative flex min-w-0 items-center border-r border-paper-edge ${column.tint === 'formula' && !lock ? 'bg-[#f6f9fe]' : column.tint === 'lookup' && !lock ? 'bg-[#fbf6e6]' : ''}`}
+            className={`relative flex min-w-0 items-center border-r border-paper-edge ${column.tint === 'formula' && !lock ? 'bg-formula-soft' : column.tint === 'lookup' && !lock ? 'bg-brass-row' : ''}`}
           >
             {content}
           </div>
@@ -719,7 +719,7 @@ export function Grid<R>(props: GridProps<R>) {
             <div
               role="presentation"
               aria-hidden
-              className="sticky top-[var(--ws-top,0px)] z-[3] grid h-[22px] grid-cols-[var(--cols)] border-b border-paper-line bg-[#f8fafc] text-[11px] tracking-wider text-ink-soft"
+              className="sticky top-[var(--ws-top,0px)] z-[3] grid h-[22px] grid-cols-[var(--cols)] border-b border-paper-line bg-sheet-head text-[11px] tracking-wider text-ink-soft"
             >
               <div className="border-r border-paper-edge" />
               {visible.map((column) => (
@@ -733,7 +733,7 @@ export function Grid<R>(props: GridProps<R>) {
           <div
             role="row"
             aria-rowindex={1}
-            className={`sticky ${prefs.showLetters ? 'top-[calc(var(--ws-top,0px)+22px)]' : 'top-[var(--ws-top,0px)]'} z-[3] grid h-9 grid-cols-[var(--cols)] border-b border-paper-line bg-[#f6f8fb]`}
+            className={`sticky ${prefs.showLetters ? 'top-[calc(var(--ws-top,0px)+22px)]' : 'top-[var(--ws-top,0px)]'} z-[3] grid h-9 grid-cols-[var(--cols)] border-b border-paper-line bg-sheet`}
           >
             <label className="flex cursor-pointer items-center justify-center border-r border-paper-edge">
               <input type="checkbox" checked={allPicked} aria-label="Select all rows" className="h-4 w-4 accent-stamp" onChange={(event) => togglePickAll(event.target.checked)} />
@@ -743,7 +743,7 @@ export function Grid<R>(props: GridProps<R>) {
                 key={column.id}
                 role="columnheader"
                 aria-colindex={visible.indexOf(column) + 2}
-                className={`flex min-w-0 border-r border-paper-edge ${column.tint === 'formula' ? 'border-b-2 border-b-stamp/60 bg-[#eef4fd]' : column.tint === 'lookup' ? 'border-b-2 border-b-brass/50 bg-[#f8f1dc]' : ''}`}
+                className={`flex min-w-0 border-r border-paper-edge ${column.tint === 'formula' ? 'border-b-2 border-b-stamp/60 bg-formula' : column.tint === 'lookup' ? 'border-b-2 border-b-brass/50 bg-brass-row' : ''}`}
               >
                 {headEdit?.id === column.id ? (
                   <input
@@ -788,7 +788,7 @@ export function Grid<R>(props: GridProps<R>) {
                   {/* the kind of column and the menu arrow: only on hover, or where the cursor is, so the header is just a name */}
                   <span
                     aria-hidden
-                    className={`pointer-events-none absolute top-1/2 ${isRightAligned(column) ? 'left-1' : 'right-1'} -translate-y-1/2 items-center gap-1 rounded bg-[#eef3fa] px-1.5 py-0.5 text-xs font-medium text-ink-soft2 group-hover/head:inline-flex group-focus-visible/head:inline-flex ${activeCol === column.id ? 'inline-flex' : 'hidden'}`}
+                    className={`pointer-events-none absolute top-1/2 ${isRightAligned(column) ? 'left-1' : 'right-1'} -translate-y-1/2 items-center gap-1 rounded bg-sel px-1.5 py-0.5 text-xs font-medium text-ink-soft2 group-hover/head:inline-flex group-focus-visible/head:inline-flex ${activeCol === column.id ? 'inline-flex' : 'hidden'}`}
                   >
                     {column.glyph && <span className={column.tint === 'formula' ? 'font-serif text-[14px] text-stamp italic' : column.tint === 'lookup' ? 'text-brass' : ''}>{column.glyph}</span>}
                     <span className="text-xs">▾</span>
@@ -801,7 +801,7 @@ export function Grid<R>(props: GridProps<R>) {
           </div>
 
           {lead && (
-            <div role="row" className="grid grid-cols-[var(--cols)] border-b border-paper-edge bg-[#f8fafc] text-[13px] text-ink-soft italic">
+            <div role="row" className="grid grid-cols-[var(--cols)] border-b border-paper-edge bg-sheet-head text-[13px] text-ink-soft italic">
               <div />
               {visible.map((column) => (
                 <div key={column.id} className={`px-3 py-2.5 ${isRightAligned(column) ? 'tabular text-right' : ''}`}>
@@ -856,8 +856,8 @@ export function Grid<R>(props: GridProps<R>) {
           )}
 
           {draft && exampleRow && shown.length === 0 && !isFiltered && (
-            <div role="presentation" aria-hidden className="grid grid-cols-[var(--cols)] border-b border-paper-edge bg-[#fffdf3] text-ink-soft2">
-              <div className="flex items-center justify-center border-r border-paper-edge bg-[#f6f8fb] text-xs">e.g.</div>
+            <div role="presentation" aria-hidden className="grid grid-cols-[var(--cols)] border-b border-paper-edge bg-hint text-ink-soft2">
+              <div className="flex items-center justify-center border-r border-paper-edge bg-sheet text-xs">e.g.</div>
               {visible.map((column) => (
                 <div key={column.id} className={`min-w-0 truncate border-r border-paper-edge px-3 py-2 text-[14px] leading-5 ${isRightAligned(column) ? 'tabular text-right' : ''}`}>
                   {exampleRow[column.id] ?? ''}
@@ -869,7 +869,7 @@ export function Grid<R>(props: GridProps<R>) {
 
           {draft && (
             <div role="row" className="grid grid-cols-[var(--cols)] border-b border-paper-edge bg-white">
-              <div className="flex items-center justify-center border-r border-paper-edge bg-[#f6f8fb] text-xs text-ink-soft2">{draftIndex + 1}</div>
+              <div className="flex items-center justify-center border-r border-paper-edge bg-sheet text-xs text-ink-soft2">{draftIndex + 1}</div>
               {visible.map((column) => {
                 const address = { column: column.id, row: draftIndex, draft: true }
                 const isBad = draft.badColumn === column.id
@@ -955,7 +955,7 @@ export function Grid<R>(props: GridProps<R>) {
           {/* Empty rows, only so that the sheet looks like a sheet. A click goes to the add-row. */}
           {Array.from({ length: fillers }, (_, i) => (
             <div key={`filler-${i}`} aria-hidden className="grid h-[38px] grid-cols-[var(--cols)] border-b border-paper-edge bg-white">
-              <div className="flex items-center justify-center border-r border-paper-edge bg-[#f8fafc] text-[11.5px] text-ink-soft/70">
+              <div className="flex items-center justify-center border-r border-paper-edge bg-sheet-head text-[11.5px] text-ink-soft/70">
                 {shown.length + (draft ? 2 : 1) + i}
               </div>
               {visible.map((column) => (
@@ -977,7 +977,7 @@ export function Grid<R>(props: GridProps<R>) {
           ))}
 
           {footRows ? (
-            <div className="sticky bottom-0 z-[2] border-t border-paper-line bg-[#f6f8fb] text-[14px]">
+            <div className="sticky bottom-0 z-[2] border-t border-paper-line bg-sheet text-[14px]">
               {footRows.map((fr) => (
                 <div key={fr.id} role="row" className="grid grid-cols-[var(--cols)] border-b border-paper-edge font-semibold last:border-b-0">
                   <div aria-hidden className="flex items-center justify-center text-[14px] text-stamp">
@@ -1025,7 +1025,7 @@ export function Grid<R>(props: GridProps<R>) {
               {footEnd && <div className="sticky left-0 flex w-max max-w-[100vw] items-center gap-5 border-t border-paper-edge px-3 py-1.5 text-xs font-normal text-ink-soft2">{footEnd}</div>}
             </div>
           ) : (
-            <div role="row" className="sticky bottom-0 z-[2] grid grid-cols-[var(--cols)] border-t border-paper-line bg-[#f6f8fb] text-[14px] font-bold">
+            <div role="row" className="sticky bottom-0 z-[2] grid grid-cols-[var(--cols)] border-t border-paper-line bg-sheet text-[14px] font-bold">
               <div aria-hidden className="flex items-center justify-center text-[14px] text-stamp">
                 Σ
               </div>

@@ -18,7 +18,13 @@ const START_LINES: Line[] = [
   { key: -3, memo: 'Order ORD-0041', tag: 'from Orders', amount: 4800 },
 ]
 
-export function HeroPanel({ active, go }: { active: boolean; go: (page: number) => void }) {
+// A message above the headline: a failed sign-in, or a notice set in the admin panel.
+export interface LandingAlert {
+  kind: 'error' | 'warning' | 'info'
+  text: string
+}
+
+export function HeroPanel({ active, go, alerts }: { active: boolean; go: (page: number) => void; alerts: LandingAlert[] }) {
   const [lines, setLines] = useState(START_LINES)
   const [balance, setBalance] = useState(HERO_START_BALANCE)
   const [shake, setShake] = useState(0)
@@ -52,6 +58,11 @@ export function HeroPanel({ active, go }: { active: boolean; go: (page: number) 
   return (
     <LandingPanel id="lp-home" tabId="lp-tab-home" active={active} ghost="Sheet1">
       <div>
+        {alerts.map((a) => (
+          <p key={a.text} className={`alert ${a.kind}`} role={a.kind === 'error' ? 'alert' : 'status'}>
+            {a.text}
+          </p>
+        ))}
         <div className="kick" data-r="" style={stagger(0)}>
           Bookkeeping + invoices
         </div>

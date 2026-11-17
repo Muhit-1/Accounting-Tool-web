@@ -27,7 +27,7 @@ export function SidePanel({ title, onClose, children, footer, width = 420 }: { t
           }
         }}
         style={{ width }}
-        className="absolute inset-y-0 right-0 flex max-w-full flex-col border-l border-paper-line bg-white shadow-[-8px_0_28px_rgba(15,42,74,0.14)]"
+        className="absolute inset-y-0 right-0 flex max-w-full flex-col border-l border-paper-line bg-white shadow-[-8px_0_28px_color-mix(in_srgb,var(--color-ink)_14%,transparent)]"
       >
         <div className="flex flex-none items-center justify-between border-b border-paper-edge px-5 py-3.5">
           <h2 className="font-display text-[17px] font-bold">{title}</h2>

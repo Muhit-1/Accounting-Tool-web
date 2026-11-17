@@ -10,7 +10,7 @@ const TONES: Record<Tone, string> = {
   green: 'bg-green-soft text-green',
   rust: 'bg-rust-soft text-rust',
   brass: 'bg-brass-soft text-brass',
-  grey: 'bg-[#e9edf2] text-ink-soft2',
+  grey: 'bg-paper-edge text-ink-soft2',
   ink: 'bg-ink text-white',
 }
 
@@ -61,7 +61,7 @@ export function Kpi({ label, value, hint }: { label: string; value: ReactNode; h
 }
 
 export function Note({ tone = 'info', children }: { tone?: 'info' | 'warn' | 'bad'; children: ReactNode }) {
-  const cls = tone === 'bad' ? 'border border-rust-soft bg-err text-[#9b2338]' : tone === 'warn' ? 'border border-brass-line bg-brass-row text-[#5d4510]' : 'bg-stamp-soft text-[#144a8c]'
+  const cls = tone === 'bad' ? 'border border-rust-soft bg-err text-rust' : tone === 'warn' ? 'border border-brass-line bg-brass-row text-warn-ink' : 'bg-stamp-soft text-info-ink'
   return <div className={`rounded-ledger px-3.5 py-2.5 text-[13.5px] ${cls}`}>{children}</div>
 }
 
@@ -130,7 +130,7 @@ export function DataTable({ head, children }: { head: ReactNode; children: React
     <Card className="overflow-x-auto">
       <table className="w-full border-collapse text-[13.5px]">
         <thead>
-          <tr className="[&>th]:border-b [&>th]:border-paper-edge [&>th]:bg-[#eef1f6] [&>th]:px-3 [&>th]:py-2.5 [&>th]:text-left [&>th]:text-[11.5px] [&>th]:font-bold [&>th]:tracking-wider [&>th]:whitespace-nowrap [&>th]:text-ink-soft2 [&>th]:uppercase">{head}</tr>
+          <tr className="[&>th]:border-b [&>th]:border-paper-edge [&>th]:bg-sheet [&>th]:px-3 [&>th]:py-2.5 [&>th]:text-left [&>th]:text-[11.5px] [&>th]:font-bold [&>th]:tracking-wider [&>th]:whitespace-nowrap [&>th]:text-ink-soft2 [&>th]:uppercase">{head}</tr>
         </thead>
         <tbody className="[&>tr>td]:border-b [&>tr>td]:border-paper-edge [&>tr>td]:px-3 [&>tr>td]:py-2.5 [&>tr:last-child>td]:border-b-0">{children}</tbody>
       </table>

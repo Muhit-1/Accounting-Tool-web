@@ -6,7 +6,11 @@ import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './lib/auth-context'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { applyTheme, getThemeKey } from './lib/theme-store'
 import { ToastProvider } from './components/ToastProvider'
+
+// The person's theme goes on the page before anything is drawn (Mint ledger when they never chose one).
+applyTheme(getThemeKey())
 
 const queryClient = new QueryClient()
 

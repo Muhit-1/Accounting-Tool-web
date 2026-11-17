@@ -28,7 +28,7 @@ export function FormulaBar({
   const editable = field !== undefined && canDesign && (field.type === 'FORMULA' || field.type === 'LOOKUP' || field.type === 'ROLLUP' || field.type === 'LINK' || field.type === 'CHOICE' || field.type === 'AUTO')
 
   return (
-    <div className="hidden min-h-[36px] items-stretch border-b border-paper-edge bg-[#f9fbfd] text-[14px] md:flex" aria-label="Formula bar">
+    <div className="hidden min-h-[36px] items-stretch border-b border-paper-edge bg-formula-soft text-[14px] md:flex" aria-label="Formula bar">
       <div className="flex w-[190px] flex-none items-center border-r border-paper-line px-3 font-semibold text-ink">
         <span className="truncate">{field ? nameBoxText(field.name, row ? row.number : null) : ''}</span>
       </div>

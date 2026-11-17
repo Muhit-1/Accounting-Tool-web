@@ -73,9 +73,9 @@ function BusinessCard({ b, onMenu }: { b: BusinessSummary; onMenu: (anchor: DOMR
       onKeyDown={(event) => {
         if (event.key === 'Enter') navigate(openPath(b))
       }}
-      className="group cursor-pointer overflow-hidden rounded-[12px] border border-paper-line bg-white transition-shadow hover:shadow-[0_4px_16px_rgba(15,42,74,0.1)] focus-visible:shadow-[0_4px_16px_rgba(15,42,74,0.1)]"
+      className="group cursor-pointer overflow-hidden rounded-[12px] border border-paper-line bg-white transition-shadow hover:shadow-[0_4px_16px_color-mix(in_srgb,var(--color-ink)_10%,transparent)] focus-visible:shadow-[0_4px_16px_color-mix(in_srgb,var(--color-ink)_10%,transparent)]"
     >
-      <div className="relative h-[104px] border-b border-paper-edge bg-[#f5f7fb]">
+      <div className="relative h-[104px] border-b border-paper-edge bg-sheet">
         <TableChips tables={b.tables} />
         {b.balance !== null ? (
           <span className="tabular absolute right-2.5 bottom-2.5 rounded-full border border-paper-line bg-white px-2.5 py-0.5 text-[12.5px] font-semibold text-ink">{formatBalance(b.balance, b.currency)}</span>

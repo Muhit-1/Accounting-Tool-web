@@ -65,7 +65,7 @@ export function AdminTeamPage() {
       <Card className="mt-3.5 px-[18px] py-4">
         <h2 className="mb-1.5 font-display text-[16px] font-bold">Making a super admin</h2>
         <p className="text-[12.5px] text-ink-soft2">On the server terminal (Coolify, API container):</p>
-        <pre className="tabular mt-2 overflow-auto rounded-ledger bg-ink px-3.5 py-3 text-[12.5px] text-[#dbe8fb]">node dist/cli/superadmin.js promote --email you@example.com</pre>
+        <pre className="tabular mt-2 overflow-auto rounded-ledger bg-ink px-3.5 py-3 text-[12.5px] text-white/90">node dist/cli/superadmin.js promote --email you@example.com</pre>
       </Card>
       {adding && <AddAdminDialog onClose={() => setAdding(false)} />}
       {removing && <RemoveAdminDialog member={removing} onClose={() => setRemoving(null)} />}

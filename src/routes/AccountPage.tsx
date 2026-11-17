@@ -1,13 +1,20 @@
-import { Link } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
 import { useBusinesses } from '../lib/businesses'
 import { useAccessGrantsAcross } from '../lib/access-grants'
 import { formatMoney, formatPerCurrency } from '../lib/format'
 import { useCombinedDashboard } from '../lib/dashboard'
 import { Panel } from '../components/Panel'
+import { ThemePicker } from '../components/settings/ThemePicker'
 
 export function AccountPage() {
   const { user } = useAuth()
+  const { hash } = useLocation()
+  // /account#appearance (the account menu's "Appearance") scrolls to the colour themes
+  useEffect(() => {
+    if (hash === '#appearance') document.getElementById('appearance')?.scrollIntoView()
+  }, [hash])
   const { data: businesses, isLoading: isBusinessesLoading } = useBusinesses()
   const list = businesses ?? []
   const { data: grants, isLoading: isGrantsLoading } = useAccessGrantsAcross(list)
@@ -58,6 +65,13 @@ export function AccountPage() {
             </div>
           )}
         </div>
+      </div>
+
+      <div id="appearance" className="rise rise-2 mb-8 scroll-mt-4">
+        <Panel title="Appearance">
+          <p className="px-5 pt-4 text-[13.5px] text-ink-soft">Pick the colours of Exin Finance. It is kept in this browser.</p>
+          <ThemePicker />
+        </Panel>
       </div>
 
       <div className="rise rise-2 grid grid-cols-1 items-start gap-7 lg:grid-cols-2">

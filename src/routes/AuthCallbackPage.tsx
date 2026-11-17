@@ -22,13 +22,13 @@ export function AuthCallbackPage() {
     window.history.replaceState(null, '', window.location.pathname)
 
     if (token === null) {
-      navigate('/login?error=google_failed', { replace: true })
+      navigate('/?error=google_failed', { replace: true })
       return
     }
     completeLogin(token).then(
       // Staff land in the admin panel (they have a link back to their own books); everyone else on Home.
       (user) => navigate(isStaff(user.role) ? '/admin' : '/', { replace: true }),
-      () => navigate('/login?error=google_failed', { replace: true }),
+      () => navigate('/?error=google_failed', { replace: true }),
     )
   }, [completeLogin, navigate])
 

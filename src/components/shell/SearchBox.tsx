@@ -136,13 +136,13 @@ export function SearchBox({ businessId, canManage }: { businessId?: string; canM
               input.current?.blur()
             }
           }}
-          className="h-10 w-full rounded-full border border-transparent bg-[#eaf0f8] pr-14 pl-10 text-[14px] text-ink placeholder:text-ink-soft focus:border-stamp focus:bg-white focus:shadow-[0_2px_10px_rgba(15,42,74,0.12)] focus:outline-none"
+          className="h-10 w-full rounded-full border border-transparent bg-search pr-14 pl-10 text-[14px] text-ink placeholder:text-ink-soft focus:border-stamp focus:bg-white focus:shadow-[0_2px_10px_color-mix(in_srgb,var(--color-ink)_12%,transparent)] focus:outline-none"
         />
         <kbd className="pointer-events-none absolute top-1/2 right-3.5 hidden -translate-y-1/2 rounded border border-paper-line bg-white px-1.5 text-[11px] font-medium text-ink-soft md:block">/</kbd>
       </label>
 
       {open && (
-        <div id="top-search-results" role="listbox" className="absolute top-full left-0 z-50 mt-1.5 max-h-[420px] w-full overflow-auto rounded-[12px] border border-paper-line bg-white py-1.5 shadow-[0_12px_32px_rgba(15,42,74,0.18)]">
+        <div id="top-search-results" role="listbox" className="absolute top-full left-0 z-50 mt-1.5 max-h-[420px] w-full overflow-auto rounded-[12px] border border-paper-line bg-white py-1.5 shadow-[0_12px_32px_color-mix(in_srgb,var(--color-ink)_18%,transparent)]">
           {ordered.length === 0 && <div className="px-4 py-3 text-[13px] text-ink-soft">{searching ? 'Searching…' : text.trim().length < 2 && businessId ? 'Type two letters to search.' : 'Nothing found.'}</div>}
           {GROUPS.map((group) => {
             const items = ordered.filter((h) => h.group === group)

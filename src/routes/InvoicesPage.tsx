@@ -219,7 +219,7 @@ export function InvoicesPage() {
           <div className="hidden overflow-hidden rounded-ledger border border-paper-line bg-white md:block">
             <table className="w-full border-collapse text-[13.5px]">
               <thead>
-                <tr className="bg-[#f8fafc] text-left text-[11px] tracking-wider text-ink-soft uppercase">
+                <tr className="bg-sheet-head text-left text-[11px] tracking-wider text-ink-soft uppercase">
                   <th className="border-b border-paper-line px-4 py-2 font-semibold">Number</th>
                   <th className="border-b border-paper-line px-4 py-2 font-semibold">Client</th>
                   <th className="border-b border-paper-line px-4 py-2 font-semibold">Due</th>

@@ -29,7 +29,7 @@ const COLOR = { link: 'var(--color-stamp)', derived: 'var(--color-stamp)', post:
 const rowClass: Record<RowRole, string> = {
   none: '',
   link: 'border-l-[3px] border-l-stamp bg-stamp-soft/50',
-  derived: 'border-l-[3px] border-l-stamp/60 bg-[#f6f9fe]',
+  derived: 'border-l-[3px] border-l-stamp/60 bg-formula-soft',
   post: 'border-l-[3px] border-l-brass bg-brass-row',
 }
 
@@ -150,7 +150,7 @@ export function ConnectionsPage() {
   ]
 
   return (
-    <div className="relative h-full min-h-[420px] overflow-hidden bg-[#f7f9fc]">
+    <div className="relative h-full min-h-[420px] overflow-hidden bg-sheet">
       {isLoading ? (
         <p className="p-6 text-sm text-ink-soft">Loading…</p>
       ) : (
@@ -201,7 +201,7 @@ export function ConnectionsPage() {
                         onClick={() => setPinned((current) => (current === edge.id ? null : edge.id))}
                       />
                       {edge.kind === 'post' && (
-                        <text x={(p1.x + p2.x) / 2} y={(p1.y + p2.y) / 2 - 6} textAnchor="middle" fontSize={10.5} fontWeight={600} fill={color} stroke="#f7f9fc" strokeWidth={4} paintOrder="stroke" className="pointer-events-none">
+                        <text x={(p1.x + p2.x) / 2} y={(p1.y + p2.y) / 2 - 6} textAnchor="middle" fontSize={10.5} fontWeight={600} fill={color} stroke="var(--color-sheet)" strokeWidth={4} paintOrder="stroke" className="pointer-events-none">
                           {edge.label}
                         </text>
                       )}
@@ -222,7 +222,7 @@ export function ConnectionsPage() {
                   style={{ left: n.x, top: n.y, width: n.w, height: n.h }}
                   className={`absolute cursor-move overflow-hidden rounded-[10px] border bg-white shadow-sm select-none hover:shadow-[0_0_0_3px_var(--color-stamp-soft)] ${n.ledger ? 'border-brass shadow-[0_0_0_1px_var(--color-brass-line)]' : 'border-paper-line'}`}
                 >
-                  <div style={{ height: HEAD_H }} className={`flex items-center gap-2 border-b px-3 text-[13px] font-semibold ${n.ledger ? 'border-brass-line bg-brass-row text-brass' : `border-paper-edge bg-[#f7f9fc] text-ink ${lit.has(`${n.id}|`) ? 'bg-stamp-soft' : ''}`}`}>
+                  <div style={{ height: HEAD_H }} className={`flex items-center gap-2 border-b px-3 text-[13px] font-semibold ${n.ledger ? 'border-brass-line bg-brass-row text-brass' : `border-paper-edge bg-sheet text-ink ${lit.has(`${n.id}|`) ? 'bg-stamp-soft' : ''}`}`}>
                     <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: n.ledger ? 'var(--color-brass)' : n.color }} aria-hidden />
                     <span className="min-w-0 flex-1 truncate">{n.name}</span>
                     <span className="flex-none text-[11px] font-normal text-ink-soft">{n.ledger ? 'locked' : `${n.rows} ${n.rows === 1 ? 'row' : 'rows'}`}</span>

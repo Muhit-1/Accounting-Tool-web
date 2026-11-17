@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onUnauthorized((code) => {
       endSession()
       // A deactivated person is told why instead of finding a plain sign-in page.
-      if (code === 'account_disabled') window.location.replace('/login?error=account_disabled')
+      if (code === 'account_disabled') window.location.replace('/?error=account_disabled')
     })
     return () => onUnauthorized(null)
   }, [endSession])

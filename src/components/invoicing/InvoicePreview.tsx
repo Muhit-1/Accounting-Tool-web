@@ -49,7 +49,7 @@ export function InvoicePreview({
       <div
         aria-label="Invoice preview"
         style={{ aspectRatio: '1 / 1.35', padding: '6cqw 7cqw', fontSize: '1.95cqw', lineHeight: 1.45, color: '#1a1a1a', background: '#fff', fontFamily: "'Segoe UI', Arial, sans-serif" }}
-        className="flex flex-col overflow-hidden rounded-[4px] shadow-[0_2px_14px_rgba(15,42,74,0.18)]"
+        className="flex flex-col overflow-hidden rounded-[4px] shadow-[0_2px_14px_color-mix(in_srgb,var(--color-ink)_18%,transparent)]"
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>

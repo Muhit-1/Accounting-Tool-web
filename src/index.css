@@ -1,28 +1,40 @@
 @import "tailwindcss";
 
-/* Workspace theme — see THEME-STYLE-GUIDE.md (git-ignored, local reference only) */
+/* Colour themes: lib/themes.ts (Mint ledger is the default). Fonts: Plus Jakarta Sans for words, Roboto Mono for
+   figures, the same two in the Android app. */
 @theme {
-  --color-paper: #f4f6fa;
-  --color-paper-line: #d7dde5;
-  --color-paper-edge: #e2e6ec;
-  --color-ink: #0f2a4a;
-  --color-ink-soft: #6b7684;
-  /* small text inside a table (row numbers, footer labels, hints): 6:1 on the header tint, where ink-soft is 4.4:1 */
-  --color-ink-soft2: #566170;
-  --color-ink-inverse-soft: #a9bcd6;
-  --color-stamp: #1c6dd0;
-  --color-stamp-soft: #e6f0fb;
+  /* Mint ledger, the default theme. The values are written out here so the first paint is right; lib/themes.ts
+     holds every theme and sets these same variables on <html> when a person picks another (a test keeps the two in step). */
+  --color-paper: #f6faf8;
+  --color-paper-line: #d4e3dc;
+  --color-paper-edge: #e3ede9;
+  --color-ink: #0e3b2e;
+  --color-ink-soft: #566d63;
+  --color-ink-soft2: #3d5c50;
+  --color-ink-inverse-soft: #a5b7b1;
+  --color-stamp: #0f7b59;
+  --color-stamp-soft: #ddf3ea;
+  --color-stamp-light: #5fdcb0;
   --color-brass: #7a5c14;
   --color-brass-soft: #f0e2b8;
-  /* Rows another table posted (gold, locked), a ticked row, a refused cell. */
   --color-brass-row: #f8f1dc;
   --color-brass-line: #e3d29a;
-  --color-sel: #eef5fd;
-  --color-err: #fdf1f1;
-  --color-rust: #c8384f;
-  --color-rust-soft: #f6d0d0;
-  --color-green: #1a8a4c;
+  --color-sel: #f1faf7;
+  --color-err: #fdf1f3;
+  --color-rust: #b8283f;
+  --color-rust-soft: #f9dde1;
+  --color-green: #157a42;
   --color-green-soft: #dcefe6;
+  --color-sheet: #f8fbfa;
+  --color-sheet-head: #fbfdfc;
+  --color-formula: #e9f7f1;
+  --color-formula-soft: #f5fbf9;
+  --color-hint: #fffdf3;
+  --color-search: #dbefe7;
+  --color-prompt: #eef9f5;
+  --color-prompt-line: #c4e5d9;
+  --color-info-ink: #0e5841;
+  --color-warn-ink: #5d4510;
 
   --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
@@ -74,18 +86,18 @@ p {
 
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: rgba(15, 42, 74, 0.2) transparent;
+  scrollbar-color: color-mix(in srgb, var(--color-ink) 20%, transparent) transparent;
 }
 .scrollbar-thin::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(15, 42, 74, 0.18);
+  background: color-mix(in srgb, var(--color-ink) 18%, transparent);
   border-radius: 999px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgba(15, 42, 74, 0.3);
+  background: color-mix(in srgb, var(--color-ink) 30%, transparent);
 }
 
 .scrollbar-thin-dark {

@@ -94,7 +94,7 @@ export function PostingLine({
       {open && hasBlocked && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div role="dialog" aria-label="Rows that cannot post" className="absolute top-full right-4 z-50 mt-1 w-[460px] max-w-[92vw] rounded-[12px] border border-paper-line bg-white p-3.5 text-ink shadow-[0_12px_32px_rgba(15,42,74,0.18)]">
+          <div role="dialog" aria-label="Rows that cannot post" className="absolute top-full right-4 z-50 mt-1 w-[460px] max-w-[92vw] rounded-[12px] border border-paper-line bg-white p-3.5 text-ink shadow-[0_12px_32px_color-mix(in_srgb,var(--color-ink)_18%,transparent)]">
             <h4 className="font-display text-[16px] font-bold">
               {plural(data?.blocked ?? 0, 'row', 'rows')} cannot post yet
             </h4>

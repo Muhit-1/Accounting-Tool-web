@@ -1,25 +1,23 @@
-import { useEffect, useLayoutEffect, useRef, type CSSProperties } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import '../components/landing/landing.css'
 import { CashBookPanel } from '../components/landing/CashBookPanel'
-import { HeroPanel } from '../components/landing/HeroPanel'
+import { HeroPanel, type LandingAlert } from '../components/landing/HeroPanel'
 import { InvoicesPanel } from '../components/landing/InvoicesPanel'
 import { SharingPanel } from '../components/landing/SharingPanel'
 import { StartPanel } from '../components/landing/StartPanel'
 import { TablesPanel } from '../components/landing/TablesPanel'
+import { GOOGLE_LOGIN_URL, loginErrorText } from '../lib/google-login'
 import { LANDING_PAGES } from '../lib/landing'
+import { useNotice } from '../lib/support'
 import { prefersReducedMotion, useLandingNav } from '../lib/use-landing-nav'
 
-// The page's own faces (display, text, figures). Loaded only when this page
-// opens, so the app itself does not pay for them. Google Fonts is already
-// allowed by the Content-Security-Policy.
-const FONTS_URL =
-  'https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap'
 const TITLE = 'Exin Finance — bookkeeping that feels like a sheet'
 
 // The public home page, shown at "/" to anyone who is not signed in (see
-// ProtectedRoute). Pages slide sideways like the tabs under a sheet; every
-// way of moving lives in lib/use-landing-nav.
+// ProtectedRoute). It is also the sign-in page: there is no other. Pages slide
+// sideways like the tabs under a sheet; every way of moving lives in
+// lib/use-landing-nav. Colours and fonts are the app's own (see landing.css).
 export function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null)
   const { page, dir, go, ready, seamRef } = useLandingNav(rootRef)
@@ -30,17 +28,27 @@ export function LandingPage() {
   useEffect(() => {
     const previous = document.title
     document.title = TITLE
-    if (!document.getElementById('landing-fonts')) {
-      const link = document.createElement('link')
-      link.id = 'landing-fonts'
-      link.rel = 'stylesheet'
-      link.href = FONTS_URL
-      document.head.append(link)
-    }
     return () => {
       document.title = previous
     }
   }, [])
+
+  // A failed sign-in comes back as /?error=<code> (the API's /login?error=... is passed on by App.tsx). The sentence
+  // is kept in state and the code is taken out of the address bar, so a reload does not show it again.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [errorCode] = useState(() => searchParams.get('error'))
+  useEffect(() => {
+    if (!searchParams.has('error')) return
+    const next = new URLSearchParams(searchParams)
+    next.delete('error')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
+  const { data: notice } = useNotice()
+  const alerts: LandingAlert[] = []
+  const error = loginErrorText(errorCode, notice?.supportEmail)
+  if (error) alerts.push({ kind: 'error', text: error })
+  if (notice?.maintenance) alerts.push({ kind: 'warning', text: notice.maintenance })
+  if (notice?.announcement) alerts.push({ kind: notice.announcement.level === 'info' ? 'info' : 'warning', text: notice.announcement.text })
 
   // The brass bar under the current tab, and the tab strip scrolled to show it (phones).
   useLayoutEffect(() => {
@@ -105,14 +113,14 @@ export function LandingPage() {
           ))}
           <i className="ind" ref={indRef} aria-hidden="true" />
         </nav>
-        <Link className="btn hdr-go" to="/login">
+        <a className="btn hdr-go" href={GOOGLE_LOGIN_URL}>
           Sign in
-        </Link>
+        </a>
       </header>
 
       <main>
         <div className="track" style={{ transform: `translateX(${-page * 100}%)` }}>
-          <HeroPanel active={page === 0} go={go} />
+          <HeroPanel active={page === 0} go={go} alerts={alerts} />
           <CashBookPanel active={page === 1} />
           <TablesPanel active={page === 2} />
           <InvoicesPanel active={page === 3} />

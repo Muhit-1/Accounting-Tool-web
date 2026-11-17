@@ -72,8 +72,8 @@ export function LegalPage({ slug }: { slug: LegalDocument['slug'] }) {
             >
               Print
             </button>
-            <Link to={user ? '/' : '/login'} className="text-stamp underline underline-offset-2">
-              {user ? 'Back to app' : 'Sign in'}
+            <Link to="/" className="text-stamp underline underline-offset-2">
+              {user ? 'Back to app' : 'Back to home'}
             </Link>
           </div>
         </header>
