@@ -17,30 +17,30 @@ export function AdminDashboardPage() {
   const known = Math.max(web + app, 1)
 
   return (
-    <div>
+    <div className="stagger">
       <PageHeader title="Dashboard" />
-      <div className="mb-3.5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Kpi label="People" value={formatCount(o.people.total)} hint={`+${o.people.new7} this week · +${o.people.new30} in 30 days`} />
         <Kpi label="Active now" value={o.people.activeNow} hint="last 5 minutes" />
         <Kpi label="Active this week" value={formatCount(o.people.wau)} hint={`${formatCount(o.people.dau)} today · ${formatCount(o.people.mau)} this month`} />
         <Kpi label="Support" value={`${o.support.open} open`} hint={`${o.support.urgent} urgent · ${o.support.unassigned} not taken`} />
       </div>
-      <div className="mb-3.5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Kpi label="Businesses" value={formatCount(o.content.businesses)} hint={`${formatCount(o.content.tables)} tables`} />
         <Kpi label="Entries" value={formatCount(o.content.entries)} hint={`${formatCount(o.content.invoices)} invoices`} />
         <Kpi label="Shared with others" value={formatCount(o.content.activeShares)} hint="active shares" />
         <Kpi label="Deactivated" value={o.people.disabled} hint={`${o.people.invited} invited, not signed in yet`} />
       </div>
 
-      <div className="mb-3.5 grid gap-3.5 lg:grid-cols-2">
-        <Card className="px-[18px] py-4">
+      <div className="mb-4 grid gap-4 lg:grid-cols-2">
+        <Card lift className="px-5 py-5">
           <div className="mb-2 flex items-center">
             <h2 className="font-display text-[16px] font-bold">New people per day</h2>
             <span className="ml-auto text-[12.5px] text-ink-soft">last 30 days</span>
           </div>
           {series ? <BarChart values={series.signups.map((s) => s.count)} labels={series.signups.map((s) => s.day)} /> : <Loading />}
         </Card>
-        <Card className="px-[18px] py-4">
+        <Card lift className="px-5 py-5">
           <div className="mb-2 flex items-center">
             <h2 className="font-display text-[16px] font-bold">Active minutes per day</h2>
             <span className="ml-auto text-[12.5px] text-ink-soft">estimate · all people</span>
@@ -49,22 +49,22 @@ export function AdminDashboardPage() {
         </Card>
       </div>
 
-      <div className="mb-3.5 grid gap-3.5 lg:grid-cols-3">
-        <Card className="px-[18px] py-4">
+      <div className="mb-4 grid gap-4 lg:grid-cols-3">
+        <Card lift className="px-5 py-5">
           <h2 className="mb-1.5 font-display text-[16px] font-bold">Most active (30 days)</h2>
           {o.usage.topByTime30d.length === 0 && <p className="py-3 text-sm text-ink-soft">Nothing measured yet.</p>}
           {o.usage.topByTime30d.slice(0, 5).map((p) => (
             <PersonLine key={p.id} id={p.id} name={p.name} value={formatDuration(p.activeSeconds)} />
           ))}
         </Card>
-        <Card className="px-[18px] py-4">
+        <Card lift className="px-5 py-5">
           <h2 className="mb-1.5 font-display text-[16px] font-bold">Tables opened (all time)</h2>
           {o.usage.topByTableOpens.length === 0 && <p className="py-3 text-sm text-ink-soft">Nothing counted yet.</p>}
           {o.usage.topByTableOpens.slice(0, 5).map((p) => (
             <PersonLine key={p.id} id={p.id} name={p.name} value={formatCount(p.opens)} />
           ))}
         </Card>
-        <Card className="px-[18px] py-4">
+        <Card lift className="px-5 py-5">
           <h2 className="mb-2.5 font-display text-[16px] font-bold">Where people sign up</h2>
           <div className="flex h-2.5 overflow-hidden rounded-full bg-paper-edge" role="img" aria-label={`Web ${web}, phone app ${app}`}>
             <i className="block bg-stamp" style={{ width: `${(web / known) * 100}%` }} />
@@ -87,8 +87,8 @@ export function AdminDashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-3.5 lg:grid-cols-2">
-        <Card className="px-[18px] py-4">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card lift className="px-5 py-5">
           <div className="mb-1 flex items-center">
             <h2 className="font-display text-[16px] font-bold">Latest activity</h2>
             <Link to="/admin/activity" className="ml-auto text-[12.5px] text-ink-soft">All</Link>
@@ -102,7 +102,7 @@ export function AdminDashboardPage() {
             </div>
           ))}
         </Card>
-        <Card className="px-[18px] py-4">
+        <Card lift className="px-5 py-5">
           <div className="mb-1 flex items-center">
             <h2 className="font-display text-[16px] font-bold">Health</h2>
             <Link to="/admin/system" className="ml-auto text-[12.5px] text-ink-soft">Details</Link>

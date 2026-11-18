@@ -73,7 +73,7 @@ function BusinessCard({ b, onMenu }: { b: BusinessSummary; onMenu: (anchor: DOMR
       onKeyDown={(event) => {
         if (event.key === 'Enter') navigate(openPath(b))
       }}
-      className="group cursor-pointer overflow-hidden rounded-[12px] border border-paper-line bg-white transition-shadow hover:shadow-[0_4px_16px_color-mix(in_srgb,var(--color-ink)_10%,transparent)] focus-visible:shadow-[0_4px_16px_color-mix(in_srgb,var(--color-ink)_10%,transparent)]"
+      className="surface surface-hover group cursor-pointer overflow-hidden rounded-[12px] border border-paper-line focus-visible:-translate-y-0.5"
     >
       <div className="relative h-[104px] border-b border-paper-edge bg-sheet">
         <TableChips tables={b.tables} />

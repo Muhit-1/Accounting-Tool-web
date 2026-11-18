@@ -1,7 +1,8 @@
-import { NavLink, Outlet, Link } from 'react-router-dom'
+import { NavLink, Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../lib/auth-context'
 import { ROLE_LABEL } from '../../lib/admin-format'
 import { useStaffUnread } from '../../lib/support'
+import { useSlidingIndicator } from '../../lib/use-sliding-indicator'
 import { IconChartBar, IconDoc, IconHome, IconLock, IconSettings, IconUsers } from '../icons'
 import { Seal } from '../Seal'
 import type { UserRole } from '../../types/admin'
@@ -10,7 +11,9 @@ import type { UserRole } from '../../types/admin'
 // their own books. Web only: the server refuses the admin API to the phone app. On a narrow screen the menu is a row.
 export function AdminShell() {
   const { user, logout } = useAuth()
+  const { pathname } = useLocation()
   const { data: unread } = useStaffUnread()
+  const { ref: navRef, box, gliding } = useSlidingIndicator<HTMLElement>(pathname)
   const items = [
     { to: '/admin', label: 'Dashboard', icon: IconChartBar, end: true },
     { to: '/admin/users', label: 'People', icon: IconUsers },
@@ -22,36 +25,50 @@ export function AdminShell() {
   ]
   return (
     <div className="flex min-h-screen flex-col bg-paper md:flex-row">
-      <aside className="flex flex-none flex-col bg-ink text-white md:sticky md:top-0 md:h-screen md:w-[232px]">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 pt-3.5 pb-2 md:flex-col md:items-start md:pt-4 md:pb-3">
+      <aside className="flex flex-none flex-col bg-ink text-white md:sticky md:top-0 md:h-screen md:w-[248px]">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 pt-4 pb-3 md:flex-col md:items-start md:pt-6 md:pb-5">
           <div className="flex items-center gap-2.5">
-            <Seal size={26} />
-            <span className="font-display text-[15.5px] font-extrabold">Exin Finance</span>
+            <Seal size={30} />
+            <span className="font-display text-[17px] font-extrabold">Exin Finance</span>
           </div>
           <span className="rounded-md bg-brass-soft px-2.5 py-0.5 text-[11px] font-extrabold tracking-[0.09em] text-brass uppercase">Admin panel</span>
         </div>
-        <nav aria-label="Admin" className="flex gap-0.5 overflow-x-auto px-2.5 pb-2 md:flex-col md:pb-0">
+        {/* The open page is a soft light pill with a mint bar on the left. It glides to the page you choose. */}
+        <nav ref={navRef} aria-label="Admin" className="relative flex gap-1 overflow-x-auto px-3 pb-2 md:flex-col md:pb-0">
+          {box && (
+            <span
+              aria-hidden
+              className={`pointer-events-none absolute top-0 left-0 rounded-[10px] bg-white/[0.12] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] ${gliding ? 'glide' : ''}`}
+              style={{ transform: `translate(${box.x}px, ${box.y}px)`, width: box.w, height: box.h }}
+            >
+              <i className="absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-r-[3px] bg-stamp-light" />
+            </span>
+          )}
           {items.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.end}
               className={({ isActive }) =>
-                `flex items-center gap-2.5 rounded-[7px] px-3 py-2 text-[14px] font-semibold whitespace-nowrap ${isActive ? 'bg-white/[0.13] text-white' : 'text-ink-inverse-soft hover:bg-white/[0.07] hover:text-white'}`
+                `relative flex items-center gap-3 rounded-[10px] px-3.5 py-2.5 text-[14.5px] font-semibold whitespace-nowrap transition-colors ${isActive ? 'text-white' : 'text-ink-inverse-soft hover:bg-white/[0.06] hover:text-white'}`
               }
             >
-              <item.icon width={18} height={18} />
-              <span>{item.label}</span>
-              {item.badge ? <span className="ml-auto rounded-full bg-rust px-1.5 text-[11px] font-bold text-white">{item.badge}</span> : null}
+              {({ isActive }) => (
+                <>
+                  <item.icon width={19} height={19} className={isActive ? 'text-stamp-light' : ''} />
+                  <span>{item.label}</span>
+                  {item.badge ? <span className="ml-auto rounded-full bg-rust px-1.5 text-[11px] font-bold text-white">{item.badge}</span> : null}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
-        <div className="mt-auto hidden flex-col gap-1.5 px-2.5 pb-3.5 md:flex">
-          <Link to="/" className="flex items-center gap-2.5 rounded-[7px] px-3 py-2 text-[14px] font-semibold text-ink-inverse-soft hover:bg-white/[0.07] hover:text-white">
-            <IconHome width={18} height={18} />
+        <div className="mt-auto hidden flex-col gap-1.5 px-3 pb-4 md:flex">
+          <Link to="/" className="flex items-center gap-3 rounded-[10px] px-3.5 py-2.5 text-[14.5px] font-semibold text-ink-inverse-soft transition-colors hover:bg-white/[0.06] hover:text-white">
+            <IconHome width={19} height={19} />
             My books
           </Link>
-          <div className="border-t border-white/10 px-3 pt-3 text-[12.5px] text-ink-inverse-soft">
+          <div className="border-t border-white/10 px-3.5 pt-3.5 text-[12.5px] text-ink-inverse-soft">
             <b className="block truncate text-[13.5px] text-white">{user?.name}</b>
             {ROLE_LABEL[(user?.role ?? 'ADMIN') as UserRole]} · signed in on the web
             <button type="button" onClick={logout} className="mt-2 block font-semibold text-white underline underline-offset-2">
@@ -60,8 +77,9 @@ export function AdminShell() {
           </div>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 px-4 pt-5 pb-14 md:px-8 md:pt-7">
-        <div className="mx-auto max-w-[1240px]">
+      {/* The page uses the width: the same gap on the left and on the right, and a page that is short still fills the height. */}
+      <main className="min-w-0 flex-1 px-5 pt-6 pb-12 md:px-8 md:pt-8 xl:px-12">
+        <div key={pathname} className="page-in mx-auto w-full max-w-[1800px]">
           <Outlet />
         </div>
       </main>

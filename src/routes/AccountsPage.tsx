@@ -36,7 +36,7 @@ function AccountGrid({
           onKeyDown={(event) => {
             if (event.key === 'Enter') navigate(`/businesses/${businessId}/accounts/${account.id}`)
           }}
-          className="group relative flex cursor-pointer flex-col gap-3 rounded-ledger border border-paper-line bg-white p-4 text-left transition-colors hover:border-stamp"
+          className="group relative flex cursor-pointer flex-col gap-3 surface surface-hover rounded-ledger border border-paper-line p-4 text-left hover:!border-stamp"
         >
           <button
             onClick={(event) => {
@@ -75,7 +75,7 @@ function AccountTable({
   onDelete: (id: string) => void
 }) {
   return (
-    <div className="overflow-x-auto rounded-ledger border border-paper-line bg-white">
+    <div className="surface overflow-x-auto rounded-ledger border border-paper-line">
       <table className="w-full min-w-[480px] border-collapse">
         <thead>
           <tr className="bg-black/[0.02]">

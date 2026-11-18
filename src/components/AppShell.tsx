@@ -79,7 +79,7 @@ export function AppShell() {
           </>
         )}
         <main className={`scrollbar-thin min-w-0 flex-1 ${fullBleed ? 'overflow-auto bg-white' : 'overflow-y-auto bg-paper px-5 pt-8 pb-14 md:px-10'}`}>
-          <Outlet />
+          {fullBleed ? <Outlet /> : <div key={location.pathname} className="page-in"><Outlet /></div>}
         </main>
       </div>
       {hasOutline && businessId && <BottomNav businessId={businessId} tableOnly={tableOnly} onMore={() => setDrawer(true)} />}

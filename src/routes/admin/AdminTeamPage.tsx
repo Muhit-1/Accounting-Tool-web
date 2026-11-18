@@ -29,7 +29,7 @@ export function AdminTeamPage() {
       </PageHeader>
       {!isSuper && <div className="mb-3.5"><Note tone="warn">You are an admin. You can see the team. Only a super admin can add or remove admins.</Note></div>}
       <p className="mb-3 text-sm text-ink-soft">Admins can do everything in this panel except change other admins. Super admins are made from the server terminal only.</p>
-      <DataTable head={<><th>Person</th><th>Role</th><th>Status</th><th className="hidden md:table-cell">Last seen</th><th /></>}>
+      <DataTable fill={false} head={<><th>Person</th><th>Role</th><th>Status</th><th className="hidden md:table-cell">Last seen</th><th /></>}>
         {data.map((m) => (
           <tr key={m.id}>
             <td>

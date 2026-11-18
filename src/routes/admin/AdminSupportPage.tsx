@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CannedDialog } from '../../components/admin/CannedDialog'
-import { DataTable, EmptyRow, ErrorLine, inputClass, LoadMore, Loading, PageHeader, Pill, PriorityPill, selectClass, TicketStatusPill } from '../../components/admin/ui'
+import { DataTable, TabStrip, EmptyRow, ErrorLine, inputClass, LoadMore, Loading, PageHeader, Pill, PriorityPill, selectClass, TicketStatusPill } from '../../components/admin/ui'
 import { cleanSearch, ticketRef, TICKET_CATEGORY_LABEL, waitingFor } from '../../lib/admin-format'
 import { useStaffTickets, useStaffUnread } from '../../lib/support'
 import type { StaffTicketFilters, TicketCategory, TicketPriority } from '../../types/admin'
@@ -42,21 +42,19 @@ export function AdminSupportPage() {
   return (
     <div>
       <PageHeader title="Support" />
-      <div role="tablist" className="mb-3.5 flex gap-0.5 overflow-x-auto border-b border-paper-edge">
-        {TABS.map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            aria-selected={tab === key}
-            onClick={() => setTab(key)}
-            className={`border-b-2 px-3.5 py-2 text-[13.5px] font-semibold whitespace-nowrap ${tab === key ? 'border-stamp text-stamp' : 'border-transparent text-ink-soft2 hover:text-ink'}`}
-          >
-            {label}
-            {key === 'ACTIVE' && unread?.count ? <span className="ml-1.5 rounded-full bg-rust px-1.5 text-[11px] text-white">{unread.count}</span> : null}
-          </button>
-        ))}
-      </div>
+      <TabStrip
+        value={tab}
+        onChange={setTab}
+        tabs={TABS.map(([key, label]) => ({
+          key,
+          label: (
+            <>
+              {label}
+              {key === 'ACTIVE' && unread?.count ? <span className="ml-1.5 rounded-full bg-rust px-1.5 text-[11px] text-white">{unread.count}</span> : null}
+            </>
+          ),
+        }))}
+      />
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <input type="text" aria-label="Search requests" value={search} maxLength={100} onChange={(e) => setSearch(e.target.value)} placeholder="Number, subject, name or email" className={`${inputClass} min-w-[240px]`} />
         <select aria-label="Priority" className={selectClass} value={priority} onChange={(e) => setPriority(e.target.value as TicketPriority | '')}>

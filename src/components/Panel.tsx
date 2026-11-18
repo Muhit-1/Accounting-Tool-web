@@ -12,7 +12,7 @@ export function Panel({
   children: ReactNode
 }) {
   return (
-    <section className={`relative rounded-ledger border border-paper-line bg-white ${margined ? 'pl-[22px]' : ''}`}>
+    <section className={`surface relative rounded-ledger border border-paper-line ${margined ? 'pl-[22px]' : ''}`}>
       <div className="flex items-center justify-between border-b border-paper-line px-5 py-4">
         <h2 className="font-display text-[17px] font-bold">{title}</h2>
         {action}

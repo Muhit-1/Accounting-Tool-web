@@ -34,21 +34,21 @@ export function AccountPage() {
         </p>
       </div>
 
-      <div className="rise rise-1 mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div className="flex flex-col gap-1.5 rounded-ledger border border-paper-line bg-white px-[18px] py-4">
+      <div className="stagger mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="surface surface-hover flex flex-col gap-1.5 rounded-ledger border border-paper-line px-[18px] py-4">
           <div className="text-[11.5px] tracking-wider text-ink-soft uppercase">Signed in as</div>
           <div className="text-[15px] font-bold">{user?.name}</div>
           <div className="text-[13px] text-ink-soft">{user?.email}</div>
         </div>
-        <div className="flex flex-col gap-1.5 rounded-ledger border border-paper-line bg-white px-[18px] py-4">
+        <div className="surface surface-hover flex flex-col gap-1.5 rounded-ledger border border-paper-line px-[18px] py-4">
           <div className="text-[11.5px] tracking-wider text-ink-soft uppercase">Businesses owned</div>
           <div className="tabular text-[24px] font-bold">{list.length}</div>
         </div>
-        <div className="flex flex-col gap-1.5 rounded-ledger border border-paper-line bg-white px-[18px] py-4">
+        <div className="surface surface-hover flex flex-col gap-1.5 rounded-ledger border border-paper-line px-[18px] py-4">
           <div className="text-[11.5px] tracking-wider text-ink-soft uppercase">Active access grants</div>
           <div className="tabular text-[24px] font-bold">{activeGrants.length}</div>
         </div>
-        <div className="flex flex-col gap-1.5 rounded-ledger border border-paper-line bg-white px-[18px] py-4">
+        <div className="surface surface-hover flex flex-col gap-1.5 rounded-ledger border border-paper-line px-[18px] py-4">
           <div className="text-[11.5px] tracking-wider text-ink-soft uppercase">Combined balance</div>
           {combined?.mixedCurrencies ? (
             <>

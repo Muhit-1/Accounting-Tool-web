@@ -160,3 +160,53 @@ p {
     animation: none !important;
   }
 }
+
+/* ---- one card look for the whole site: a very light mint wash, and a gentle lift on the cards that can be opened ---- */
+.surface {
+  background-color: #fff;
+  background-image: linear-gradient(155deg, #ffffff 0%, color-mix(in srgb, var(--color-stamp-soft) 55%, #ffffff) 100%);
+}
+.surface-hover {
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+}
+.surface-hover:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-paper-line);
+  box-shadow: 0 14px 28px -18px color-mix(in srgb, var(--color-ink) 38%, transparent);
+}
+
+/* ---- a page arrives: a short fade and rise; the children of .stagger follow one after another ---- */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.page-in {
+  animation: page-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.stagger > * {
+  animation: page-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.stagger > :nth-child(2) { animation-delay: 0.04s; }
+.stagger > :nth-child(3) { animation-delay: 0.08s; }
+.stagger > :nth-child(4) { animation-delay: 0.12s; }
+.stagger > :nth-child(5) { animation-delay: 0.16s; }
+.stagger > :nth-child(6) { animation-delay: 0.2s; }
+.stagger > :nth-child(7) { animation-delay: 0.24s; }
+.stagger > :nth-child(n + 8) { animation-delay: 0.28s; }
+
+/* the glide of the highlight from one menu item or tab to the next (use-sliding-indicator) */
+.glide {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}

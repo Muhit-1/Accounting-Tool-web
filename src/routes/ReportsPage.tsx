@@ -342,7 +342,7 @@ function CombinedReportView() {
 
           <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {report.businesses.map(({ business, totals }) => (
-              <div key={business.id} className="rounded-ledger border border-paper-line bg-white px-5 py-4">
+              <div key={business.id} className="surface rounded-ledger border border-paper-line px-5 py-4">
                 <div className="mb-2 font-display text-[15px] font-bold">{business.name}</div>
                 <div className="flex justify-between text-[13.5px]">
                   <span className="text-ink-soft">Income</span>

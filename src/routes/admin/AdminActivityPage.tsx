@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { DataTable, EmptyRow, ErrorLine, inputClass, LoadMore, Loading, Note, PageHeader, Pill, selectClass } from '../../components/admin/ui'
+import { DataTable, TabStrip, EmptyRow, ErrorLine, inputClass, LoadMore, Loading, Note, PageHeader, Pill, selectClass } from '../../components/admin/ui'
 import { useAdminActivity, useAdminAudit } from '../../lib/admin'
 import { ACTIVITY_LABEL, activityDetail, activityLabel, AUDIT_LABEL, cleanSearch, formatDateTime } from '../../lib/admin-format'
 
@@ -9,20 +9,14 @@ export function AdminActivityPage() {
   return (
     <div>
       <PageHeader title="Activity" />
-      <div role="tablist" className="mb-3.5 flex gap-0.5 border-b border-paper-edge">
-        {([['platform', 'Everyone'], ['staff', 'What staff did']] as const).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            aria-selected={tab === key}
-            onClick={() => setTab(key)}
-            className={`border-b-2 px-3.5 py-2 text-[13.5px] font-semibold ${tab === key ? 'border-stamp text-stamp' : 'border-transparent text-ink-soft2 hover:text-ink'}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <TabStrip
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { key: 'platform', label: 'Everyone' },
+          { key: 'staff', label: 'What staff did' },
+        ]}
+      />
       {tab === 'platform' ? <PlatformFeed /> : <StaffLog />}
     </div>
   )

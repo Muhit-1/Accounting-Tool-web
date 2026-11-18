@@ -57,7 +57,7 @@ function InvoiceCards({ invoices, businessId, currency }: { invoices: Invoice[];
           <button
             type="button"
             onClick={() => navigate(`/businesses/${businessId}/invoices/${invoice.id}`)}
-            className="flex w-full items-start justify-between gap-3 rounded-ledger border border-paper-line bg-white px-4 py-3 text-left"
+            className="flex w-full items-start justify-between gap-3 surface surface-hover rounded-ledger border border-paper-line px-4 py-3 text-left"
           >
             <span className="flex min-w-0 items-start gap-3">
               <span className="flex h-9 w-9 flex-none items-center justify-center rounded-[8px] bg-stamp-soft text-stamp">
@@ -216,7 +216,7 @@ export function InvoicesPage() {
             </button>
           </div>
 
-          <div className="hidden overflow-hidden rounded-ledger border border-paper-line bg-white md:block">
+          <div className="surface hidden overflow-hidden rounded-ledger border border-paper-line md:block">
             <table className="w-full border-collapse text-[13.5px]">
               <thead>
                 <tr className="bg-sheet-head text-left text-[11px] tracking-wider text-ink-soft uppercase">

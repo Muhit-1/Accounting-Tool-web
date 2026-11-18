@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useSlidingIndicator } from '../../lib/use-sliding-indicator'
 import { barHeights, ROLE_LABEL, STATUS_LABEL, TICKET_PRIORITY_LABEL, TICKET_STATUS_LABEL } from '../../lib/admin-format'
 import type { PersonStatus, TicketPriority, TicketStatus, UserRole } from '../../types/admin'
 
@@ -46,16 +47,18 @@ export function Avatar({ name, size = 32 }: { name: string; size?: number }) {
   )
 }
 
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`min-w-0 rounded-ledger border border-paper-edge bg-white ${className}`}>{children}</div>
+// Every card of the panel (and of the rest of the site) has the same very light mint wash (.surface in index.css).
+// `lift` is for a card a person can open or look at closely: it rises a little under the pointer.
+export function Card({ children, className = '', lift = false }: { children: ReactNode; className?: string; lift?: boolean }) {
+  return <div className={`surface min-w-0 rounded-ledger border border-paper-edge ${lift ? 'surface-hover' : ''} ${className}`}>{children}</div>
 }
 
 export function Kpi({ label, value, hint }: { label: string; value: ReactNode; hint?: ReactNode }) {
   return (
-    <Card className="px-4 py-3.5">
-      <div className="text-[11.5px] font-semibold tracking-wider text-ink-soft uppercase">{label}</div>
-      <div className="tabular mt-0.5 text-[26px] leading-tight font-extrabold">{value}</div>
-      {hint && <div className="text-[12.5px] text-ink-soft2">{hint}</div>}
+    <Card lift className="px-5 py-4">
+      <div className="text-[12px] font-semibold tracking-wider text-ink-soft uppercase">{label}</div>
+      <div className="tabular mt-1 text-[30px] leading-tight font-extrabold">{value}</div>
+      {hint && <div className="mt-0.5 text-[13px] text-ink-soft2">{hint}</div>}
     </Card>
   )
 }
@@ -67,8 +70,8 @@ export function Note({ tone = 'info', children }: { tone?: 'info' | 'warn' | 'ba
 
 export function PageHeader({ title, children }: { title: ReactNode; children?: ReactNode }) {
   return (
-    <div className="mb-5 flex flex-wrap items-center gap-3">
-      <h1 className="font-display text-[22px] font-extrabold tracking-tight">{title}</h1>
+    <div className="mb-6 flex flex-wrap items-center gap-3">
+      <h1 className="font-display text-[26px] font-extrabold tracking-tight">{title}</h1>
       <div className="flex-1" />
       {children}
     </div>
@@ -79,7 +82,7 @@ export function BarChart({ values, labels, tone = 'blue', unit }: { values: numb
   const heights = barHeights(values)
   return (
     <div>
-      <div className="flex h-24 items-end gap-[3px]" role="img" aria-label={`Chart of the last ${values.length} days`}>
+      <div className="flex h-32 items-end gap-[3px]" role="img" aria-label={`Chart of the last ${values.length} days`}>
         {heights.map((h, i) => (
           <i
             key={labels[i] ?? i}
@@ -124,16 +127,47 @@ export function LoadMore({ hasMore, loading, onClick }: { hasMore: boolean; load
 export const selectClass = 'rounded-ledger border border-paper-line bg-white px-3 py-2 text-[14px] text-ink focus:border-stamp focus:outline-none'
 export const inputClass = 'rounded-ledger border border-paper-line bg-white px-3 py-2 text-[14px] text-ink placeholder:text-ink-soft/60 focus:border-stamp focus:outline-none'
 
-/** A table that scrolls sideways on a narrow screen instead of squeezing. */
-export function DataTable({ head, children }: { head: ReactNode; children: ReactNode }) {
+/**
+ * A table that scrolls sideways on a narrow screen instead of squeezing. A list page keeps its card tall (`fill`), so a
+ * short list does not leave the rest of the page blank.
+ */
+export function DataTable({ head, children, fill = true }: { head: ReactNode; children: ReactNode; fill?: boolean }) {
   return (
-    <Card className="overflow-x-auto">
-      <table className="w-full border-collapse text-[13.5px]">
+    <Card className={`overflow-x-auto ${fill ? 'min-h-[calc(100vh-290px)]' : ''}`}>
+      <table className="w-full border-collapse text-[14.5px]">
         <thead>
-          <tr className="[&>th]:border-b [&>th]:border-paper-edge [&>th]:bg-sheet [&>th]:px-3 [&>th]:py-2.5 [&>th]:text-left [&>th]:text-[11.5px] [&>th]:font-bold [&>th]:tracking-wider [&>th]:whitespace-nowrap [&>th]:text-ink-soft2 [&>th]:uppercase">{head}</tr>
+          <tr className="[&>th]:border-b [&>th]:border-paper-edge [&>th]:bg-sheet/70 [&>th]:px-4 [&>th]:py-3 [&>th]:text-left [&>th]:text-[12px] [&>th]:font-bold [&>th]:tracking-wider [&>th]:whitespace-nowrap [&>th]:text-ink-soft2 [&>th]:uppercase">{head}</tr>
         </thead>
-        <tbody className="[&>tr>td]:border-b [&>tr>td]:border-paper-edge [&>tr>td]:px-3 [&>tr>td]:py-2.5 [&>tr:last-child>td]:border-b-0">{children}</tbody>
+        <tbody className="[&>tr>td]:border-b [&>tr>td]:border-paper-edge [&>tr>td]:px-4 [&>tr>td]:py-3.5 [&>tr]:transition-colors [&>tr:hover]:bg-stamp-soft/40 [&>tr:last-child>td]:border-b-0">{children}</tbody>
       </table>
     </Card>
+  )
+}
+
+/** The tabs under a page title. The underline glides from the open tab to the one you choose. */
+export function TabStrip<K extends string>({ tabs, value, onChange }: { tabs: { key: K; label: ReactNode }[]; value: K; onChange: (key: K) => void }) {
+  const { ref, box, gliding } = useSlidingIndicator<HTMLDivElement>(value)
+  return (
+    <div ref={ref} role="tablist" className="relative mb-4 flex gap-1 overflow-x-auto border-b border-paper-edge">
+      {tabs.map((tab) => (
+        <button
+          key={tab.key}
+          type="button"
+          role="tab"
+          aria-selected={value === tab.key}
+          onClick={() => onChange(tab.key)}
+          className={`px-4 py-2.5 text-[14.5px] font-semibold whitespace-nowrap transition-colors ${value === tab.key ? 'text-stamp' : 'text-ink-soft2 hover:text-ink'}`}
+        >
+          {tab.label}
+        </button>
+      ))}
+      {box && (
+        <span
+          aria-hidden
+          className={`pointer-events-none absolute top-0 left-0 h-0.5 rounded-full bg-stamp ${gliding ? 'glide' : ''}`}
+          style={{ transform: `translate(${box.x}px, ${box.y + box.h - 2}px)`, width: box.w }}
+        />
+      )}
+    </div>
   )
 }
