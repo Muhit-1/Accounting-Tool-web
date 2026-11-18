@@ -2,7 +2,6 @@ import { Fragment, useEffect, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
 import { useLegalDocument } from '../lib/legal'
-import { Seal } from '../components/Seal'
 import { Button } from '../components/Button'
 import { LegalFooter } from '../components/LegalFooter'
 import type { LegalDocument } from '../types/api'
@@ -60,9 +59,8 @@ export function LegalPage({ slug }: { slug: LegalDocument['slug'] }) {
     <div className="min-h-screen px-4 py-8 print:p-0">
       <div className="mx-auto w-full max-w-[720px]">
         <header className="mb-6 flex items-center justify-between gap-4 print:hidden">
-          <Link to="/" className="flex items-center gap-2.5">
-            <Seal size={32} />
-            <span className="font-display text-lg font-bold tracking-tight">Exin Finance</span>
+          <Link to="/" aria-label="Exin Finance, home">
+            <img src="/exin-logo.png" alt="Exin Finance" className="h-14 w-auto" />
           </Link>
           <div className="flex items-center gap-3 text-sm">
             <button

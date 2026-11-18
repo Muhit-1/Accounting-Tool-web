@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import '../components/landing/landing.css'
+import { Seal } from '../components/Seal'
 import { CashBookPanel } from '../components/landing/CashBookPanel'
 import { HeroPanel, type LandingAlert } from '../components/landing/HeroPanel'
 import { InvoicesPanel } from '../components/landing/InvoicesPanel'
@@ -86,11 +87,7 @@ export function LandingPage() {
             go(0)
           }}
         >
-          <i aria-hidden="true">
-            <svg viewBox="0 0 16 16" fill="none" stroke="#2a1d00" strokeWidth="2" strokeLinecap="round">
-              <path d="M2 3h12M2 8h8M2 13h12" />
-            </svg>
-          </i>
+          <Seal size={34} />
           Exin Finance
         </a>
         <nav className="tabs" role="tablist" aria-label="Pages" ref={tabsRef}>

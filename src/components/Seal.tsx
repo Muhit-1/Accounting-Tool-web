@@ -1,24 +1,14 @@
+// The Exin Finance mark: a mint tile with three ledger lines (Logo and assest/exin icon.png, drawn here as a vector so
+// it is sharp at every size). Its colours are the brand's own, the same in every theme. The favicon is the same drawing.
 export function Seal({ size = 29 }: { size?: number }) {
   return (
-    <span
-      className="flex flex-none items-center justify-center rounded-[8px] bg-stamp text-white"
-      style={{ width: size, height: size }}
-      aria-hidden="true"
-    >
-      <svg
-        width={size * 0.52}
-        height={size * 0.52}
-        viewBox="0 0 20 20"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M3 8.5 10 3l7 5.5" />
-        <path d="M4.5 8v7a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V8" />
-        <path d="M8 16v-4h4v4" />
-      </svg>
-    </span>
+    <svg width={size} height={size} viewBox="0 0 100 100" className="flex-none" aria-hidden="true" focusable="false">
+      <rect width="100" height="100" rx="10" fill="#5fdcb0" />
+      <g fill="#2d1e00">
+        <rect x="21.7" y="29.2" width="56.6" height="8.4" rx="4.2" />
+        <rect x="21.7" y="49.1" width="42.9" height="8.4" rx="4.2" />
+        <rect x="21.7" y="69" width="56.6" height="8.4" rx="4.2" />
+      </g>
+    </svg>
   )
 }

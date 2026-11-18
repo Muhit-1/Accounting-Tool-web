@@ -1,3 +1,4 @@
+import { UploadBadge } from '../ChooseFile'
 import { useRef, useState } from 'react'
 import { useScanInvoice, type InvoiceScanResult } from '../../lib/invoice-scan'
 import { ApiError } from '../../lib/api-client'
@@ -57,6 +58,7 @@ export function ScanInvoiceModal({
             onClick={() => fileInputRef.current?.click()}
             className="w-full rounded-ledger border border-dashed border-paper-line px-4 py-6 text-center text-sm text-ink-soft transition-colors hover:border-stamp hover:text-stamp"
           >
+            <span className="mb-2 flex justify-center"><UploadBadge /></span>
             Click to choose a PDF or photo
           </button>
         )}

@@ -8,6 +8,7 @@ import type { ImportTableInfo } from '../../lib/sheet-import'
 import { useToast } from '../../lib/toast-context'
 import { checkWorkbookFile, fileExtension, readDelimitedFile, readWorkbook, type ReadResult } from '../../lib/workbook'
 import { Button } from '../Button'
+import { ChooseFile, UploadBadge } from '../ChooseFile'
 import { Modal } from '../Modal'
 
 type Step = 1 | 2 | 3 | 4
@@ -205,13 +206,13 @@ export function ImportWizard({
 
       {step === 1 && (
         <div className="flex flex-col items-center gap-3 rounded-ledger border-2 border-dashed border-paper-line px-6 py-8 text-center text-ink-soft">
+          <UploadBadge />
           <b className="text-ink">Choose an Excel (.xlsx) or CSV file</b>
           <span className="text-[13px]">
             It is opened on your computer. Nothing is saved until you click Import at the end. Up to 5 MB, 20 sheets, 1,000 rows per table. Formulas are not
             read: only the values your file saved.
           </span>
-          <input type="file" accept=".xlsx,.csv,.tsv,.txt" onChange={(event) => void chooseFile(event)} disabled={loading} aria-label="Choose a file" />
-          {loading && <span className="text-[13px]">Reading the file…</span>}
+          <ChooseFile accept=".xlsx,.csv,.tsv,.txt" onChange={(event) => void chooseFile(event)} loading={loading} />
         </div>
       )}
 

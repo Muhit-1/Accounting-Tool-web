@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { ApiError } from '../../lib/api-client'
 import { CASHBOOK_TABLE, moneyOfValues, summarizeCashbookRows, type CashbookImportRow } from '../../lib/cashbook-import'
 import { useCategories } from '../../lib/categories'
@@ -16,6 +16,7 @@ import { buildPlan, type ImportPlanOut } from '../../lib/xl/xl-plan'
 import { analyzeSheets } from '../../lib/xl/xl-pipeline'
 import { sheetGrid } from '../../lib/xl/xl-rules'
 import { Button } from '../Button'
+import { ChooseFile, UploadBadge } from '../ChooseFile'
 import { Modal } from '../Modal'
 import { useCashbookAdapter } from '../workspace/use-cashbook-adapter'
 
@@ -108,7 +109,6 @@ export function SheetImportDialog({ businessId, accountId, onClose, onCreated }:
   const cashbook = useCashbookAdapter(businessId, accountId, categories ?? [], transactions ?? [])
   const runner = useMemo(() => runnerOf<CashbookImportRow>(cashbook, summarizeCashbookRows, moneyOfValues), [cashbook])
 
-  const fileInput = useRef<HTMLInputElement>(null)
   const [step, setStep] = useState<'choose' | 'review' | 'done'>('choose')
   const [loading, setLoading] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
@@ -230,13 +230,11 @@ export function SheetImportDialog({ businessId, accountId, onClose, onCreated }:
     <Modal title="Upload my sheet" onClose={onClose} wide>
       {step === 'choose' && (
         <div className="flex flex-col gap-4">
-          <div className="rounded-ledger border-2 border-dashed border-paper-line bg-paper-edge px-6 py-10 text-center">
+          <div className="flex flex-col items-center rounded-ledger border-2 border-dashed border-paper-line bg-paper-edge px-6 py-10 text-center">
+            <span className="mb-3"><UploadBadge /></span>
             <p className="mb-1 text-[16px] font-bold">Choose your .xlsx or .csv file</p>
             <p className="mb-4 text-sm text-ink-soft">Up to 5 MB and 20 sheets. We read every sheet and every formula and rebuild them as tables, columns and links. Formulas are read as text, never run. Macros are refused.</p>
-            <input ref={fileInput} type="file" accept=".xlsx,.csv,.tsv,.txt" className="hidden" onChange={(event) => void chooseFile(event)} aria-label="Choose a file" />
-            <Button onClick={() => fileInput.current?.click()} disabled={loading}>
-              {loading ? 'Reading…' : 'Choose a file'}
-            </Button>
+            <ChooseFile accept=".xlsx,.csv,.tsv,.txt" onChange={(event) => void chooseFile(event)} loading={loading} />
           </div>
           {problem && (
             <p role="alert" className="text-sm text-rust">
