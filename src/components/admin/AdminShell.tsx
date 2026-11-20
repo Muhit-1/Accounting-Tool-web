@@ -1,3 +1,4 @@
+import { LogOut } from 'lucide-react'
 import { NavLink, Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../lib/auth-context'
 import { ROLE_LABEL } from '../../lib/admin-format'
@@ -71,7 +72,12 @@ export function AdminShell() {
           <div className="border-t border-white/10 px-3.5 pt-3.5 text-[12.5px] text-ink-inverse-soft">
             <b className="block truncate text-[13.5px] text-white">{user?.name}</b>
             {ROLE_LABEL[(user?.role ?? 'ADMIN') as UserRole]} · signed in on the web
-            <button type="button" onClick={logout} className="mt-2 block font-semibold text-white underline underline-offset-2">
+            <button
+              type="button"
+              onClick={logout}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-white/25 bg-white/[0.06] px-3 py-2 text-[13.5px] font-semibold text-white transition-colors hover:border-white/40 hover:bg-white/[0.14]"
+            >
+              <LogOut width={16} height={16} strokeWidth={1.9} aria-hidden />
               Sign out
             </button>
           </div>
