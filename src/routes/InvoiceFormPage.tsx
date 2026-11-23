@@ -6,6 +6,7 @@ import { useBusiness, useUpdateBusiness } from '../lib/businesses'
 import { useClients, useCreateClient } from '../lib/clients'
 import { useCreateInvoice, useInvoice, useNextInvoiceNumber, useUpdateInvoice } from '../lib/invoices'
 import { addDaysIso, PAYMENT_LABELS, previewLines, samePayment, type DraftLine, type PaymentDetails } from '../lib/invoice-preview'
+import { todayIso } from '../lib/grid-parse'
 import { useToast } from '../lib/toast-context'
 import type { Business, Client, Invoice } from '../types/api'
 import { InvoicePreview } from '../components/invoicing/InvoicePreview'
@@ -78,7 +79,8 @@ function InvoiceForm({ businessId, business, clients, invoice, defaultNumber }: 
   const updateBusiness = useUpdateBusiness(businessId)
   const createClient = useCreateClient(businessId)
 
-  const today = new Date().toISOString().slice(0, 10)
+  // the viewer's own day: a Dhaka morning is already the next day in UTC
+  const today = todayIso()
   const [clientId, setClientId] = useState(invoice?.clientId ?? '')
   const [addingClient, setAddingClient] = useState(false)
   const [newClient, setNewClient] = useState({ name: '', address: '', email: '' })

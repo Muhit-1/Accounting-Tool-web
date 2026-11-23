@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { todayIso } from '../../lib/grid-parse'
 import { useCreateTransaction, useUpdateTransaction, useUploadReceipt, type TransactionInput } from '../../lib/transactions'
 import { ApiError } from '../../lib/api-client'
 import { groupCategories } from '../../lib/category-groups'
@@ -72,7 +73,7 @@ export function TransactionForm({
   const [boxesByType, setBoxesByType] = useState(() => initialBoxes(transaction))
   const [addToMemo, setAddToMemo] = useState(false)
   const [date, setDate] = useState(
-    transaction ? transaction.date.slice(0, 10) : (initialDate ?? new Date().toISOString().slice(0, 10)),
+    transaction ? transaction.date.slice(0, 10) : (initialDate ?? todayIso()),
   )
   const [categoryId, setCategoryId] = useState(transaction?.category?.id ?? '')
   const [counterparty, setCounterparty] = useState(

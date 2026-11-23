@@ -19,7 +19,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useBusiness, useBusinessSummaries } from '../../lib/businesses'
 import { areaOfItem, activeItem, AREAS, compactAmount, initials, type AreaKey, type ItemKey } from '../../lib/side-menu'
 import { useTables } from '../../lib/tables'
-import { landingTableId } from '../../lib/workspace-landing'
+import { CASHBOOK_KEY, pickTabKey } from '../../lib/workspace-landing'
 import { BusinessSwitcher } from './BusinessSwitcher'
 import { SetupChecklist } from './SetupChecklist'
 
@@ -102,7 +102,10 @@ export function SideMenu({ businessId, tableOnly, canManage, open, setOpen, layo
   const own = (tables ?? []).filter((t) => t.kind === 'TABLE')
   const tab = new URLSearchParams(location.search).get('tab')
   // With no ?tab, a business nobody has touched opens its first table (lib/workspace-landing), so that one is lit.
-  const landing = tab === null && !location.pathname.startsWith(`${base}/accounts`) ? landingTableId(tables) : null
+  // The page itself shows pickTabKey's choice (the first tab once a business has been touched, and a new business lists
+  // Sheet1 before the Cash book), so the menu must light the same one.
+  const opened = tab === null && tables && !location.pathname.startsWith(`${base}/accounts`) ? pickTabKey(tables, null) : undefined
+  const landing = opened && opened !== CASHBOOK_KEY ? opened : null
   const active: ItemKey | null = activeItem({ pathname: location.pathname, base, tab, landing, tableIds: own.map((t) => t.id) })
   const pageArea = tableOnly ? 'tables' : areaOfItem(active)
 
