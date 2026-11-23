@@ -1,22 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { GoogleSignInButton } from '../GoogleSignInButton'
-import { formatWhole, heroEntryAt, HERO_START_BALANCE, stagger } from '../../lib/landing'
+import { stagger } from '../../lib/landing'
 import { prefersReducedMotion } from '../../lib/use-landing-nav'
 import { LandingPanel } from './LandingPanel'
 import { SignInNote } from './SignInNote'
-
-interface Line {
-  key: number
-  memo: string
-  tag: string
-  amount: number
-}
-
-const START_LINES: Line[] = [
-  { key: -1, memo: 'Order ORD-0042', tag: 'from Orders', amount: 6300 },
-  { key: -2, memo: 'Packaging', tag: '', amount: -2150 },
-  { key: -3, memo: 'Order ORD-0041', tag: 'from Orders', amount: 4800 },
-]
 
 // A message above the headline: a failed sign-in, or a notice set in the admin panel.
 export interface LandingAlert {
@@ -25,35 +12,22 @@ export interface LandingAlert {
 }
 
 export function HeroPanel({ active, go, alerts }: { active: boolean; go: (page: number) => void; alerts: LandingAlert[] }) {
-  const [lines, setLines] = useState(START_LINES)
-  const [balance, setBalance] = useState(HERO_START_BALANCE)
-  const [shake, setShake] = useState(0)
-  const [lockedMessage, setLockedMessage] = useState(false)
-  const arrived = useRef(0)
-  const messageTimer = useRef<number | undefined>(undefined)
+  const video = useRef<HTMLVideoElement>(null)
+  const reduce = prefersReducedMotion()
 
-  // A new line lands in the Cash book every few seconds while this page is showing.
+  // The tour plays by itself, from the start, whenever this page comes to the front, and stops while it is away
+  // (a video nobody can see should not keep decoding). With reduced motion it does not start: the picture shows
+  // and the controls are there.
   useEffect(() => {
-    if (!active || prefersReducedMotion()) return
-    const id = window.setInterval(() => {
-      if (document.hidden) return
-      const n = arrived.current++
-      const entry = heroEntryAt(n)
-      setLines((old) => [{ key: n, memo: entry.memo, tag: entry.tag, amount: entry.amount }, ...old].slice(0, 4))
-      setBalance(entry.balance)
-    }, 3800)
-    return () => window.clearInterval(id)
-  }, [active])
-
-  useEffect(() => () => window.clearTimeout(messageTimer.current), [])
-
-  // The balance cannot be typed over; clicking it says so.
-  function pokeBalance() {
-    setShake((s) => s + 1)
-    setLockedMessage(true)
-    window.clearTimeout(messageTimer.current)
-    messageTimer.current = window.setTimeout(() => setLockedMessage(false), 2600)
-  }
+    const el = video.current
+    if (!el || reduce) return
+    if (active) {
+      el.currentTime = 0
+      el.play().catch(() => {})
+    } else {
+      el.pause()
+    }
+  }, [active, reduce])
 
   return (
     <LandingPanel id="lp-home" tabId="lp-tab-home" active={active} ghost="Exin">
@@ -98,49 +72,22 @@ export function HeroPanel({ active, go, alerts }: { active: boolean; go: (page: 
             <i />
             <i />
           </span>
-          Linen Shop · Cash book
+          Exin Finance · a one minute tour
+          <span className="tchip">1:00</span>
         </div>
-        <div className="bal">
-          <small>
-            <span>Balance</span>
-            <em>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                <rect x="2" y="5.5" width="8" height="5.5" rx="1" />
-                <path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" />
-              </svg>
-              locked
-            </em>
-          </small>
-          <button type="button" className="balbtn" onClick={pokeBalance} aria-describedby="lp-balmsg">
-            <span key={shake} className={`big${shake ? ' shake' : ''}`}>
-              <u>BDT</u>
-              {formatWhole(balance)}
-            </span>
-          </button>
-          <div className={`msg${lockedMessage ? ' on' : ''}`} id="lp-balmsg" role="status">
-            {lockedMessage ? 'Locked. It’s worked out from your entries.' : ''}
-          </div>
-        </div>
-        <ul className="ent">
-          {lines.map((l) => (
-            <li key={l.key}>
-              <span>
-                {l.memo}
-                {l.tag && <em>{l.tag}</em>}
-              </span>
-              <b className={`num ${l.amount > 0 ? 'up' : 'dn'}`}>
-                {l.amount > 0 ? '+' : '−'}
-                {formatWhole(l.amount)}
-              </b>
-            </li>
-          ))}
-        </ul>
-        <div className="sheettabs" aria-hidden="true">
-          <span>Sheet1</span>
-          <span className="on">Cash book</span>
-          <span>Orders</span>
-          <span>＋</span>
-        </div>
+        <video
+          ref={video}
+          className="tourvideo"
+          src="/exin-tour.mp4"
+          poster="/exin-tour-poster.jpg"
+          muted
+          loop
+          playsInline
+          autoPlay={!reduce}
+          controls={reduce}
+          preload="auto"
+          aria-label="A one minute tour: sign in with Google, the Cash book, tables with formulas, invoices, and sharing with an end date."
+        />
       </div>
     </LandingPanel>
   )

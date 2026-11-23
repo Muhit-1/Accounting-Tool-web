@@ -207,8 +207,7 @@
 
 .lp .in>.win,.lp .in>.paper-wrap{align-self:start;margin-top:calc(30*var(--u))}
 .lp .tour,.lp .hero-win{display:flex;flex-direction:column;height:calc(500*var(--u))}
-.lp .hero-win .ent{flex:1;height:auto}
-.lp .hero-win .bal{flex:none}
+.lp .tourvideo{display:block;flex:1;min-height:0;width:100%;object-fit:contain;background:var(--bg)}
 .lp .tour .bar{flex:none}
 .lp .tchip{margin-left:auto;font-family:var(--mono);font-size:calc(12.5*var(--u));border:1px solid var(--line2);border-radius:99px;padding:2px 11px;color:var(--txt)}
 .lp .tbody{position:relative;flex:1;min-height:0;overflow:hidden}
