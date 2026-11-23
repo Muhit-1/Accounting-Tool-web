@@ -13,6 +13,9 @@ export function LegalFooter({ className = '' }: { className?: string }) {
         <Link to="/terms" className={linkClass}>
           Terms of Service
         </Link>
+        <Link to="/dpa" className={linkClass}>
+          Data Processing Agreement
+        </Link>
         <a href="https://www.sam-trek.com/impressum/" target="_blank" rel="noopener noreferrer" className={linkClass}>
           Legal notice<span className="sr-only"> (opens in a new tab)</span>
         </a>

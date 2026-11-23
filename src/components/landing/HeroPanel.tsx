@@ -56,7 +56,7 @@ export function HeroPanel({ active, go, alerts }: { active: boolean; go: (page: 
   }
 
   return (
-    <LandingPanel id="lp-home" tabId="lp-tab-home" active={active} ghost="Sheet1">
+    <LandingPanel id="lp-home" tabId="lp-tab-home" active={active} ghost="Exin">
       <div>
         {alerts.map((a) => (
           <p key={a.text} className={`alert ${a.kind}`} role={a.kind === 'error' ? 'alert' : 'status'}>
@@ -91,7 +91,7 @@ export function HeroPanel({ active, go, alerts }: { active: boolean; go: (page: 
         </div>
       </div>
 
-      <div className="win" data-r="" style={stagger(2)}>
+      <div className="win hero-win" data-r="" style={stagger(2)}>
         <div className="bar">
           <span className="dots" aria-hidden="true">
             <i />

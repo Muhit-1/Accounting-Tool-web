@@ -7,6 +7,7 @@ import { formatMoney, formatPerCurrency } from '../lib/format'
 import { useCombinedDashboard } from '../lib/dashboard'
 import { Panel } from '../components/Panel'
 import { ThemePicker } from '../components/settings/ThemePicker'
+import { MyDataPanel } from '../components/account/MyDataPanel'
 
 export function AccountPage() {
   const { user } = useAuth()
@@ -72,6 +73,10 @@ export function AccountPage() {
           <p className="px-5 pt-4 text-[13.5px] text-ink-soft">Pick the colours of Exin Finance. It is kept in this browser.</p>
           <ThemePicker />
         </Panel>
+      </div>
+
+      <div id="your-data" className="rise rise-2 mb-8 scroll-mt-4">
+        <MyDataPanel />
       </div>
 
       <div className="rise rise-2 grid grid-cols-1 items-start gap-7 lg:grid-cols-2">

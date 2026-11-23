@@ -1,15 +1,19 @@
-import { useState } from 'react'
 import { stagger } from '../../lib/landing'
+import { useTour } from '../../lib/use-tour'
 import { LandingPanel } from './LandingPanel'
+import { TourSteps, TourWindow, type TourStep } from './Tour'
 
-const STATUSES = [
-  { label: 'Draft', message: 'Draft: you can still edit it.' },
-  { label: 'Sent', message: 'Sent: locked for editing now.' },
-  { label: 'Paid', message: 'Paid. Posted to the Cash book as USD +2,040.00.' },
+const STEPS: TourStep[] = [
+  { title: 'Fill in the first line', text: 'The invoice shows as it will print, while you type.', cursor: { x: 70, y: 158 } },
+  { title: 'Add lines, the total adds up', text: 'Numbers count up on their own.', cursor: { x: 80, y: 250 } },
+  { title: 'Send it', text: 'Once sent, it is locked for editing. The PDF is ready.', cursor: { x: 88, y: 18 } },
+  { title: 'Mark it paid', text: 'It can post to the Cash book for you.', cursor: { x: 70, y: 285 } },
 ]
 
+const STATUS = ['Draft', 'Draft', 'Sent', 'Paid']
+
 export function InvoicesPanel({ active }: { active: boolean }) {
-  const [status, setStatus] = useState(0)
+  const { step, pick } = useTour(active, STEPS.length)
 
   return (
     <LandingPanel id="lp-invoices" tabId="lp-tab-invoices" active={active} ghost="Invoices">
@@ -24,20 +28,20 @@ export function InvoicesPanel({ active }: { active: boolean }) {
           See the invoice as it will print while you fill it in. Numbers count up on their own. Paid invoices can post to
           the Cash book.
         </p>
-        <div className="steps" role="group" aria-label="Invoice status" data-r="" style={stagger(3)}>
-          {STATUSES.map((s, i) => (
-            <button key={s.label} type="button" aria-pressed={i === status} onClick={() => setStatus(i)}>
-              {s.label}
-            </button>
-          ))}
-        </div>
-        <p className="toast" role="status">
-          {STATUSES[status].message}
-        </p>
+        <TourSteps steps={STEPS} step={step} onPick={pick} />
       </div>
 
-      <div className="paper-wrap" data-r="" style={stagger(2)}>
-        <div className="paper">
+      <TourWindow
+        title="Trail Gear · Invoice"
+        steps={STEPS}
+        step={step}
+        chip={
+          <span key={STATUS[step]} className={`stat s${STATUS[step]}`}>
+            {STATUS[step]}
+          </span>
+        }
+      >
+        <div className="paper tourpaper">
           <div className="h">
             <div>
               <strong className="t">Invoice 0014</strong>
@@ -63,22 +67,29 @@ export function InvoicesPanel({ active }: { active: boolean }) {
                 <td className="num r">20</td>
                 <td className="num r">1,800.00</td>
               </tr>
-              <tr>
+              <tr className={`rv${step >= 1 ? ' on' : ''}`}>
                 <td>Rain cover</td>
                 <td className="num r">20</td>
                 <td className="num r">240.00</td>
               </tr>
             </tbody>
           </table>
-          <div className="tot">
+          <div className={`tot rv${step >= 1 ? ' on' : ''}`}>
             <span>Total</span>
             <span className="num">USD 2,040.00</span>
           </div>
+          <div className={`stamp${step === 3 ? ' on' : ''}`}>PAID</div>
         </div>
-        <div className={`stamp${status === 2 ? ' on' : ''}`} aria-hidden="true">
-          PAID
+        <div className={`ttoast rv${step >= 2 ? ' on' : ''}`}>
+          {step === 3 ? (
+            <>
+              ✓ Posted to Cash book: <b className="num">USD +2,040.00</b>
+            </>
+          ) : (
+            <>✓ Sent · PDF ready to download</>
+          )}
         </div>
-      </div>
+      </TourWindow>
     </LandingPanel>
   )
 }

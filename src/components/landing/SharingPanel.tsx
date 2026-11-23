@@ -1,29 +1,20 @@
-import { useState } from 'react'
 import { stagger } from '../../lib/landing'
+import { useTour } from '../../lib/use-tour'
 import { LandingPanel } from './LandingPanel'
+import { TourSteps, TourWindow, type TourStep } from './Tour'
 
-const FACTS = [
-  ['Lock a period', 'Pick a date; nothing before it changes.'],
-  ['History', 'Who changed what, and when.'],
-  ['Trash', 'Deleted rows wait 30 days.'],
-  ['Export', 'Excel with formulas, or a full copy.'],
-]
+const FACTS = ['Lock a period', 'History of changes', 'Trash for 30 days', 'Export to Excel']
 
-const PEOPLE = [
-  { id: 'rina', initials: 'RA', name: 'Rina, accountant', detail: 'Whole business · until 30 Nov', level: 'View' },
-  { id: 'tanvir', initials: 'TK', name: 'Tanvir, packing', detail: 'Orders table only · until 15 Dec', level: 'Edit' },
+const STEPS: TourStep[] = [
+  { title: 'Share a business or one table', text: 'Pick the person and what they may open.', cursor: { x: 40, y: 262 } },
+  { title: 'Choose View or Edit', text: 'View only looks. Edit can change rows.', cursor: { x: 80, y: 166 } },
+  { title: 'Set an end date', text: 'Access stops on its own. Nothing to remember.', cursor: { x: 38, y: 166 } },
+  { title: 'The date passes', text: 'Access ended. Share again with one click.', cursor: { x: 90, y: 300 } },
 ]
 
 export function SharingPanel({ active }: { active: boolean }) {
-  const [ended, setEnded] = useState<Set<string>>(new Set())
-
-  function toggle(id: string) {
-    setEnded((old) => {
-      const next = new Set(old)
-      if (!next.delete(id)) next.add(id)
-      return next
-    })
-  }
+  const { step, pick } = useTour(active, STEPS.length)
+  const ended = step === 3
 
   return (
     <LandingPanel id="lp-sharing" tabId="lp-tab-sharing" active={active} ghost="Shared">
@@ -34,50 +25,44 @@ export function SharingPanel({ active }: { active: boolean }) {
         <h2 data-r="" style={stagger(1)}>
           Access that <b>ends on a date.</b>
         </h2>
-        <dl className="facts" data-r="" style={stagger(2)}>
-          {FACTS.map(([term, text]) => (
-            <div key={term}>
-              <dt>{term}</dt>
-              <dd>{text}</dd>
-            </div>
+        <TourSteps steps={STEPS} step={step} onPick={pick} />
+        <div className="proof" data-r="" style={stagger(4)}>
+          {FACTS.map((f) => (
+            <span key={f}>{f}</span>
           ))}
-        </dl>
-      </div>
-
-      <div className="win shr" data-r="" style={stagger(2)}>
-        {PEOPLE.map((p) => {
-          const isEnded = ended.has(p.id)
-          return (
-            <div key={p.id} className={`who${isEnded ? ' ended' : ''}`}>
-              <span className="av" aria-hidden="true">
-                {p.initials}
-              </span>
-              <div>
-                <b>{p.name}</b>
-                <small>{isEnded ? 'Access ended' : p.detail}</small>
-              </div>
-              <div className="acts">
-                <span className={`badge${p.level === 'Edit' ? ' e' : ''}`}>{p.level}</span>
-                <button
-                  type="button"
-                  className="endbtn"
-                  aria-label={isEnded ? `Share again with ${p.name}` : `Stop sharing with ${p.name}`}
-                  onClick={() => toggle(p.id)}
-                >
-                  {isEnded ? 'Share again' : 'Stop'}
-                </button>
-              </div>
-            </div>
-          )
-        })}
-        <div className="who add">
-          <span className="av" aria-hidden="true">
-            +
-          </span>
-          <div>Share a business or one table</div>
-          <span />
         </div>
       </div>
+
+      <TourWindow title="Linen Shop · Sharing" steps={STEPS} step={step} chip={ended ? 'Today 16 Dec' : 'Today 10 Dec'}>
+        <div className="shr">
+          <div className="who">
+            <span className="av">RA</span>
+            <div>
+              <b>Rina, accountant</b>
+              <small>Whole business · until 30 Dec</small>
+            </div>
+            <div className="acts">
+              <span className="badge">View</span>
+            </div>
+          </div>
+          <div className={`who rv${step >= 0 ? ' on' : ''}${ended ? ' ended' : ''}`}>
+            <span className="av">TK</span>
+            <div>
+              <b>Tanvir, packing</b>
+              <small>{ended ? 'Access ended' : step >= 2 ? 'Orders table only · until 15 Dec' : 'Orders table only · no end date'}</small>
+            </div>
+            <div className="acts">
+              <span className={`badge${step >= 1 && !ended ? ' e' : ''}`}>{step >= 1 ? 'Edit' : 'View'}</span>
+              <span className="endbtn">{ended ? 'Share again' : 'Stop'}</span>
+            </div>
+          </div>
+          <div className="who add">
+            <span className="av">+</span>
+            <div>Share a business or one table</div>
+            <span />
+          </div>
+        </div>
+      </TourWindow>
     </LandingPanel>
   )
 }

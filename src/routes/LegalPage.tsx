@@ -9,6 +9,7 @@ import type { LegalDocument } from '../types/api'
 const FALLBACK_TITLES: Record<LegalDocument['slug'], string> = {
   privacy: 'Privacy Policy',
   terms: 'Terms of Service',
+  dpa: 'Data Processing Agreement',
 }
 
 // The API sends plain text only. URLs and email addresses are turned into

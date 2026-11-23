@@ -5,7 +5,7 @@ export function prefersReducedMotion(): boolean {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-const PAGE_MS = 900
+const PAGE_MS = 1300
 
 // Which page of the public home page is showing, and every way of changing it:
 // tabs, arrows, keys, mouse wheel, swipe and the address-bar hash (#cash). The
@@ -17,7 +17,6 @@ export function useLandingNav(rootRef: RefObject<HTMLElement | null>) {
   const pageRef = useRef(page)
   const navEnd = useRef(0)
   const lastBlocked = useRef(0)
-  const seamRef = useRef<HTMLDivElement>(null)
   // A tab had the keyboard focus when the page changed: the new tab takes it over.
   const refocusTab = useRef(false)
 
@@ -33,21 +32,6 @@ export function useLandingNav(rootRef: RefObject<HTMLElement | null>) {
       setPage(next)
       const reduce = prefersReducedMotion()
       navEnd.current = performance.now() + (reduce ? 60 : PAGE_MS)
-      // A thin brass line sweeps the way the pages travel.
-      const seam = seamRef.current
-      if (!reduce && seam?.animate) {
-        const start = forward ? 'calc(100vw - 2px)' : '0px'
-        const end = forward ? '0px' : 'calc(100vw - 2px)'
-        seam.animate(
-          [
-            { transform: `translateX(${start})`, opacity: 0 },
-            { opacity: 1, offset: 0.18 },
-            { opacity: 1, offset: 0.8 },
-            { transform: `translateX(${end})`, opacity: 0 },
-          ],
-          { duration: 950, easing: 'cubic-bezier(.77,0,.18,1)' },
-        )
-      }
     },
     [rootRef],
   )
@@ -86,13 +70,15 @@ export function useLandingNav(rootRef: RefObject<HTMLElement | null>) {
 
     function onWheel(e: WheelEvent) {
       const panel = root!.querySelector<HTMLElement>('[data-panel][data-active="true"]')
+      // A page that does not scroll (computers: it is fitted to the window) never holds the wheel back.
+      const scrolls = !!panel && getComputedStyle(panel).overflowY !== 'hidden'
       const now = performance.now()
       const result = wheelAction({
         deltaX: e.deltaX,
         deltaY: e.deltaY,
         scrollTop: panel?.scrollTop ?? 0,
         clientHeight: panel?.clientHeight ?? 0,
-        scrollHeight: panel?.scrollHeight ?? 0,
+        scrollHeight: scrolls ? (panel?.scrollHeight ?? 0) : (panel?.clientHeight ?? 0),
         now,
         navEnd: navEnd.current,
         lastBlocked: lastBlocked.current,
@@ -151,5 +137,5 @@ export function useLandingNav(rootRef: RefObject<HTMLElement | null>) {
     }
   }, [go, rootRef])
 
-  return { page, dir, go, ready, seamRef }
+  return { page, dir, go, ready }
 }

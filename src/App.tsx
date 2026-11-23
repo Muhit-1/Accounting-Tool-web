@@ -45,6 +45,7 @@ export default function App() {
       {/* Public on purpose (Google's OAuth review needs login-free URLs): outside ProtectedRoute. */}
       <Route path="/privacy" element={<LegalPage slug="privacy" />} />
       <Route path="/terms" element={<LegalPage slug="terms" />} />
+      <Route path="/dpa" element={<LegalPage slug="dpa" />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<StaffRoute />}>
           <Route

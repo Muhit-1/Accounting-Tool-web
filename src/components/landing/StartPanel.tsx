@@ -6,7 +6,7 @@ import { SignInNote } from './SignInNote'
 
 export function StartPanel({ active }: { active: boolean }) {
   return (
-    <LandingPanel id="lp-start" tabId="lp-tab-start" active={active} ghost="Sheet1" className="cta-p">
+    <LandingPanel id="lp-start" tabId="lp-tab-start" active={active} ghost="Exin" className="cta-p">
       <div className="kick" data-r="" style={stagger(0)}>
         Ready when you are
       </div>

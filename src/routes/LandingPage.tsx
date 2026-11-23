@@ -21,7 +21,7 @@ const TITLE = 'Exin Finance — bookkeeping that feels like a sheet'
 // lib/use-landing-nav. Colours and fonts are the app's own (see landing.css).
 export function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null)
-  const { page, dir, go, ready, seamRef } = useLandingNav(rootRef)
+  const { page, dir, go, ready } = useLandingNav(rootRef)
   const tabEls = useRef<(HTMLButtonElement | null)[]>([])
   const tabsRef = useRef<HTMLElement>(null)
   const indRef = useRef<HTMLElement>(null)
@@ -73,9 +73,7 @@ export function LandingPage() {
   const rootStyle = { '--i': page, '--dir': dir } as CSSProperties
 
   return (
-    <div ref={rootRef} className={`lp${ready ? ' ready' : ''}`} style={rootStyle}>
-      <div className="bgfx" aria-hidden="true" />
-      <div className="seam" ref={seamRef} aria-hidden="true" />
+    <div ref={rootRef} className={`lp${ready ? ' ready' : ''}`} style={rootStyle} data-page={page}>
 
       <header>
         <a
@@ -116,14 +114,12 @@ export function LandingPage() {
       </header>
 
       <main>
-        <div className="track" style={{ transform: `translateX(${-page * 100}%)` }}>
-          <HeroPanel active={page === 0} go={go} alerts={alerts} />
-          <CashBookPanel active={page === 1} />
-          <TablesPanel active={page === 2} />
-          <InvoicesPanel active={page === 3} />
-          <SharingPanel active={page === 4} />
-          <StartPanel active={page === 5} />
-        </div>
+        <HeroPanel active={page === 0} go={go} alerts={alerts} />
+        <CashBookPanel active={page === 1} />
+        <TablesPanel active={page === 2} />
+        <InvoicesPanel active={page === 3} />
+        <SharingPanel active={page === 4} />
+        <StartPanel active={page === 5} />
       </main>
 
       <footer>

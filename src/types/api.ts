@@ -196,7 +196,7 @@ export interface LegalSection {
 }
 
 export interface LegalDocument {
-  slug: 'privacy' | 'terms'
+  slug: 'privacy' | 'terms' | 'dpa'
   title: string
   version: string
   effectiveDate: string
